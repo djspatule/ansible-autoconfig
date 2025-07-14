@@ -15,7 +15,7 @@
         - micro
       state: latest
       update_cache: yes
-    when: ansible_distribution in ["Debian", "Ubuntu"]
+    #when: ansible_distribution in ["Debian", "Ubuntu"]
   - name: copy wallpaper file
     copy:
       src: files/abstract.jpg
