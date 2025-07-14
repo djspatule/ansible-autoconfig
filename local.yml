@@ -179,7 +179,7 @@
     become: true
     package:
       name:
-        - gnome-shell-extension-1460-vitals
+        - gnome-shell-extension-vitals-git
         - gnome-shell-extension-gsconnect
         - gnome-shell-extension-clipboard-history
 
