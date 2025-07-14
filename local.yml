@@ -171,6 +171,27 @@
       key: "{{ item.key }}"
       value: "{{ item.value }}"
 
+    ####################
+    # gnome extensions #
+    ####################
+
+  - name: install extensions
+    become: true
+    package:
+      name:
+        - gnome-shell-extension-vitals
+        - gnome-shell-extension-emoji-selector
+
+  - name: Enable gnome extensions
+    become_user: lion
+    dconf:
+      key: "/org/gnome/shell/enabled-extensions"
+      value: "['gsconnect@andyholmes.github.io', 'Vitals@CoreCoding.com', 'clipboard-history@alexsaveau.dev']"
+
+    ####################
+    # the rest         # 
+    ####################
+
   - name: copy .bashrc file
     copy:
      src: files/bashrc
