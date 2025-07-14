@@ -60,6 +60,28 @@
       key: "{{ item.key }}"
       value: "{{ item.value }}"
 
+  - name: Configure GNOME interface settings
+    become_user: lion
+    loop:
+      - { key: "/org/gnome/desktop/interface/accent-color", value: "'green'" }
+      - { key: "/org/gnome/desktop/interface/clock-format", value: "'24h'" }
+      - { key: "/org/gnome/desktop/interface/clock-show-weekday", value: "true" }
+      - { key: "/org/gnome/desktop/interface/color-scheme", value: "'prefer-dark'" }
+      - { key: "/org/gnome/desktop/interface/cursor-theme", value: "'Yaru'" }
+      - { key: "/org/gnome/desktop/interface/font-antialiasing", value: "'grayscale'" }
+      - { key: "/org/gnome/desktop/interface/font-hinting", value: "'slight'" }
+      - { key: "/org/gnome/desktop/interface/font-name", value: "'Ubuntu Sans 11'" }
+      - { key: "/org/gnome/desktop/interface/gtk-theme", value: "'Yaru'" }
+      - { key: "/org/gnome/desktop/interface/icon-theme", value: "'Yaru'" }
+      - { key: "/org/gnome/desktop/interface/locate-pointer", value: "true" }
+      - { key: "/org/gnome/desktop/interface/show-battery-percentage", value: "true" }
+      - { key: "/org/gnome/desktop/interface/toolkit-accessibility", value: "false" }
+    loop_control:
+      label: "{{ item.key }}"
+    community.general.dconf:
+      key: "{{ item.key }}"
+      value: "{{ item.value }}"
+
   - name: copy .bashrc file
     copy:
      src: files/bashrc
