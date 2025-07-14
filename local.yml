@@ -4,6 +4,9 @@
   become: true
 
   tasks:
+  - name: apt update
+    apt
+      update_cache: yes
   - name: install packages
     package:
       name:
