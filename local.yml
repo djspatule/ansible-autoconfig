@@ -8,7 +8,7 @@
     package:
       name:
         - btop
-        - psutils
+        - python3-psutil
 
   - name: copy wallpaper file
     copy:
