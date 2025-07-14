@@ -7,25 +7,23 @@
   - name: install packages
     package:
       name:
-        - htop
-        - tmux
-        - vim-nox
+        - btop
 
   - name: copy wallpaper file
     copy:
-      src: files/wallpaper.png
+      src: files/abstract.jpg
       dest: /usr/share/backgrounds/ansible-wallpaper.png
       owner: root
       group: root
 
   - name: set wallpaper
-    become_user: jay
+    become_user: lion
     dconf:
       key: "/org/gnome/desktop/background/picture-uri"
       value: "'file:///usr/share/backgrounds/ansible-wallpaper.png'"
 
   - name: set wallpaper position
-    become_user: jay
+    become_user: lion
     dconf:
       key: "/org/gnome/desktop/background/picture-options"
       value: "'zoom'"
@@ -33,9 +31,9 @@
   - name: copy .bashrc file
     copy:
      src: files/bashrc
-     dest: /home/jay/.bashrc
-     owner: jay
-     group: jay
+     dest: /home/lion/.bashrc
+     owner: lion
+     group: lion
 
   - name: add ansible user
     user:
@@ -55,4 +53,4 @@
       name: ansible auto-provision
       user: velociraptor
       minute: "*/10"
-      job: ansible-pull -o -U https://github.com/jlacroix82/ansible_pull_tutorial.git
+      job: ansible-pull -o -U https://github.com/djspatule/ansible-autoconfig.git
