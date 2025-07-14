@@ -159,6 +159,12 @@
       - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom6/command", value: "'catfish'" }
       - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom6/binding", value: "'<Super>space'" }
 
+      # Vitals extension settings
+      - { key: "/org/gnome/shell/extensions/vitals/hot-sensors", value: "['_memory_usage_', '_processor_usage_', '__network-rx_max__']" }
+      - { key: "/org/gnome/shell/extensions/vitals/icon-style", value: "1" }
+      - { key: "/org/gnome/shell/extensions/vitals/show-battery", value: "false" }
+      - { key: "/org/gnome/shell/extensions/vitals/storage-path", value: "'/home'" }
+
     loop_control:
       label: "{{ item.key }}"
     community.general.dconf:
