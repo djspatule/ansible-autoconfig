@@ -32,6 +32,12 @@
       key: "/org/gnome/desktop/background/picture-options"
       value: "'zoom'"
 
+  - name: set keyboard pref
+    become_user: lion
+    dconf:
+      key: "/org/gnome/desktop/input-sources"
+      value: "[('xkb', 'fr')]"      
+
   - name: copy .bashrc file
     copy:
      src: files/bashrc
