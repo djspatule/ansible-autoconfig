@@ -8,6 +8,7 @@
     package:
       name:
         - btop
+        - psutil
 
   - name: copy wallpaper file
     copy:
