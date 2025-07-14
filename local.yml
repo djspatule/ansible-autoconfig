@@ -26,6 +26,12 @@
       key: "/org/gnome/desktop/background/picture-uri"
       value: "'file:///usr/share/backgrounds/abstract.jpg'"
 
+  - name: set wallpaper in adrk mode
+    become_user: lion
+    dconf:
+      key: "/org/gnome/desktop/background/picture-uri-dark"
+      value: "'file:///usr/share/backgrounds/abstract.jpg'"
+
   - name: set wallpaper position
     become_user: lion
     dconf:
