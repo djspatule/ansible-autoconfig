@@ -175,19 +175,19 @@
     # gnome extensions #
     ####################
 
-  #- name: install extensions
-  #  become: true
-  #  package:
-  #    name:
-  #      - gnome-shell-extension-vitals-git
+  - name: install extensions
+    become: true
+    package:
+      name:
+        - gnome-shell-extension-1460
   #      - gnome-shell-extension-gsconnect
   #      - gnome-shell-extension-clipboard-history
 
-  #- name: Enable gnome extensions
-  #  become_user: lion
-  #  dconf:
-  #    key: "/org/gnome/shell/enabled-extensions"
-  #  value: "['gsconnect@andyholmes.github.io', 'Vitals@CoreCoding.com', 'clipboard-history@alexsaveau.dev']"
+  - name: Enable gnome extensions
+    become_user: lion
+    dconf:
+      key: "/org/gnome/shell/enabled-extensions"
+    value: "['Vitals@CoreCoding.com' ]" #gsconnect@andyholmes.github.io', 'clipboard-history@alexsaveau.dev'
 
     ####################
     # the rest         # 
