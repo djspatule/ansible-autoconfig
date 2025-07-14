@@ -12,7 +12,6 @@
         - starship
         - zoxide
         - micro
-        - 
 
   - name: copy wallpaper file
     copy:
