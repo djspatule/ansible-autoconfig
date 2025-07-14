@@ -179,8 +179,9 @@
     become: true
     package:
       name:
-        - gnome-shell-extension-vitals
-        - gnome-shell-extension-emoji-selector
+        - gnome-shell-extension-1460-vitals
+        - gnome-shell-extension-gsconnect
+        - gnome-shell-extension-clipboard-history
 
   - name: Enable gnome extensions
     become_user: lion
