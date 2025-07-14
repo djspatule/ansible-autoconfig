@@ -128,6 +128,37 @@
       - { key: "/org/gnome/nautilus/preferences/search-view", value: "'list-view'" }
       - { key: "/org/gnome/nautilus/preferences/show-directory-item-counts", value: "'always'" }
 
+      # Custom keyboard shortcuts
+      - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings", value: "['/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom2/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom3/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom4/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom5/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom6/']" }
+
+      - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/name", value: "'Nautilus'" }
+      - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/command", value: "'nautilus'" }
+      - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/binding", value: "'<Super>e'" }
+
+      - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/name", value: "'Terminal'" }
+      - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/command", value: "'gnome-terminal'" }
+      - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/binding", value: "'<Super>t'" }
+
+      - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom2/name", value: "'Char'" }
+      - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom2/command", value: "'/usr/bin/gnome-characters'" }
+      - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom2/binding", value: "'<Shift><Super>semicolon'" }
+
+      - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom3/name", value: "'Calc'" }
+      - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom3/command", value: "'gnome-calculator'" }
+      - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom3/binding", value: "'<Super>c'" }
+
+      - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom4/name", value: "'espanso restart'" }
+      - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom4/command", value: "'espanso restart'" }
+      - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom4/binding", value: "'<Shift><Super>twosuperior'" }
+
+      - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom5/name", value: "'screenshot print screen'" }
+      - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom5/command", value: "'script --command \"flameshot gui\" /dev/null'" }
+      - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom5/binding", value: "'Print'" }
+
+      - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom6/name", value: "'search (catsfish)'" }
+      - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom6/command", value: "'catfish'" }
+      - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom6/binding", value: "'<Super>space'" }
+
     loop_control:
       label: "{{ item.key }}"
     community.general.dconf:
