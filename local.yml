@@ -187,7 +187,7 @@
     become_user: lion
     dconf:
       key: "/org/gnome/shell/enabled-extensions"
-    value: "['Vitals@CoreCoding.com' ]" #gsconnect@andyholmes.github.io', 'clipboard-history@alexsaveau.dev'
+      value: "['Vitals@CoreCoding.com' ]" #gsconnect@andyholmes.github.io', 'clipboard-history@alexsaveau.dev'
 
     ####################
     # the rest         # 
