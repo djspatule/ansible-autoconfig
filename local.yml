@@ -7,6 +7,7 @@
   - name: apt update
     apt
       update_cache: yes
+    when: ansible_distribution in ["Debian", "Ubuntu"]
   - name: install packages
     package:
       name:
