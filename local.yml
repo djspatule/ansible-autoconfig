@@ -38,11 +38,27 @@
       key: "/org/gnome/desktop/input-sources"
       value: "[('xkb', 'fr')]"
 
-  - name: set dock to the bottom
+  - name: Configure Dash-to-Dock settings
     become_user: lion
-    dconf:
-      key: "/org/gnome/shell/extensions/dash-to-dock/dock-position"
-      value: "'BOTTOM'"          
+    loop:
+      - { key: "/org/gnome/shell/extensions/dash-to-dock/background-opacity", value: "0.8" }
+      - { key: "/org/gnome/shell/extensions/dash-to-dock/dash-max-icon-size", value: "48" }
+      - { key: "/org/gnome/shell/extensions/dash-to-dock/dock-fixed", value: "false" }
+      - { key: "/org/gnome/shell/extensions/dash-to-dock/dock-position", value: "'BOTTOM'" }
+      - { key: "/org/gnome/shell/extensions/dash-to-dock/extend-height", value: "false" }
+      - { key: "/org/gnome/shell/extensions/dash-to-dock/height-fraction", value: "0.9" }
+      - { key: "/org/gnome/shell/extensions/dash-to-dock/isolate-workspaces", value: "true" }
+      - { key: "/org/gnome/shell/extensions/dash-to-dock/multi-monitor", value: "true" }
+      - { key: "/org/gnome/shell/extensions/dash-to-dock/preferred-monitor", value: "-2" }
+      - { key: "/org/gnome/shell/extensions/dash-to-dock/preferred-monitor-by-connector", value: "'DP-3'" }
+      - { key: "/org/gnome/shell/extensions/dash-to-dock/show-mounts", value: "false" }
+      - { key: "/org/gnome/shell/extensions/dash-to-dock/show-mounts-network", value: "false" }
+      - { key: "/org/gnome/shell/extensions/dash-to-dock/show-mounts-only-mounted", value: "true" }
+    loop_control:
+      label: "{{ item.key }}"
+    community.general.dconf:
+      key: "{{ item.key }}"
+      value: "{{ item.value }}"
 
   - name: copy .bashrc file
     copy:
