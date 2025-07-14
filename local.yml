@@ -120,6 +120,14 @@
       # Search providers
       - { key: "/org/gnome/desktop/search-providers/sort-order", value: "['org.gnome.Contacts.desktop', 'org.gnome.Documents.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Settings.desktop', 'org.gnome.Characters.desktop', 'org.gnome.Calculator.desktop', 'org.gnome.Software.desktop', 'org.gnome.clocks.desktop', 'com.github.finefindus.eyedropper.desktop', 'org.gnome.seahorse.Application.desktop']" }
 
+      # Nautilus preferences
+      - { key: "/org/gnome/nautilus/preferences/default-folder-viewer", value: "'list-view'" }
+      - { key: "/org/gnome/nautilus/preferences/migrated-gtk-settings", value: "true" }
+      - { key: "/org/gnome/nautilus/preferences/recursive-search", value: "'always'" }
+      - { key: "/org/gnome/nautilus/preferences/search-filter-time-type", value: "'last_modified'" }
+      - { key: "/org/gnome/nautilus/preferences/search-view", value: "'list-view'" }
+      - { key: "/org/gnome/nautilus/preferences/show-directory-item-counts", value: "'always'" }
+
     loop_control:
       label: "{{ item.key }}"
     community.general.dconf:
