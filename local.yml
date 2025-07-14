@@ -116,6 +116,10 @@
       - { key: "/org/gnome/desktop/screensaver/picture-uri", value: "'file:///usr/share/backgrounds/abstract.jpg'" }
       - { key: "/org/gnome/desktop/screensaver/primary-color", value: "'#000000'" }
       - { key: "/org/gnome/desktop/screensaver/secondary-color", value: "'#000000'" }
+
+      # Search providers
+      - { key: "/org/gnome/desktop/search-providers/sort-order", value: "['org.gnome.Contacts.desktop', 'org.gnome.Documents.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Settings.desktop', 'org.gnome.Characters.desktop', 'org.gnome.Calculator.desktop', 'org.gnome.Software.desktop', 'org.gnome.clocks.desktop', 'com.github.finefindus.eyedropper.desktop', 'org.gnome.seahorse.Application.desktop']" }
+
     loop_control:
       label: "{{ item.key }}"
     community.general.dconf:
