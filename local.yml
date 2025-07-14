@@ -4,10 +4,7 @@
   become: true
 
   tasks:
-  - name: apt update
-    apt
-      update_cache: yes
-    when: ansible_distribution in ["Debian", "Ubuntu"]
+    
   - name: install packages
     package:
       name:
@@ -16,7 +13,8 @@
         - starship
         - zoxide
         - micro
-
+    update_cache: yes
+    when: ansible_distribution in ["Debian", "Ubuntu"]
   - name: copy wallpaper file
     copy:
       src: files/abstract.jpg
