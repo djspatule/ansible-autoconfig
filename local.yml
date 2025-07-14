@@ -38,10 +38,10 @@
       key: "/org/gnome/desktop/input-sources"
       value: "[('xkb', 'fr')]"
 
-  - name: set keyboard pref
+  - name: set dock to the bottom
     become_user: lion
     dconf:
-      key: "/org/gnome/shell/extensions/dash-to-dock"
+      key: "/org/gnome/shell/extensions/dash-to-dock/dock-position"
       value: "'BOTTOM'"          
 
   - name: copy .bashrc file
