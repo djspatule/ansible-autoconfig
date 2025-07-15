@@ -13,9 +13,24 @@
         - starship
         - zoxide
         - micro
+        - fastfetch
+        - tldr
+        - clamav
+        - rclone
+        - vlc
+        - drawing 
+        - libreoffice 
+        - firefox
+        - chrome-gnome-shell
+        - tigervnc
+        - colorwall
+        - slack
+        - spotify
+        - betterbird
       state: latest
       update_cache: yes
-    #when: ansible_distribution in ["Debian", "Ubuntu"]
+    when: ansible_distribution in ["Debian", "Ubuntu"]
+
   - name: copy wallpaper file
     copy:
       src: files/abstract.jpg
