@@ -10,22 +10,15 @@
       changed_when: false
 
   tasks:
-    - import_tasks: tasks/gnome.yml
-    - import_tasks: tasks/packages.yml
+  - import_tasks: tasks/gnome.yml
+  - import_tasks: tasks/packages.yml
+  - import_tasks: tasks/bashrc.yml
+  - import_tasks: tasks/ansible_user.yml
 
-    - name: copy .bashrc file
-      copy:
-        src: files/bashrc
-        dest: /home/lion/.bashrc
-        owner: lion
-        group: lion
-
-    - import_tasks: tasks/ansible_user.yml
-
-    - name: add ansible-pull cron job
-      cron:
-        name: ansible auto-provision
-        user: velociraptor
-        minute: "*/10"
-        job: >-
-          ansible-pull -o -U https://github.com/djspatule/ansible-autoconfig.git
+  - name: add ansible-pull cron job
+    cron:
+      name: ansible auto-provision
+      user: velociraptor
+      minute: "*/10"
+      job: >-
+        ansible-pull -o -U https://github.com/djspatule/ansible-autoconfig.git
