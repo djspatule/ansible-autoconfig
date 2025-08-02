@@ -1,0 +1,13 @@
+---
+- name: add ansible user
+  user:
+    name: velociraptor
+    system: true
+
+- name: set up sudo for ansible user
+  copy:
+    src: files/sudoer_velociraptor
+    dest: /etc/sudoers.d/velociraptor
+    owner: root
+    group: root
+    mode: 0440

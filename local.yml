@@ -6,36 +6,26 @@
   pre_tasks:
     - name: update repositories
       apt:
-        update_cache: yes
-      changed_when: False
+        update_cache: true
+      changed_when: false
 
   tasks:
-  - import_tasks: tasks/gnome.yml
-  - import_tasks: tasks/packages.yml
+    - import_tasks: tasks/gnome.yml
+    - import_tasks: tasks/packages.yml
 
-  - name: copy .bashrc file
-    copy:
-     src: files/bashrc
-     dest: /home/lion/.bashrc
-     owner: lion
-     group: lion
+    - name: copy .bashrc file
+      copy:
+        src: files/bashrc
+        dest: /home/lion/.bashrc
+        owner: lion
+        group: lion
 
-  - name: add ansible user
-    user:
-      name: velociraptor
-      system: yes
+    - import_tasks: tasks/ansible_user.yml
 
-  - name: set up sudo for ansible user
-    copy:
-      src: files/sudoer_velociraptor
-      dest: /etc/sudoers.d/velociraptor
-      owner: root
-      group: root
-      mode: 0440
-
-  - name: add ansible-pull cron job
-    cron:
-      name: ansible auto-provision
-      user: velociraptor
-      minute: "*/10"
-      job: ansible-pull -o -U https://github.com/djspatule/ansible-autoconfig.git
+    - name: add ansible-pull cron job
+      cron:
+        name: ansible auto-provision
+        user: velociraptor
+        minute: "*/10"
+        job: >-
+          ansible-pull -o -U https://github.com/djspatule/ansible-autoconfig.git
