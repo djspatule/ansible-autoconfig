@@ -1,0 +1,7 @@
+- name: copy .bashrc file
+  copy:
+    src: files/bashrc
+    dest: /home/lion/.bashrc
+    owner: lion
+    group: lion
+
