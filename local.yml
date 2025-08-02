@@ -10,29 +10,8 @@
       changed_when: False
 
   tasks:
-  - include: tasks/gnome.yml    
-  - name: install packages
-    package:
-      name:
-        - btop
-        - python3-psutil
-        - starship
-        - zoxide
-        - micro
-        - fastfetch
-        - tldr
-        - clamav
-        - rclone
-        - vlc
-        - drawing 
-        - libreoffice 
-        - firefox
-        - chrome-gnome-shell
-        - slack
-        - xournalpp
-      state: latest
-      update_cache: yes
-    when: ansible_distribution in ["Debian", "Ubuntu"]
+  - include: tasks/gnome.yml
+  - include: tasks/packages.yml
 
   - name: copy .bashrc file
     copy:
