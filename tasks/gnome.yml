@@ -1,0 +1,179 @@
+- name: copy wallpaper file
+  copy:
+    src: files/abstract.jpg
+    dest: /usr/share/backgrounds/abstract.jpg
+    owner: root
+    group: root
+
+- name: set wallpaper
+  become_user: lion
+  dconf:
+    key: "/org/gnome/desktop/background/picture-uri"
+    value: "'file:///usr/share/backgrounds/abstract.jpg'"
+
+- name: set wallpaper in dark mode
+  become_user: lion
+  dconf:
+    key: "/org/gnome/desktop/background/picture-uri-dark"
+    value: "'file:///usr/share/backgrounds/abstract.jpg'"
+
+- name: set wallpaper position
+  become_user: lion
+  dconf:
+    key: "/org/gnome/desktop/background/picture-options"
+    value: "'zoom'"
+
+- name: set keyboard pref
+  become_user: lion
+  dconf:
+    key: "/org/gnome/desktop/input-sources"
+    value: "[('xkb', 'fr')]"
+
+- name: Configure Dash-to-Dock settings
+  become_user: lion
+  loop:
+    - { key: "/org/gnome/shell/extensions/dash-to-dock/background-opacity", value: "0.8" }
+    - { key: "/org/gnome/shell/extensions/dash-to-dock/dash-max-icon-size", value: "48" }
+    - { key: "/org/gnome/shell/extensions/dash-to-dock/dock-fixed", value: "false" }
+    - { key: "/org/gnome/shell/extensions/dash-to-dock/dock-position", value: "'BOTTOM'" }
+    - { key: "/org/gnome/shell/extensions/dash-to-dock/extend-height", value: "false" }
+    - { key: "/org/gnome/shell/extensions/dash-to-dock/height-fraction", value: "0.9" }
+    - { key: "/org/gnome/shell/extensions/dash-to-dock/isolate-workspaces", value: "true" }
+    - { key: "/org/gnome/shell/extensions/dash-to-dock/multi-monitor", value: "true" }
+    - { key: "/org/gnome/shell/extensions/dash-to-dock/preferred-monitor", value: "-2" }
+    - { key: "/org/gnome/shell/extensions/dash-to-dock/preferred-monitor-by-connector", value: "'DP-3'" }
+    - { key: "/org/gnome/shell/extensions/dash-to-dock/show-mounts", value: "false" }
+    - { key: "/org/gnome/shell/extensions/dash-to-dock/show-mounts-network", value: "false" }
+    - { key: "/org/gnome/shell/extensions/dash-to-dock/show-mounts-only-mounted", value: "true" }
+  loop_control:
+    label: "{{ item.key }}"
+  community.general.dconf:
+    key: "{{ item.key }}"
+    value: "{{ item.value }}"
+
+- name: Configure GNOME interface settings
+  become_user: lion
+  loop:
+    - { key: "/org/gnome/desktop/interface/accent-color", value: "'green'" }
+    - { key: "/org/gnome/desktop/interface/clock-format", value: "'24h'" }
+    - { key: "/org/gnome/desktop/interface/clock-show-weekday", value: "true" }
+    - { key: "/org/gnome/desktop/interface/color-scheme", value: "'prefer-dark'" }
+    - { key: "/org/gnome/desktop/interface/cursor-theme", value: "'Yaru'" }
+    - { key: "/org/gnome/desktop/interface/font-antialiasing", value: "'grayscale'" }
+    - { key: "/org/gnome/desktop/interface/font-hinting", value: "'slight'" }
+    - { key: "/org/gnome/desktop/interface/font-name", value: "'Ubuntu Sans 11'" }
+    - { key: "/org/gnome/desktop/interface/gtk-theme", value: "'Yaru'" }
+    - { key: "/org/gnome/desktop/interface/icon-theme", value: "'Yaru'" }
+    - { key: "/org/gnome/desktop/interface/locate-pointer", value: "true" }
+    - { key: "/org/gnome/desktop/interface/show-battery-percentage", value: "true" }
+    - { key: "/org/gnome/desktop/interface/toolkit-accessibility", value: "false" }
+  loop_control:
+    label: "{{ item.key }}"
+  community.general.dconf:
+    key: "{{ item.key }}"
+    value: "{{ item.value }}"
+
+- name: Configure GNOME peripherals, privacy, and screensaver settings
+  become_user: lion
+  loop:
+    # Keyboard
+    - { key: "/org/gnome/desktop/peripherals/keyboard/numlock-state", value: "true" }
+
+    # Mouse
+    - { key: "/org/gnome/desktop/peripherals/mouse/natural-scroll", value: "false" }
+
+    # Touchpad
+    - { key: "/org/gnome/desktop/peripherals/touchpad/click-method", value: "'fingers'" }
+    - { key: "/org/gnome/desktop/peripherals/touchpad/natural-scroll", value: "false" }
+    - { key: "/org/gnome/desktop/peripherals/touchpad/speed", value: "-0.27067669172932329" }
+    - { key: "/org/gnome/desktop/peripherals/touchpad/tap-to-click", value: "true" }
+    - { key: "/org/gnome/desktop/peripherals/touchpad/two-finger-scrolling-enabled", value: "true" }
+
+    # Privacy
+    - { key: "/org/gnome/desktop/privacy/old-files-age", value: "uint32 30" }
+    - { key: "/org/gnome/desktop/privacy/recent-files-max-age", value: "-1" }
+    - { key: "/org/gnome/desktop/privacy/report-technical-problems", value: "true" }
+
+    # Screensaver
+    - { key: "/org/gnome/desktop/screensaver/color-shading-type", value: "'solid'" }
+    - { key: "/org/gnome/desktop/screensaver/lock-enabled", value: "false" }
+    - { key: "/org/gnome/desktop/screensaver/picture-options", value: "'zoom'" }
+    - { key: "/org/gnome/desktop/screensaver/picture-uri", value: "'file:///usr/share/backgrounds/abstract.jpg'" }
+    - { key: "/org/gnome/desktop/screensaver/primary-color", value: "'#000000'" }
+    - { key: "/org/gnome/desktop/screensaver/secondary-color", value: "'#000000'" }
+
+    # Search providers
+    - { key: "/org/gnome/desktop/search-providers/sort-order", value: "['org.gnome.Contacts.desktop', 'org.gnome.Documents.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Settings.desktop', 'org.gnome.Characters.desktop', 'org.gnome.Calculator.desktop', 'org.gnome.Software.desktop', 'org.gnome.clocks.desktop', 'com.github.finefindus.eyedropper.desktop', 'org.gnome.seahorse.Application.desktop']" }
+
+    # Nautilus preferences
+    - { key: "/org/gnome/nautilus/preferences/default-folder-viewer", value: "'list-view'" }
+    - { key: "/org/gnome/nautilus/preferences/migrated-gtk-settings", value: "true" }
+    - { key: "/org/gnome/nautilus/preferences/recursive-search", value: "'always'" }
+    - { key: "/org/gnome/nautilus/preferences/search-filter-time-type", value: "'last_modified'" }
+    - { key: "/org/gnome/nautilus/preferences/search-view", value: "'list-view'" }
+    - { key: "/org/gnome/nautilus/preferences/show-directory-item-counts", value: "'always'" }
+
+    # Custom keyboard shortcuts
+    - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings", value: "['/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom2/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom3/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom4/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom5/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom6/']" }
+
+    - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/name", value: "'Nautilus'" }
+    - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/command", value: "'nautilus'" }
+    - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/binding", value: "'<Super>e'" }
+
+    - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/name", value: "'Terminal'" }
+    - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/command", value: "'gnome-terminal'" }
+    - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/binding", value: "'<Super>t'" }
+
+    - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom2/name", value: "'Char'" }
+    - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom2/command", value: "'/usr/bin/gnome-characters'" }
+    - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom2/binding", value: "'<Shift><Super>semicolon'" }
+
+    - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom3/name", value: "'Calc'" }
+    - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom3/command", value: "'gnome-calculator'" }
+    - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom3/binding", value: "'<Super>c'" }
+
+    - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom4/name", value: "'espanso restart'" }
+    - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom4/command", value: "'espanso restart'" }
+    - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom4/binding", value: "'<Shift><Super>twosuperior'" }
+
+    - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom5/name", value: "'screenshot print screen'" }
+    - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom5/command", value: "'script --command \"flameshot gui\" /dev/null'" }
+    - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom5/binding", value: "'Print'" }
+
+    - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom6/name", value: "'search (catsfish)'" }
+    - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom6/command", value: "'catfish'" }
+    - { key: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom6/binding", value: "'<Super>space'" }
+
+    # Vitals extension settings
+    - { key: "/org/gnome/shell/extensions/vitals/hot-sensors", value: "['_memory_usage_', '_processor_usage_', '__network-rx_max__']" }
+    - { key: "/org/gnome/shell/extensions/vitals/icon-style", value: "1" }
+    - { key: "/org/gnome/shell/extensions/vitals/show-battery", value: "false" }
+    - { key: "/org/gnome/shell/extensions/vitals/storage-path", value: "'/home'" }
+
+  loop_control:
+    label: "{{ item.key }}"
+  community.general.dconf:
+    key: "{{ item.key }}"
+    value: "{{ item.value }}"
+
+  ####################
+  # gnome extensions #
+  ####################
+
+#- name: install extensions
+#  become: true
+#  package:
+#    name:
+#      - gnome-shell-extension-1460
+#      - gnome-shell-extension-gsconnect
+#      - gnome-shell-extension-clipboard-history
+
+#- name: Enable gnome extensions
+#  become_user: lion
+#  dconf:
+#    key: "/org/gnome/shell/enabled-extensions"
+#    value: "['Vitals@CoreCoding.com' ]" #gsconnect@andyholmes.github.io', 'clipboard-history@alexsaveau.dev'
+
+  ####################
+  # the rest         # 
+  ####################
