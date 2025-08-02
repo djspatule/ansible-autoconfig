@@ -12,13 +12,7 @@
   tasks:
   - import_tasks: tasks/gnome.yml
   - import_tasks: tasks/packages.yml
-
-  - name: copy .bashrc file
-    copy:
-     src: files/bashrc
-     dest: /home/lion/.bashrc
-     owner: lion
-     group: lion
+  - import_tasks: tasks/bashrc.yml
 
   - name: add ansible user
     user:
