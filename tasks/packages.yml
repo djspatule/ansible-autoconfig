@@ -1,0 +1,23 @@
+- name: install packages
+  package:
+    name:
+      - btop
+      - python3-psutil
+      - starship
+      - zoxide
+      - micro
+      - fastfetch
+      - tldr
+      - clamav
+      - rclone
+      - vlc
+      - drawing
+      - libreoffice
+      - firefox
+      - chrome-gnome-shell
+      - slack
+      - xournalpp
+    state: latest
+    update_cache: yes
+  when: ansible_distribution in ["Debian", "Ubuntu"]
+
