@@ -17,6 +17,7 @@
       - chrome-gnome-shell
       - slack
       - xournalpp
+      - bat
     state: latest
     update_cache: yes
   when: ansible_distribution in ["Debian", "Ubuntu"]
