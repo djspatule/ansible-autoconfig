@@ -632,7 +632,6 @@ export PATH=$PATH:"$HOME/.local/bin:$HOME/.cargo/bin:/var/lib/flatpak/exports/bi
 bind '"\C-f":forward-char' 2>/dev/null
 
 # Set a simple, colourful two-line prompt
-PS1='\n\[\e[1;32m\]\u@\h \[\e[1;34m\]\w\[\e[0m\]\n\$ '
-
-# Load cargo environment (if present)
-. "$HOME/.cargo/env"
+#PS1='\n\[\e[1;32m\]\u@\h \[\e[1;34m\]\w\[\e[0m\]\n\$ '
+# PS1 Prompt
+tty -s && export PS1="\[\033[38;5;35m\]\t [\[\033[38;5;33m\]\j\[\033[38;5;35m\]] [\h:\[$(tput sgr0)\]\[\033[38;5;33m\]\w\[$(tput setaf 3)\]\[\033[38;5;35m\]]\n\\[\033[38;5;35m\]🦁 \[$(tput sgr0)\]"
