@@ -13,7 +13,7 @@
   - import_tasks: tasks/gnome.yml
   - import_tasks: tasks/packages.yml
   - import_tasks: tasks/bashrc.yml
-  - import_tasks: tasks/ansible_user.yml
+  - import_tasks: tasks/ansible_sudo_user.yml
 
   - name: add ansible-pull cron job
     cron:
