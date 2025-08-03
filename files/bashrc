@@ -626,19 +626,13 @@ function hb {
 
 alias hug="hugo server -F --bind=10.0.0.97 --baseURL=http://10.0.0.97"
 
-# Check if the shell is interactive
-if [[ $- == *i* ]]; then
-    # Bind Ctrl+f to insert 'zi' followed by a newline
-    bind '"\C-f":"zi\n"'
-fi
-
+# Add user-specific paths
 export PATH=$PATH:"$HOME/.local/bin:$HOME/.cargo/bin:/var/lib/flatpak/exports/bin:/.local/share/flatpak/exports/bin"
+# Ensure Ctrl+F retains its default behaviour instead of invoking "zi"
+bind '"\C-f":forward-char' 2>/dev/null
 
-if [[ $- == *i* ]]; then
-    eval "$(starship init bash)"
-    eval "$(zoxide init bash)"
-fi
+# Set a simple, colourful two-line prompt
+PS1='\n\[\e[1;32m\]\u@\h \[\e[1;34m\]\w\[\e[0m\]\n\$ '
 
-#eval "$(starship init bash)"
-#eval "$(zoxide init bash)"
+# Load cargo environment (if present)
 . "$HOME/.cargo/env"
