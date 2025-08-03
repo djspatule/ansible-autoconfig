@@ -7,26 +7,35 @@
 #   3) GNOME Shell extensions
 
 # 1) Wallpaper
-- name: copy wallpaper file
-  copy:
-    src: files/abstract.jpg
-    dest: /usr/share/backgrounds/abstract.jpg
+- name: Copy light wallpaper file
+  ansible.builtin.copy:
+    src: files/ColorWall-z8xy2j.jpg
+    dest: /usr/share/backgrounds/ColorWall-z8xy2j.jpg
     owner: root
     group: root
+    mode: "0644"
 
-- name: set wallpaper
+- name: Copy dark wallpaper file
+  ansible.builtin.copy:
+    src: files/ColorWall-e7oxrr.jpg
+    dest: /usr/share/backgrounds/ColorWall-e7oxrr.jpg
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Set wallpaper
   become_user: lion
   community.general.dconf:
     key: "/org/gnome/desktop/background/picture-uri"
-    value: "'file:///usr/share/backgrounds/abstract.jpg'"
+    value: "'file:///usr/share/backgrounds/ColorWall-z8xy2j.jpg'"
 
-- name: set wallpaper in dark mode
+- name: Set wallpaper in dark mode
   become_user: lion
   community.general.dconf:
     key: "/org/gnome/desktop/background/picture-uri-dark"
-    value: "'file:///usr/share/backgrounds/abstract.jpg'"
+    value: "'file:///usr/share/backgrounds/ColorWall-e7oxrr.jpg'"
 
-- name: set wallpaper position
+- name: Set wallpaper position
   become_user: lion
   community.general.dconf:
     key: "/org/gnome/desktop/background/picture-options"
@@ -93,7 +102,7 @@
     - { key: "/org/gnome/desktop/screensaver/color-shading-type", value: "'solid'" }
     - { key: "/org/gnome/desktop/screensaver/lock-enabled", value: "false" }
     - { key: "/org/gnome/desktop/screensaver/picture-options", value: "'zoom'" }
-    - { key: "/org/gnome/desktop/screensaver/picture-uri", value: "'file:///usr/share/backgrounds/abstract.jpg'" }
+    - { key: "/org/gnome/desktop/screensaver/picture-uri", value: "'file:///usr/share/backgrounds/ColorWall-e7oxrr.jpg'" }
     - { key: "/org/gnome/desktop/screensaver/primary-color", value: "'#000000'" }
     - { key: "/org/gnome/desktop/screensaver/secondary-color", value: "'#000000'" }
   loop_control:
