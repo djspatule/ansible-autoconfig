@@ -1,24 +1,61 @@
 ---
-- hosts: localhost
-  connection: local
+# tasks to complete before running roles
+- hosts: all
+  tags: always
   become: true
-
   pre_tasks:
-    - name: update repositories
-      apt:
-        update_cache: true
-      changed_when: false
+    - name: pre-run | update package cache (arch)
+      tags: always
+      pacman: update_cache=yes
+      changed_when: False
+      when: ansible_distribution == "Archlinux"
 
-  tasks:
-  - import_tasks: tasks/gnome.yml
-  - import_tasks: tasks/packages.yml
-  - import_tasks: tasks/bashrc.yml
-  - import_tasks: tasks/ansible_sudo_user.yml
+    - name: pre-run | update package cache (debian, etc)
+      tags: always
+      apt: update_cache=yes
+      changed_when: False
+      when: ansible_distribution in ["Debian", "Ubuntu"]
 
-  - name: add ansible-pull cron job
-    cron:
-      name: ansible auto-provision
-      user: velociraptor
-      minute: "*/10"
-      job: >-
-        ansible-pull -o -U https://github.com/djspatule/ansible-autoconfig.git
+# run roles
+- hosts: all
+  tags: base
+  become: true
+  roles:
+    - base
+
+- hosts: workstation
+  tags: workstation
+  become: true
+  roles:
+    - workstation
+
+- hosts: server
+  tags: server
+  become: true
+  roles:
+    - server
+
+
+#- hosts: localhost
+#  connection: local
+#  become: true
+#
+#  pre_tasks:
+#    - name: update repositories
+#      apt:
+#        update_cache: true
+#      changed_when: false
+
+  #tasks:
+  #- import_tasks: tasks/gnome.yml
+  #- import_tasks: tasks/packages.yml
+  #- import_tasks: tasks/bashrc.yml
+  #- import_tasks: tasks/ansible_sudo_user.yml
+
+  #- name: add ansible-pull cron job
+  #  cron:
+  #    name: ansible auto-provision
+  #    user: velociraptor
+  #    minute: "*/10"
+  #    job: >-
+  #      ansible-pull -o -U https://github.com/djspatule/ansible-autoconfig.git
