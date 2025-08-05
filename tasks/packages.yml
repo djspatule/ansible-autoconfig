@@ -1,25 +1,31 @@
 - name: install apt packages
   package:
     name:
+      # CLI utilities
       - btop
       - python3-psutil
       - micro
       - fastfetch
+      - pdfgrep
       - tldr
       - ncdu
       - mc
       - bat
       - clamav
       - rclone
+      - cowsay
+      - asciiquarium
+      - oneko
+      # Media
       - vlc
       - drawing
+      # Office
       - libreoffice
+      - onlyoffice
       - firefox
-      - chrome-gnome-shell
       - slack
       - xournalpp
-      - fastfetch
-      - pdfgrep
+      # GNOME
       - gnome-tweaks
       - gnome-shell-extensions
       - gnome-shell-extension-manager
@@ -45,11 +51,10 @@
     name: "{{ item }}"
     state: present
   loop:
-    - onlyoffice
     - zoom
     - eyedropper
-    - xournal
     - org.flameshot.Flameshot
+    - betterbird
   when: ansible_distribution in ["Debian", "Ubuntu"]
 
 - name: Allow org.flameshot.Flameshot to take screenshots
