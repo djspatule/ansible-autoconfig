@@ -12,6 +12,7 @@
   tasks:
   - import_tasks: tasks/gnome.yml
   - import_tasks: tasks/packages.yml
+  - import_tasks: tasks/fonts.yml
   - import_tasks: tasks/bashrc.yml
   - import_tasks: tasks/ansible_sudo_user.yml
 
