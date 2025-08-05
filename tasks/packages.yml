@@ -15,18 +15,20 @@
       - rclone
       - cowsay
       - oneko
+      - cmatrix
+      - eza
       - rustdesk
       # Media
       - vlc
       - drawing
       # Office
       - libreoffice
-      - onlyoffice
       - firefox
       - slack
       - xournalpp
       - insync
       # GNOME
+      - catfish
       - gnome-tweaks
       - gnome-shell-extensions
       - gnome-shell-extension-manager
@@ -59,6 +61,7 @@
     - eyedropper
     - org.flameshot.Flameshot
     - betterbird
+    - org.onlyoffice.desktopeditors
   when: ansible_distribution in ["Debian", "Ubuntu"]
 
 - name: Allow org.flameshot.Flameshot to take screenshots
