@@ -17,6 +17,8 @@
       - oneko
       - cmatrix
       - eza
+      - sl
+      - tree
       - ripgrep
       - rustdesk
       # Media
@@ -67,6 +69,10 @@
   when: ansible_distribution in ["Debian", "Ubuntu"]
 
 - name: Allow org.flameshot.Flameshot to take screenshots
+  become: yes
+  become_user: lion
   ansible.builtin.command: >
     flatpak permission-set screenshot screenshot org.flameshot.Flameshot yes
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ lookup('ansible.builtin.pipe', 'id -u lion') }}"
   when: ansible_distribution in ["Debian", "Ubuntu"]
