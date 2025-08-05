@@ -20,7 +20,6 @@
       - xournalpp
       - fastfetch
       - pdfgrep
-      - vivaldi
       - gnome-tweaks
       - gnome-shell-extensions
       - gnome-shell-extension-manager
@@ -38,4 +37,5 @@
     - slack
     - spotify
     - sublime-text
+    - vivaldi
   when: ansible_distribution in ["Debian", "Ubuntu"]
