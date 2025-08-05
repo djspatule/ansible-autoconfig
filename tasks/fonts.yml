@@ -9,7 +9,7 @@
     path: /usr/local/share/fonts/roboto
     state: directory
     mode: "0755"
-
+    
 - name: Install FiraCode Nerd Font
   ansible.builtin.unarchive:
     src: https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip
@@ -29,6 +29,7 @@
     url: https://github.com/davelab6/manrope/raw/master/ttf%20format%20(legacy)/manrope-regular.ttf
     dest: /usr/local/share/fonts/Manrope-Regular.ttf
     mode: "0644"
+
 
 - name: Refresh font cache
   ansible.builtin.command: fc-cache -f -v

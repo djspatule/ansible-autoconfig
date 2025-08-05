@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Exec=/home/lion/Documents/rclone_sync.sh
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Name[en_US]=Rclone
+Name=Rclone
+Comment[en_US]=
+Comment=
