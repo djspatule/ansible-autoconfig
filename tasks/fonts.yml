@@ -1,0 +1,36 @@
+- name: Ensure system fonts directory exists
+  ansible.builtin.file:
+    path: /usr/local/share/fonts
+    state: directory
+    mode: "0755"
+
+- name: Install FiraCode Nerd Font
+  ansible.builtin.unarchive:
+    src: https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip
+    dest: /usr/local/share/fonts
+    remote_src: true
+    creates: "/usr/local/share/fonts/Fira Code Regular Nerd Font Complete.ttf"
+
+- name: Install Roboto font from Google Fonts
+  ansible.builtin.unarchive:
+    src: https://fonts.google.com/download?family=Roboto
+    dest: /usr/local/share/fonts/roboto
+    remote_src: true
+    creates: /usr/local/share/fonts/roboto/Roboto-Regular.ttf
+
+- name: Install Century Gothic font
+  ansible.builtin.get_url:
+    url: https://github.com/hggh/century-gothic/raw/master/CenturyGothic.ttf
+    dest: /usr/local/share/fonts/CenturyGothic.ttf
+    mode: "0644"
+
+- name: Install Manrope font from Google Fonts
+  ansible.builtin.unarchive:
+    src: https://fonts.google.com/download?family=Manrope
+    dest: /usr/local/share/fonts/manrope
+    remote_src: true
+    creates: /usr/local/share/fonts/manrope/Manrope-Regular.ttf
+
+- name: Refresh font cache
+  ansible.builtin.command: fc-cache -f -v
+  changed_when: false
