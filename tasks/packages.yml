@@ -39,3 +39,20 @@
     - sublime-text
     - vivaldi
   when: ansible_distribution in ["Debian", "Ubuntu"]
+
+- name: Install Flatpak packages
+  community.general.flatpak:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - onlyoffice
+    - zoom
+    - eyedropper
+    - xournal
+    - org.flameshot.Flameshot
+  when: ansible_distribution in ["Debian", "Ubuntu"]
+
+- name: Allow org.flameshot.Flameshot to take screenshots
+  ansible.builtin.command: >
+    flatpak permission-set screenshot screenshot org.flameshot.Flameshot yes
+  when: ansible_distribution in ["Debian", "Ubuntu"]
