@@ -1,13 +1,14 @@
-- name: install packages
+- name: install apt packages
   package:
     name:
       - btop
       - python3-psutil
-      - starship
-      - zoxide
       - micro
       - fastfetch
       - tldr
+      - ncdu
+      - mc
+      - bat
       - clamav
       - rclone
       - vlc
@@ -17,10 +18,24 @@
       - chrome-gnome-shell
       - slack
       - xournalpp
-      - bat
       - fastfetch
-      
+      - pdfgrep
+      - vivaldi
+      - gnome-tweaks
+      - gnome-shell-extensions
+      - gnome-shell-extension-manager
     state: latest
     update_cache: yes
   when: ansible_distribution in ["Debian", "Ubuntu"]
 
+- name: Install snap packages
+  community.general.snap:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - tigervnc
+    - colorwall
+    - slack
+    - spotify
+    - sublime-text
+  when: ansible_distribution in ["Debian", "Ubuntu"]
