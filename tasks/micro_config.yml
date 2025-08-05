@@ -1,18 +1,12 @@
-- name: Install micro-search plugin manually
-  hosts: localhost
-  vars:
-    plugin_dir: "{{ ansible_env.HOME }}/.config/micro/plug/search"
-    search_lua_url: "https://raw.githubusercontent.com/dmaluka/micro-search/master/search.lua"
+# tasks/micro_config.yml (as a task file)
+- name: Ensure plugin directory exists
+  file:
+    path: "{{ ansible_env.HOME }}/.config/micro/plug/search"
+    state: directory
+    mode: '0755'
 
-  tasks:
-    - name: Ensure plugin directory exists
-      file:
-        path: "{{ plugin_dir }}"
-        state: directory
-        mode: '0755'
-
-    - name: Download search.lua plugin
-      get_url:
-        url: "{{ search_lua_url }}"
-        dest: "{{ plugin_dir }}/search.lua"
-        mode: '0644'
+- name: Download search.lua plugin
+  get_url:
+    url: "https://raw.githubusercontent.com/dmaluka/micro-search/master/search.lua"
+    dest: "{{ ansible_env.HOME }}/.config/micro/plug/search/search.lua"
+    mode: '0644'
