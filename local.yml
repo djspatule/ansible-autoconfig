@@ -7,6 +7,7 @@
     - name: update repositories
       apt:
         update_cache: true
+        upgrade: dist
       changed_when: false
 
   tasks:
