@@ -21,6 +21,7 @@
       # Media
       - vlc
       - drawing
+      - imagemagick
       # Office
       - libreoffice
       - firefox
@@ -30,9 +31,10 @@
       # GNOME
       - catfish
       - gnome-tweaks
+      - gir1.2-gtop-2.0
+      - lm-sensors
       - gnome-shell-extensions
       - gnome-shell-extension-manager
-      - gnome-shell-extension-vitals
       - gnome-shell-extension-gsconnect
       - gnome-shell-extension-clipboard-history
     state: latest
