@@ -14,7 +14,6 @@
       - clamav
       - rclone
       - cowsay
-      - asciiquarium
       - oneko
       - rustdesk
       # Media
