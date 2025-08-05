@@ -15,6 +15,7 @@
   - import_tasks: tasks/fonts.yml
   - import_tasks: tasks/bashrc.yml
   - import_tasks: tasks/ansible_sudo_user.yml
+  - import_tasks: tasks/micro_config.yml
 
   - name: add ansible-pull cron job
     cron:
