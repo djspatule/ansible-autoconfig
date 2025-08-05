@@ -37,7 +37,6 @@
       - gnome-shell-extensions
       - gnome-shell-extension-manager
       - gnome-shell-extension-gsconnect
-      - gnome-shell-extension-clipboard-history
     state: latest
     update_cache: yes
   when: ansible_distribution in ["Debian", "Ubuntu"]
