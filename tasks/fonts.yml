@@ -1,0 +1,35 @@
+- name: Ensure system fonts directory exists
+  ansible.builtin.file:
+    path: /usr/local/share/fonts
+    state: directory
+    mode: "0755"
+
+- name: Ensure Roboto font directory exists
+  ansible.builtin.file:
+    path: /usr/local/share/fonts/roboto
+    state: directory
+    mode: "0755"
+
+- name: Install FiraCode Nerd Font
+  ansible.builtin.unarchive:
+    src: https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip
+    dest: /usr/local/share/fonts
+    remote_src: true
+    creates: "/usr/local/share/fonts/Fira Code Regular Nerd Font Complete.ttf"
+
+- name: Install Roboto font from Google Fonts
+  ansible.builtin.unarchive:
+    src: https://github.com/googlefonts/roboto-2/releases/download/v2.138/roboto-unhinted.zip
+    dest: /usr/local/share/fonts/roboto
+    remote_src: true
+    creates: /usr/local/share/fonts/roboto/Roboto-Regular.ttf
+
+- name: Install Manrope font from Google Fonts
+  ansible.builtin.get_url:
+    url: https://github.com/davelab6/manrope/raw/master/ttf%20format%20(legacy)/manrope-regular.ttf
+    dest: /usr/local/share/fonts/Manrope-Regular.ttf
+    mode: "0644"
+
+- name: Refresh font cache
+  ansible.builtin.command: fc-cache -f -v
+  changed_when: false
