@@ -11,7 +11,7 @@
 
 - name: Ensure rclone mountpoint directory exists
   file:
-    path: /home/lion/Google Drive Perso
+    path: "/home/lion/Google Drive Perso"
     state: directory
     owner: lion
     group: lion
