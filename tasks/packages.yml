@@ -105,7 +105,6 @@
     PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
 
 - name: Update AppImages with AM
-  become: yes
   become_user: lion
   ansible.builtin.shell: am -u
   environment:
