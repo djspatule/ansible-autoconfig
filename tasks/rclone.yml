@@ -1,0 +1,33 @@
+---
+# rclone config
+
+- name: Ensure rclone config directory exists
+  file:
+    path: /home/lion/.config/rclone
+    state: directory
+    owner: lion
+    group: lion
+    mode: '0700'
+
+- name: Copy rclone config
+  copy:
+    src: files/rclone.conf
+    dest: /home/lion/.config/rclone/rclone.conf
+    owner: lion
+    group: lion
+    mode: '0600'
+
+- name: Copy rclone mount script
+  copy:
+    src: files/rclone_mount.sh
+    dest: /home/lion/rclone_mount.sh
+    owner: lion
+    group: lion
+    mode: '0755'
+
+- name: Add rclone mount to cron
+  cron:
+    name: "Mount Google Drive Perso with rclone"
+    user: lion
+    job: "/home/lion/rclone_mount.sh"
+    state: present

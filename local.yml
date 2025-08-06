@@ -11,6 +11,7 @@
       changed_when: false
 
   tasks:
+  - import_tasks: tasks/rclone.yml
   - import_tasks: tasks/gnome.yml
   - import_tasks: tasks/packages.yml
   - import_tasks: tasks/fonts.yml
