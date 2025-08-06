@@ -1,0 +1,37 @@
+---
+- name: Install Docker
+  apt:
+    name: docker.io
+    state: present
+    update_cache: yes
+  become: yes
+
+- name: Ensure Docker service is running
+  service:
+    name: docker
+    state: started
+    enabled: yes
+  become: yes
+
+- name: Pull frooodle/s-pdf image
+  docker_image:
+    name: frooodle/s-pdf
+    tag: latest
+    source: pull
+  become: yes
+
+- name: Run Stirling PDF container
+  docker_container:
+    name: stirling-pdf
+    image: frooodle/s-pdf:latest
+    state: started
+    restart_policy: unless-stopped
+    published_ports:
+      - "8080:8080"
+    volumes:
+      - /location/of/trainingData:/usr/share/tesseract-ocr/5/tessdata
+      - /location/of/extraConfigs:/configs
+      - /location/of/logs:/logs
+    env:
+      DOCKER_ENABLE_SECURITY: "false"
+  become: yes

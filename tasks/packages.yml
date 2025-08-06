@@ -21,6 +21,8 @@
       - tree
       - ripgrep
       - rustdesk
+      - docker
+      - lazydocker
       # Media
       - vlc
       - drawing
@@ -92,6 +94,7 @@
   ansible.builtin.file:
     path: /tmp/AM_INSTALL
     state: absent
+  become: yes
 
 - name: Install Beeper and OrcaSlicer AppImages using AM
   become: yes
