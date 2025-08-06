@@ -77,12 +77,21 @@
     XDG_RUNTIME_DIR: "/run/user/{{ lookup('ansible.builtin.pipe', 'id -u lion') }}"
   when: ansible_distribution in ["Debian", "Ubuntu"]
 
-- name: Download AM-application-manager install script
+# AM-application-manager
+- name: Download AM-application-manager INSTALL script
   ansible.builtin.get_url:
-    url: https://raw.githubusercontent.com/ivan-hc/AM/master/AM-application-manager.sh
-    dest: /usr/local/bin/am
+    url: https://raw.githubusercontent.com/ivan-hc/AM/main/INSTALL
+    dest: /tmp/AM_INSTALL
     mode: '0755'
+
+- name: Run AM-application-manager INSTALL script
+  ansible.builtin.command: /tmp/AM_INSTALL
   become: yes
+
+- name: Remove AM-application-manager INSTALL script
+  ansible.builtin.file:
+    path: /tmp/AM_INSTALL
+    state: absent
 
 - name: Install Beeper and OrcaSlicer AppImages using AM
   become: yes
