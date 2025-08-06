@@ -76,3 +76,28 @@
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ lookup('ansible.builtin.pipe', 'id -u lion') }}"
   when: ansible_distribution in ["Debian", "Ubuntu"]
+
+- name: Download AM-application-manager install script
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/ivan-hc/AM/master/AM-application-manager.sh
+    dest: /usr/local/bin/am
+    mode: '0755'
+  become: yes
+
+- name: Install Beeper and OrcaSlicer AppImages using AM
+  become: yes
+  become_user: lion
+  ansible.builtin.shell: |
+    am -i beeper
+    am -i orcaslicer-any
+  args:
+    executable: /bin/bash
+  environment:
+    PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
+
+- name: Update AppImages with AM
+  become: yes
+  become_user: lion
+  ansible.builtin.shell: am -u
+  environment:
+    PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
