@@ -9,6 +9,14 @@
     group: lion
     mode: '0700'
 
+- name: Ensure rclone mountpoint directory exists
+  file:
+    path: /home/lion/Google Drive Perso
+    state: directory
+    owner: lion
+    group: lion
+    mode: '0755'
+
 - name: Copy rclone config
   copy:
     src: files/rclone.conf
