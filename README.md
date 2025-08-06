@@ -4,3 +4,7 @@
 This repository contains the code that Jay Lacroix (LearnLinuxTV) worked on from the Ansible Desktop tutorial [here](https://youtu.be/gIDywsGBqf4).
 
 It was improved with the Ansible-pull tutorial and then coding was improved with ChatGPT's Codex.
+
+## Usage
+run with 
+> sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git -C main

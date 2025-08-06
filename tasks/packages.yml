@@ -29,7 +29,7 @@
       - firefox
       - slack
       - xournalpp
-      - insync
+      - insync-nautilus
       # GNOME
       - catfish
       - gnome-tweaks
