@@ -21,8 +21,6 @@
       - tree
       - ripgrep
       - rustdesk
-      - docker
-      - lazydocker
       # Media
       - vlc
       - drawing
