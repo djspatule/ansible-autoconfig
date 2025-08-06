@@ -94,12 +94,12 @@
     state: absent
   become: yes
 
-- name: Install Beeper and OrcaSlicer AppImages using AM
+- name: Install Beeper and OrcaSlicer AppImages using AM (auto-confirm prompts)
   become: yes
   become_user: lion
   ansible.builtin.shell: |
-    am -i beeper
-    am -i orcaslicer-any
+    yes | am -i beeper
+    yes | am -i orcaslicer-any
   args:
     executable: /bin/bash
   environment:
