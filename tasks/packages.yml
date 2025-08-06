@@ -29,7 +29,7 @@
       - firefox
       - slack
       - xournalpp
-      - insync-nautilus
+      - #insync-nautilus #TO BE REPAIRED WITH THE CORRECT APT SOURCES?
       # GNOME
       - catfish
       - gnome-tweaks
