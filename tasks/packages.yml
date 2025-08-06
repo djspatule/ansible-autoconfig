@@ -95,7 +95,6 @@
   become: yes
 
 - name: Install Beeper and OrcaSlicer AppImages using AM (auto-confirm prompts)
-  become: yes
   become_user: lion
   ansible.builtin.shell: |
     yes | am -i beeper
