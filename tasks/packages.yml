@@ -1,5 +1,5 @@
 - name: install apt packages
-  package:
+  ansible.builtin.package:
     name:
       # CLI utilities
       - btop
@@ -28,7 +28,6 @@
       # Office
       - libreoffice
       - firefox
-      - slack
       - xournalpp
       #- insync-nautilus TO BE REPAIRED WITH THE CORRECT APT SOURCES? /etc/apt/sources.list.d/ubuntu.sources
       # GNOME
@@ -39,7 +38,7 @@
       - gnome-shell-extensions
       - gnome-shell-extension-manager
       - gnome-shell-extension-gsconnect
-    state: latest
+    state: present
     update_cache: yes
   when: ansible_distribution in ["Debian", "Ubuntu"]
 
@@ -79,11 +78,11 @@
 
 - name: Allow org.flameshot.Flameshot to take screenshots
   become: yes
-  become_user: lion
+  become_user: "{{ desktop_user }}"
   ansible.builtin.command: >
     flatpak permission-set screenshot screenshot org.flameshot.Flameshot yes
   environment:
-    XDG_RUNTIME_DIR: "/run/user/{{ lookup('ansible.builtin.pipe', 'id -u lion') }}"
+    XDG_RUNTIME_DIR: "/run/user/{{ lookup('ansible.builtin.pipe', 'id -u ' + desktop_user) }}"
   when: ansible_distribution in ["Debian", "Ubuntu"]
 
 # AM-application-manager
@@ -105,7 +104,7 @@
   become: yes
 
 - name: Install Beeper and OrcaSlicer AppImages using AM (auto-confirm prompts)
-  become_user: lion
+  become_user: "{{ desktop_user }}"
   ansible.builtin.shell: |
     yes | am -i beeper
     yes | am -i orcaslicer-any
@@ -115,7 +114,7 @@
     PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
 
 - name: Update AppImages with AM
-  become_user: lion
+  become_user: "{{ desktop_user }}"
   ansible.builtin.shell: am -u
   environment:
     PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
