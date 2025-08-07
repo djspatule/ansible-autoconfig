@@ -2,57 +2,57 @@
 # rclone config
 
 - name: Ensure rclone config directory exists
-  file:
-    path: /home/lion/.config/rclone
+  ansible.builtin.file:
+    path: "{{ desktop_home }}/.config/rclone"
     state: directory
-    owner: lion
-    group: lion
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_user }}"
     mode: '0700'
 
-- name: Check if /home/lion/Google Drive Perso exists
-  become_user: lion
-  stat:
-    path: "/home/lion/Google Drive Perso"
+- name: Check if Google Drive directory exists
+  become_user: "{{ desktop_user }}"
+  ansible.builtin.stat:
+    path: "{{ desktop_home }}/Google Drive Perso"
   register: gdrive_mountpoint
 
-- name: Check if /home/lion/Google Drive Perso is a mountpoint
-  become_user: lion
-  command: mountpoint -q "/home/lion/Google Drive Perso"
+- name: Check if Google Drive directory is a mountpoint
+  become_user: "{{ desktop_user }}"
+  ansible.builtin.command: mountpoint -q "{{ desktop_home }}/Google Drive Perso"
   register: gdrive_is_mount
   failed_when: false
   changed_when: false
   when: gdrive_mountpoint.stat.exists
 
-- name: Create /home/lion/Google Drive Perso directory if not a mount
-  file:
-    path: "/home/lion/Google Drive Perso"
+- name: Create Google Drive directory if not a mount
+  ansible.builtin.file:
+    path: "{{ desktop_home }}/Google Drive Perso"
     state: directory
-    owner: lion
-    group: lion
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_user }}"
     mode: '0755'
   when:
     - not gdrive_mountpoint.stat.exists
     - gdrive_is_mount.rc != 0
 
 - name: Copy rclone config
-  copy:
+  ansible.builtin.copy:
     src: files/rclone.conf
-    dest: /home/lion/.config/rclone/rclone.conf
-    owner: lion
-    group: lion
+    dest: "{{ desktop_home }}/.config/rclone/rclone.conf"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_user }}"
     mode: '0600'
 
 - name: Copy rclone mount script
-  copy:
+  ansible.builtin.copy:
     src: files/rclone_mount.sh
-    dest: /home/lion/rclone_mount.sh
-    owner: lion
-    group: lion
+    dest: "{{ desktop_home }}/rclone_mount.sh"
+    owner: "{{ desktop_user }}"
+    group: "{{ desktop_user }}"
     mode: '0755'
 
 - name: Add rclone mount to cron
-  cron:
+  ansible.builtin.cron:
     name: "Mount Google Drive Perso with rclone"
-    user: lion
-    job: "/home/lion/rclone_mount.sh"
+    user: "{{ desktop_user }}"
+    job: "{{ desktop_home }}/rclone_mount.sh"
     state: present

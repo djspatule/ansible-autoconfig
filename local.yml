@@ -3,9 +3,14 @@
   connection: local
   become: true
 
+  vars:
+    desktop_user: lion
+    desktop_home: "/home/{{ desktop_user }}"
+    ansible_sudo_user: velociraptor
+
   pre_tasks:
     - name: update repositories
-      apt:
+      ansible.builtin.apt:
         update_cache: true
         upgrade: dist
       changed_when: false
@@ -20,9 +25,9 @@
   - import_tasks: tasks/micro_config.yml
 
   - name: add ansible-pull cron job
-    cron:
+    ansible.builtin.cron:
       name: ansible auto-provision
-      user: velociraptor
+      user: "{{ ansible_sudo_user }}"
       minute: "*/10"
       job: >-
         ansible-pull -o -U https://github.com/djspatule/ansible-autoconfig.git --vault-password-file ~/secret.txt

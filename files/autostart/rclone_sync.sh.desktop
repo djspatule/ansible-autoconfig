@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Exec=/home/lion/Documents/rclone_sync.sh
+Exec=$HOME/Documents/rclone_sync.sh
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
