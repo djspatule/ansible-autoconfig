@@ -67,8 +67,7 @@
     name: "{{ item }}"
     state: present
   loop:
-    - flathub
-    - us.zoom.zoom
+    - us.zoom.Zoom
     - com.github.finefindus.eyedropper
     - org.flameshot.Flameshot
     - eu.betterbird.Betterbird
@@ -76,6 +75,7 @@
     - com.rustdesk.RustDesk
     - com.sublimetext.three
   when: ansible_distribution in ["Debian", "Ubuntu"]
+  #ignore_errors: yes
 
 - name: Allow org.flameshot.Flameshot to take screenshots
   become: yes
