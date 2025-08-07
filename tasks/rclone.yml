@@ -9,13 +9,28 @@
     group: lion
     mode: '0700'
 
-- name: Ensure rclone mountpoint directory exists
+- name: Check if /home/lion/Google Drive Perso exists
+  stat:
+    path: "/home/lion/Google Drive Perso"
+  register: gdrive_mountpoint
+
+- name: Check if /home/lion/Google Drive Perso is a mountpoint
+  command: mountpoint -q "/home/lion/Google Drive Perso"
+  register: gdrive_is_mount
+  failed_when: false
+  changed_when: false
+  when: gdrive_mountpoint.stat.exists
+
+- name: Create /home/lion/Google Drive Perso directory if not a mount
   file:
     path: "/home/lion/Google Drive Perso"
     state: directory
     owner: lion
     group: lion
     mode: '0755'
+  when:
+    - not gdrive_mountpoint.stat.exists
+    - gdrive_is_mount.rc != 0
 
 - name: Copy rclone config
   copy:
