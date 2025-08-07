@@ -25,4 +25,4 @@
       user: velociraptor
       minute: "*/10"
       job: >-
-        ansible-pull -o -U https://github.com/djspatule/ansible-autoconfig.git
+        ansible-pull -o -U https://github.com/djspatule/ansible-autoconfig.git --vault-password-file ~/secret.txt

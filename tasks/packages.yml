@@ -20,6 +20,7 @@
       - sl
       - tree
       - ripgrep
+      - flatpak
       # Media
       - vlc
       - drawing
@@ -51,7 +52,6 @@
     - colorwall
     - slack
     - spotify
-    - sublime-text
     - vivaldi
   when: ansible_distribution in ["Debian", "Ubuntu"]
 
@@ -66,6 +66,7 @@
     - betterbird
     - org.onlyoffice.desktopeditors
     - com.rustdesk.RustDesk
+    - com.sublimetext.three
   when: ansible_distribution in ["Debian", "Ubuntu"]
 
 - name: Allow org.flameshot.Flameshot to take screenshots
