@@ -1,12 +1,15 @@
-# tasks/micro_config.yml (as a task file)
+---
+# tasks/micro_config.yml
 - name: Ensure plugin directory exists
-  file:
-    path: "{{ ansible_env.HOME }}/.config/micro/plug/search"
+  become_user: "{{ desktop_user }}"
+  ansible.builtin.file:
+    path: "{{ desktop_home }}/.config/micro/plug/search"
     state: directory
     mode: '0755'
 
 - name: Download search.lua plugin
-  get_url:
+  become_user: "{{ desktop_user }}"
+  ansible.builtin.get_url:
     url: "https://raw.githubusercontent.com/dmaluka/micro-search/master/search.lua"
-    dest: "{{ ansible_env.HOME }}/.config/micro/plug/search/search.lua"
+    dest: "{{ desktop_home }}/.config/micro/plug/search/search.lua"
     mode: '0644'

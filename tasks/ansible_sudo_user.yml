@@ -1,13 +1,13 @@
 ---
 - name: add ansible user
-  user:
-    name: velociraptor
+  ansible.builtin.user:
+    name: "{{ ansible_sudo_user }}"
     system: true
 
 - name: set up sudo for ansible user
-  copy:
-    src: files/sudoer_velociraptor
-    dest: /etc/sudoers.d/velociraptor
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/{{ ansible_sudo_user }}"
     owner: root
     group: root
-    mode: 0440
+    mode: "0440"
+    content: "{{ ansible_sudo_user }} ALL=(ALL) NOPASSWD: ALL"
