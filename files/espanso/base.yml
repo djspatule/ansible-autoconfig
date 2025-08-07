@@ -1,0 +1,722 @@
+# espanso match file
+
+# For a complete introduction, visit the official docs at: https://espanso.org/docs/
+
+# You can use this file to define the base matches (aka snippets)
+# that will be available in every application when using espanso.
+
+# Matches are substitution rules: when you type the "trigger" string
+# it gets replaced by the "replace" string.
+matches:
+  # Simple text replacement
+  - trigger: "pté"
+    replace: "propriété"
+    word: true
+    propagate_case: true
+  - trigger: "ptés"
+    replace: "propriétés"
+    word: true
+    propagate_case: true
+  - trigger: "itw"
+    replace: "interview"
+    word: true
+    propagate_case: true
+  - trigger: "fwd"
+    replace: "forward"
+    word: true
+    propagate_case: true
+  - trigger: "bjr"
+    replace: "bonjour"
+    word: true
+    propagate_case: true
+  - trigger: "probas"
+    replace: "probabilités"
+    word: true
+    propagate_case: true
+  - trigger: "proba"
+    replace: "probabilité"
+    word: true
+    propagate_case: true
+  - trigger: "pbs"
+    replace: "problèmes"
+    word: true
+    propagate_case: true
+  - trigger: "pb"
+    replace: "problème"
+    word: true
+    propagate_case: true
+  - trigger: "pbs"
+    replace: "problèmes"
+    word: true
+    propagate_case: true
+  - trigger: "gouv"
+    replace: "gouvernement"
+    word: true
+    propagate_case: true
+  - trigger: "propale"
+    replace: "proposition"
+    word: true
+    propagate_case: true
+  - trigger: "amt"
+    replace: "amortissement"
+    word: true
+    propagate_case: true
+  - trigger: "amts"
+    replace: "amortissements"
+    word: true
+    propagate_case: true
+  - trigger: "aprem"
+    replace: "après-midi"
+    word: true
+    propagate_case: true
+  - trigger: "abo"
+    replace: "abonnement"
+    word: true
+    propagate_case: true
+  - trigger: "abos"
+    replace: "abonnements"
+    word: true
+    propagate_case: true
+  - trigger: "rmbst"
+    replace: "remboursement"
+    word: true
+    propagate_case: true
+  - trigger: "bcp"
+    replace: "beaucoup"
+    word: true
+    propagate_case: true
+  - trigger: "cbien"
+    replace: "combien"
+    word: true
+    propagate_case: true
+  - trigger: "cdt"
+    replace: "cordialement"
+    word: true
+    propagate_case: true
+  - trigger: "chgt"
+    replace: "changement"
+    word: true
+    propagate_case: true
+  - trigger: "chgts"
+    replace: "changements"
+    word: true
+    propagate_case: true
+  - trigger: "comm"
+    replace: "communication"
+    word: true
+    propagate_case: true
+  - trigger: "chui"
+    replace: "je suis"
+    word: true
+    propagate_case: true
+  - trigger: "ds"
+    replace: "dans"
+    word: true
+    propagate_case: true
+  - trigger: "dc"
+    replace: "donc"
+    word: true
+    propagate_case: true
+  - trigger: "ê"
+    replace: "être"
+    word: true
+    propagate_case: true
+  - trigger: "elt"
+    replace: "élément"
+    word: true
+    propagate_case: true
+  - trigger: "elts"
+    replace: "éléments"
+    word: true
+    propagate_case: true
+  - trigger: "ent"
+    replace: "entreprise"
+    word: true
+    propagate_case: true
+  - trigger: "ents"
+    replace: "entreprises"
+    word: true
+    propagate_case: true
+  - trigger: "fnr"
+    replace: "fournisseur"
+    word: true
+    propagate_case: true
+  - trigger: "fnrs"
+    replace: "fournisseurs"
+    word: true
+    propagate_case: true
+  - trigger: "fpx"
+    replace: "Franprix"
+    word: true
+    propagate_case: true
+  - trigger: "mpx"
+    replace: "Monoprix"
+    word: true
+    propagate_case: true
+  - trigger: "f&l"
+    replace: "fruits & légumes"
+    word: true
+    propagate_case: true
+  - trigger: "jms"
+    replace: "jamais"
+    word: true
+    propagate_case: true
+  - trigger: "mgmt"
+    replace: "management"
+    word: true
+    propagate_case: true
+  - trigger: "mtn"
+    replace: "maintenant"
+    word: true
+    propagate_case: true
+  - trigger: "mnt"
+    replace: "maintenant"
+    word: true
+    propagate_case: true
+  - trigger: "min"
+    replace: "minimum"
+    word: true
+    propagate_case: true
+  - trigger: "max"
+    replace: "maximum"
+    word: true
+    propagate_case: true
+  - trigger: "mq"
+    replace: "manque"
+    word: true
+    propagate_case: true
+  - trigger: "pdt"
+    replace: "produit"
+    word: true
+    propagate_case: true
+  - trigger: "pdts"
+    replace: "produits"
+    word: true
+    propagate_case: true
+  - trigger: "pkoi"
+    replace: "pourquoi"
+    word: true
+    propagate_case: true
+  - trigger: "tps"
+    replace: "temps"
+    word: true
+    propagate_case: true
+  - trigger: "lgtps"
+    replace: "longtemps"
+    word: true
+    propagate_case: true
+  - trigger: "c'ead"
+    replace: "c'est à dire"
+    word: true
+    propagate_case: true
+  - trigger: "cead"
+    replace: "c'est à dire"
+    word: true
+    propagate_case: true
+  - trigger: "csq"
+    replace: "conséquence"
+    word: true
+    propagate_case: true
+  - trigger: "gvt"
+    replace: "gouvernement"
+    word: true
+    propagate_case: true
+  - trigger: "mm"
+    replace: "même"
+    word: true
+    propagate_case: true
+  - trigger: "ajd"
+    replace: "aujourd'hui"
+    word: true
+    propagate_case: true
+  - trigger: "mvt"
+    replace: "mouvement"
+    word: true
+    propagate_case: true
+  - trigger: "nb"
+    replace: "nombre"
+    word: true
+    propagate_case: true
+  - trigger: "nbs"
+    replace: "nombres"
+    word: true
+    propagate_case: true
+  - trigger: "nbx"
+    replace: "nombreux"
+    word: true
+    propagate_case: true
+  - trigger: "ms"
+    replace: "mais"
+    word: true
+    propagate_case: true
+  - trigger: "msft"
+    replace: "Microsoft"
+    word: true
+    propagate_case: true
+  - trigger: "nv"
+    replace: "nouveau"
+    word: true
+    propagate_case: true
+  - trigger: "nvx"
+    replace: "nouveaux"
+    word: true
+    propagate_case: true
+  - trigger: "objo"
+    replace: "objectif"
+    word: true
+    propagate_case: true
+  - trigger: "objos"
+    replace: "objectifs"
+    word: true
+    propagate_case: true
+  - trigger: "pcq"
+    replace: "parce que"
+    word: true
+    propagate_case: true
+  - trigger: "prob"
+    replace: "problème"
+    word: true
+    propagate_case: true
+  - trigger: "probs"
+    replace: "problèmes"
+    word: true
+    propagate_case: true
+  - trigger: "pls"
+    replace: "plusieurs"
+    word: true
+    propagate_case: true
+  - trigger: "ppe"
+    replace: "principe"
+    word: true
+    propagate_case: true
+  - trigger: "ppes"
+    replace: "principes"
+    word: true
+    propagate_case: true
+  - trigger: "pê"
+    replace: "peut-être"
+    word: true
+    propagate_case: true
+  - trigger: "ptet"
+    replace: "peut-être"
+    word: true
+    propagate_case: true
+  - trigger: "ppx"
+    replace: "principaux"
+    word: true
+    propagate_case: true
+  - trigger: "pvr"
+    replace: "pouvoir"
+    word: true
+    propagate_case: true
+  - trigger: "pvrs"
+    replace: "pouvoirs"
+    word: true
+    propagate_case: true
+  - trigger: "px"
+    replace: "peux"
+    word: true
+    propagate_case: true
+  - trigger: "qd"
+    replace: "quand"
+    word: true
+    propagate_case: true
+  - trigger: "qq"
+    replace: "quelque"
+    word: true
+    propagate_case: true
+  - trigger: "qqs"
+    replace: "quelques"
+    word: true
+    propagate_case: true
+  - trigger: "qqch"
+    replace: "quelque chose"
+    word: true
+    propagate_case: true
+  - trigger: "qq'un"
+    replace: "quelqu'un"
+    word: true
+    propagate_case: true
+  - trigger: "qcq"
+    replace: "quelconque"
+    word: true
+    propagate_case: true
+  - trigger: "q°"
+    replace: "question"
+    word: true
+    propagate_case: true
+  - trigger: "q°s"
+    replace: "questions"
+    word: true
+    propagate_case: true
+  - trigger: "temp"
+    replace: "température"
+    word: true
+    propagate_case: true
+  - trigger: "sté"
+    replace: "société"
+    word: true
+    propagate_case: true
+  - trigger: "stés"
+    replace: "sociétés"
+    word: true
+    propagate_case: true
+  - trigger: "strat"
+    replace: "stratégie"
+    word: true
+    propagate_case: true
+  - trigger: "strats"
+    replace: "stratégies"
+    word: true
+    propagate_case: true
+  - trigger: "stture"
+    replace: "structure"
+    word: true
+    propagate_case: true
+  - trigger: "sttures"
+    replace: "structures"
+    word: true
+    propagate_case: true
+  - trigger: "infrastture"
+    replace: "infrastructure"
+    word: true
+    propagate_case: true
+  - trigger: "infrasttures"
+    replace: "infrastructures"
+    word: true
+    propagate_case: true
+  - trigger: "svt"
+    replace: "souvent"
+    word: true
+    propagate_case: true
+  - trigger: "tx"
+    replace: "taux"
+    word: true
+    propagate_case: true
+  - trigger: "tjs"
+    replace: "toujours"
+    word: true
+    propagate_case: true
+  - trigger: "tt"
+    replace: "tout"
+    word: true
+    propagate_case: true
+  - trigger: "tte"
+    replace: "toute"
+    word: true
+    propagate_case: true
+  - trigger: "ttes"
+    replace: "toutes"
+    word: true
+    propagate_case: true
+  - trigger: "ts"
+    replace: "tous"
+    word: true
+    propagate_case: true
+  - trigger: "vener"
+    replace: "énervé"
+    word: true
+    propagate_case: true
+  - trigger: "vrmt"
+    replace: "vraiment"
+    word: true
+    propagate_case: true
+  - trigger: "respo"
+    replace: "responsable"
+    word: true
+    propagate_case: true
+  - trigger: "ingé"
+    replace: "ingénieur"
+    word: true
+    propagate_case: true
+  - trigger: "ingés"
+    replace: "ingénieurs"
+    word: true
+    propagate_case: true
+  - trigger: "bàv"
+    replace: "Bien à vous"
+    word: true
+    propagate_case: true
+  - trigger: "bàt"
+    replace: "Bien à toi"
+    word: true
+    propagate_case: true
+  - trigger: "bav"
+    replace: "Bien à vous"
+    word: true
+    propagate_case: true
+  - trigger: "bav,"
+    replace: "Bien à vous,"
+    word: true
+    propagate_case: true
+  - trigger: "bat"
+    replace: "Bien à toi"
+    word: true
+    propagate_case: true
+  - trigger: "bat,"
+    replace: "Bien à toi,"
+    word: true
+    propagate_case: true
+  - trigger: "négo"
+    replace: "négociation"
+    word: true
+    propagate_case: true
+  - trigger: "nego"
+    replace: "négociation"
+    word: true
+    propagate_case: true
+  - trigger: "négos"
+    replace: "négociations"
+    word: true
+    propagate_case: true
+  - trigger: "negos"
+    replace: "négociations"
+    word: true
+    propagate_case: true
+  - trigger: "invit"
+    replace: "invitation"
+    word: true
+    propagate_case: true
+  - trigger: "étab"
+    replace: "établissement"
+    word: true
+    propagate_case: true
+  - trigger: "dev"
+    replace: "développement"
+    word: true
+    propagate_case: true
+  - trigger: "internat"
+    replace: "international"
+    word: true
+    propagate_case: true
+  - trigger: "internatx"
+    replace: "internationaux"
+    word: true
+    propagate_case: true
+  - trigger: "contrib"
+    replace: "contribution"
+    word: true
+    propagate_case: true
+  - trigger: "contribs"
+    replace: "contributions"
+    word: true
+    propagate_case: true
+  - trigger: "proj"
+    replace: "projet"
+    word: true
+    propagate_case: true
+  - trigger: "projs"
+    replace: "projets"
+    word: true
+    propagate_case: true
+  - trigger: "rech"
+    replace: "recherche"
+    word: true
+    propagate_case: true
+  - trigger: "IdF"
+    replace: "Ile de France"
+    word: true
+    propagate_case: true
+  - trigger: "inno"
+    replace: "innovation"
+    word: true
+    propagate_case: true
+  - trigger: "innos"
+    replace: "innovations"
+    word: true
+    propagate_case: true
+  - trigger: "info"
+    replace: "information"
+    word: true
+    propagate_case: true
+  - trigger: "infos"
+    replace: "informations"
+    word: true
+    propagate_case: true
+  - trigger: "ppal"
+    replace: "principal"
+    word: true
+    propagate_case: true
+  - trigger: "modif"
+    replace: "modification"
+    word: true
+    propagate_case: true
+  - trigger: "modifs"
+    replace: "modifications"
+    word: true
+    propagate_case: true
+  - trigger: "rq"
+    replace: "remarque"
+    word: true
+    propagate_case: true
+  - trigger: "rqs"
+    replace: "remarques"
+    word: true
+    propagate_case: true
+  - trigger: "qté"
+    replace: "quantité"
+    word: true
+    propagate_case: true
+  - trigger: "qtés"
+    replace: "quantités"
+    word: true
+    propagate_case: true
+  - trigger: "€éen"
+    replace: "Européen"
+    word: true
+    propagate_case: true
+  - trigger: "€pe"
+    replace: "Europe"
+    word: true
+    propagate_case: true
+  - trigger: "wee"
+    replace: "week-end"
+    word: true
+    propagate_case: true
+  - trigger: "svp"
+    replace: "s'il vous plaît"
+    word: true
+    propagate_case: true
+  - trigger: "stp"
+    replace: "s'il te plaît"
+    word: true
+    propagate_case: true
+  - trigger: "partt"
+    replace: "partout"
+    word: true
+    propagate_case: true
+  - trigger: "xp"                                                                                                        
+    replace: "expérience"                                                                                                  
+    word: true                                                                                                            
+    propagate_case: true    
+  - trigger: "xps"                                                                                                        
+    replace: "expériences"                                                                                                  
+    word: true                                                                                                            
+    propagate_case: true
+
+# English
+  - trigger: "btw"
+    replace: "by the way"
+    word: true
+    propagate_case: true
+  - trigger: "thx"
+    replace: "thanks"
+    word: true
+    propagate_case: true
+  - trigger: "hw"
+    replace: "hardware"
+    word: true
+    propagate_case: true
+  - trigger: "hws"
+    replace: "hardwares"
+    word: true
+    propagate_case: true
+  - trigger: "sw"
+    replace: "software"
+    word: true
+    propagate_case: true
+  - trigger: "sws"
+    replace: "softwares"
+    word: true
+    propagate_case: true
+
+
+# Job specific
+  - trigger: "ccc"
+    replace: "https://calendar.app.google/ADjCTXu2cyZrKLEw9"
+    word: true
+    propagate_case: false
+  - trigger: "ccch"
+    replace: "https://calendar.app.google/8qRJyfqTERdvfwov8"
+    word: true
+  - trigger: "ccce"
+    replace: "https://calendar.app.google/dNcz8tBQxQdxfCz4A"
+    word: true
+  - trigger: "merel"
+    replace: "mise en relation"
+    word: true
+    propagate_case: true
+  - trigger: "plc"
+    replace: "passer la commande"
+    word: true
+    propagate_case: true
+  - trigger: "dds"
+    replace: "DNA data storage"
+    word: true
+    propagate_case: true
+  - trigger: "bm"
+    replace: "biomemory"
+    word: true
+    propagate_case: true
+  - trigger: "mmm"
+    replace: "lionel@biomemory.com"
+    word: true
+  - trigger: "aaa"
+    replace: "Lionel Arnaud, Biomemory, 3-5 impasse Reille, 75014 Paris"
+    word: true
+  - trigger: "aaap"
+    replace: "Lionel Arnaud, 55 rue de Paradis, 75010 Paris"
+    word: true
+  - trigger: "p&s"
+    replace: "Pierre et Stéphane"
+    word: true
+  - trigger: "avd"
+    replace: "à votre disposition pour tout complément d'information."
+    word: true
+    propagate_case: true
+  - trigger: "atd"
+    replace: "à ta disposition pour tout complément d'information."
+    word: true
+    propagate_case: true
+  - trigger: "ggg"
+    replace: "https://meet.google.com/zhy-vqgy-mfd"
+    word: true
+  - trigger: "dnd"
+    replace: "Bonjour, Merci infiniment pour votre message mais je ne suis pas intéressé. Je vous prie de bien vouloir supprimer mon adresse e-mail de votre liste de destinataires. Vous en remerciant par avance, je vous souhaite une excellente journée. Bien à vous, Lionel"
+    word: true
+  - trigger: "prompt"
+    replace: "Consider the following context of my request: I am Lionel ARNAUD, Chief Operating Officer at Biomemory, a start-up founded in mid-2021 and currently employing 22 people. Biomemory \u2013 a key player in the DNA data storage space \u2013 is positioned at the crossroads of Biotechnology and IT. Its ambition is to help meet the climate challenge posed by data centers. Biomemory is developing a world-leading, petrol-free DNA synthesis and copy process based on synthetic biology, exploiting mechanisms refined over 4 billion years of evolution. Applying proprietary technologies, Biomemory can produce long, bio-sourced, biocompatible and bio-secure/bio-safe DNA fragments that can be stored as inert polymers for thousands of years without any energy input. Technology transfer agency SATT Lutech has granted Biomemory an exclusive worldwide licence to the two CNRS/Sorbonne University patents at the heart of this innovation. Biomemory since then patented its CBU technology. We have also also chose to work on utilizing our artificial DNA for the purpose of tracing and authenticating high-value products as an intermediary market for small native data volumes. We have one initial client in this area: SICPA, who wants to create secure inks containing DNA through an end-to-end approach encompassing DNA tag synthesis, sequencing kits based on Oxford Nanopore Technologies and software to match the tags in a database of products. Biomemory also considers adressing this tagging market through sales of DNA to major players in the DNA tagging ou general tagging field such as ADNAS, Haelixa, OLNICA, etc. Biomemory closed a Series A round in 12/2024 for 17M€ from French investors : Crédit Mutuel Innovation (CMI) as lead investor, Bpifrance and Blast (community of crowd investment) as main investors and several significantly smaller follwoers. Whil seed funding was aimed at solving the biotech challenges, the Series A aims at miniaturization, parallelization, automation, etc. to turn our 200m² of lab into a single data-center compatible appliance. \u201D"
+    word: true
+  - trigger: "promptf"
+    replace: "Considérez le contexte suivant de ma demande : Je suis Lionel ARNAUD, Directeur des opérations chez Biomemory, une start-up fondée à la mi-2021 et employant actuellement 22 personnes. Biomemory – un acteur clé dans le domaine du stockage de données sur ADN – se situe à l'intersection de la biotechnologie et de l'informatique. Son ambition est de contribuer à relever le défi climatique posé par les centres de données. Biomemory développe un procédé de synthèse et de copie d'ADN de pointe, sans recours au pétrole, basé sur la biologie synthétique et exploitant des mécanismes affinés par plus de 4 milliards d'années d'évolution. Grâce à des technologies propriétaires, Biomemory est en mesure de produire de longs fragments d'ADN biosourcés, biocompatibles et bio-sécurisés/bio-sûrs, pouvant être stockés sous forme de polymères inertes pendant des milliers d'années sans apport énergétique. L’agence de transfert de technologie SATT Lutech a accordé à Biomemory une licence exclusive mondiale sur deux brevets du CNRS/Sorbonne Université, qui sont au cœur de cette innovation. Depuis, Biomemory a breveté sa technologie CBU. Nous avons également choisi de travailler sur l'utilisation de notre ADN artificiel pour le traçage et l'authentification de produits de grande valeur, comme un marché intermédiaire destiné à de petits volumes de données natives. Nous avons un premier client dans ce domaine : SICPA, qui souhaite créer des encres sécurisées contenant de l’ADN via une approche de bout en bout incluant la synthèse des balises ADN, des kits de séquençage basés sur la technologie Oxford Nanopore et un logiciel permettant de faire correspondre les balises avec une base de données de produits. Biomemory envisage également d’adresser ce marché du marquage par la vente d’ADN à des acteurs majeurs du domaine, comme ADNAS, Haelixa, OLNICA, etc. Biomemory a finalisé une levée de fonds de Série A en décembre 2024 pour un montant de 17 M€ auprès d’investisseurs français : Crédit Mutuel Innovation (CMI) en tant qu'investisseur principal, Bpifrance et Blast (une communauté d’investissement participatif) comme investisseurs principaux, ainsi que plusieurs autres investisseurs de taille plus modeste. Alors que le financement d’amorçage était destiné à résoudre les défis biotechnologiques, la Série A vise la miniaturisation, la parallélisation et l'automatisation, afin de transformer nos 200 m² de laboratoire en un seul appareil compatible avec les centres de données."
+    word: true
+  - trigger: "rrr"
+    replace: "réponds au plus récents des messages de la conversation fournie ci-dessous en t'alignant sur le ton et la forme employés dans mes précédents messages de cette conversation et en tenant compte des instructions spécifiques fournies à la fin de ce paragraphe. Reste précis et concis. Ne répète pas inutilement plusieurs fois la même idées dans plusieurs paragraphes.  Mais comprends l'objectif de l'email et ajoute les éléments qui te semble le compléter, le clarifier et l'améliorer lorsque c'est utile afin d'atteindre plus vite et mieux l'objectif visé. Dans ce cadre, tu es donc libre de prendre des initiatives."
+    word: true
+
+#Perso
+
+  - trigger: "promptp"
+    replace: "Consider the following context of my request: I am Lionel ARNAUD, a male born in 1984 (August 11th) with two children: A boy named Oscar born on January the 14th 2017 and a girl named Romy born on April the 25th. My concubine is Myriam, born in 1985 who is currently shopowner of an small concept-store selling ethical products online (https://www.lesethiquetes.fr) and at a physical store in Paris 10th arrondissement. I am Chief Operating Officer at Biomemory, a start-up in the field of DNA data storage. I myself am a geek interested in Aviation, The two world wars, Feudal Japan and the samurais in particular, Espionage, Zen Buddhism and meditation, Kickboxing, Comics and graphic novels, History of science, Science news, DIY Biotech and biohacking, Skepticism, Major contemporary scientific theories (evolution, Quantum physics, etc.), Ethology and the great apes in particular, Science fiction and heroic fantasy in particular, Zero waste, Computing and networks (hardware, programming, Linux, webhosting, FOSS, etc.), Survival skills, Prehistory (especially primitive techniques/technologies), Guitar and music, Sewing."
+    word: true
+    propagate_case: true
+  - trigger: "mmmp"
+    replace: "lionelarnaud84@gmail.com"
+    word: true
+  - trigger: "aaap"
+    replace: "Lionel Arnaud, 55 rue de Paradis, 75010 Paris"
+    word: true
+
+# Date/Time stamps
+
+  # Print the current date
+  - trigger: "ddd"
+    replace: "{{mydate}}"
+    word: true
+    vars:
+      - name: mydate
+        type: date
+        params:
+          format: "%d/%m/%Y"
+
+  - trigger: "ttt"
+    replace: "{{mytime}}"
+    word: true
+    vars:
+      - name: mytime
+        type: date
+        params:
+          format: "%d/%m/%Y %H:%M"
+
+# NOTE: espanso uses YAML to define matches, so pay attention to the indentation!
+# And much more! For more information, visit the docs: https://espanso.org/docs/
