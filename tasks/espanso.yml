@@ -1,79 +1,72 @@
-- name: Install Espanso with Wayland support from source
-  become: true
-  vars:
-    espanso_src: "{{ ansible_env.HOME }}/.local/src/espanso"
-    cargo_make_version: "0.34.0"
-  tasks:
+- name: Install system build dependencies
+  apt:
+    name:
+      - build-essential
+      - curl
+      - git
+      - wl-clipboard
+      - libxkbcommon-dev
+      - libdbus-1-dev
+      - libssl-dev
+      - libwxgtk3.*-dev
+    state: present
+    update_cache: yes
 
-    - name: Install system build dependencies
-      apt:
-        name:
-          - build-essential
-          - curl
-          - git
-          - wl-clipboard
-          - libxkbcommon-dev
-          - libdbus-1-dev
-          - libssl-dev
-          - libwxgtk3.*-dev
-        state: present
-        update_cache: yes
+- name: Ensure Rust toolchain (rustup) is installed
+  shell: |
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    source "{{ ansible_env.HOME }}/.cargo/env"
+  args:
+    creates: "{{ ansible_env.HOME }}/.cargo/bin/rustc"
+  environment:
+    HOME: "{{ ansible_env.HOME }}"
 
-    - name: Ensure Rust toolchain (rustup) is installed
-      shell: |
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-        source "{{ ansible_env.HOME }}/.cargo/env"
-      args:
-        creates: "{{ ansible_env.HOME }}/.cargo/bin/rustc"
-      environment:
-        HOME: "{{ ansible_env.HOME }}"
+- name: Install cargo-make at specified version
+  become_user: "{{ ansible_user }}"
+  shell: |
+    source "{{ ansible_env.HOME }}/.cargo/env"
+    cargo install --force cargo-make --version {{ cargo_make_version }}
+  args:
+    creates: "{{ ansible_env.HOME }}/.cargo/bin/cargo-make"
 
-    - name: Install cargo-make at specified version
-      become_user: "{{ ansible_user }}"
-      shell: |
-        source "{{ ansible_env.HOME }}/.cargo/env"
-        cargo install --force cargo-make --version {{ cargo_make_version }}
-      args:
-        creates: "{{ ansible_env.HOME }}/.cargo/bin/cargo-make"
+- name: Clone Espanso repository
+  git:
+    repo: "https://github.com/federico-terzi/espanso.git"
+    dest: "{{ espanso_src }}"
+    update: yes
+  become_user: "{{ ansible_user }}"
 
-    - name: Clone Espanso repository
-      git:
-        repo: "https://github.com/federico-terzi/espanso.git"
-        dest: "{{ espanso_src }}"
-        update: yes
-      become_user: "{{ ansible_user }}"
+- name: Compile Espanso binary for Wayland (no X11)
+  shell: >
+    source "{{ ansible_env.HOME }}/.cargo/env"
+    cd "{{ espanso_src }}"
+    cargo make --profile release --env NO_X11=true build-binary
+  args:
+    chdir: "{{ espanso_src }}"
+  become_user: "{{ ansible_user }}"
 
-    - name: Compile Espanso binary for Wayland (no X11)
-      shell: >
-        source "{{ ansible_env.HOME }}/.cargo/env"
-        cd "{{ espanso_src }}"
-        cargo make --profile release --env NO_X11=true build-binary
-      args:
-        chdir: "{{ espanso_src }}"
-      become_user: "{{ ansible_user }}"
+- name: Move espanso binary to /usr/local/bin
+  copy:
+    src: "{{ espanso_src }}/target/release/espanso"
+    dest: /usr/local/bin/espanso
+    mode: '0755'
 
-    - name: Move espanso binary to /usr/local/bin
-      copy:
-        src: "{{ espanso_src }}/target/release/espanso"
-        dest: /usr/local/bin/espanso
-        mode: '0755'
+- name: Grant CAP_DAC_OVERRIDE capability to espanso binary
+  command: setcap "cap_dac_override+p" /usr/local/bin/espanso
 
-    - name: Grant CAP_DAC_OVERRIDE capability to espanso binary
-      command: setcap "cap_dac_override+p" /usr/local/bin/espanso
+- name: Register Espanso systemd service for user
+  become_user: "{{ ansible_user }}"
+  command: espanso service register
 
-    - name: Register Espanso systemd service for user
-      become_user: "{{ ansible_user }}"
-      command: espanso service register
+- name: Start Espanso service
+  become_user: "{{ ansible_user }}"
+  command: espanso start
 
-    - name: Start Espanso service
-      become_user: "{{ ansible_user }}"
-      command: espanso start
+- name: Confirm Espanso is running
+  become_user: "{{ ansible_user }}"
+  command: espanso status
+  register: espanso_status
 
-    - name: Confirm Espanso is running
-      become_user: "{{ ansible_user }}"
-      command: espanso status
-      register: espanso_status
-
-    - name: Show Espanso status
-      debug:
-        var: espanso_status.stdout_lines
+- name: Show Espanso status
+  debug:
+    var: espanso_status.stdout_lines
