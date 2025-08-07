@@ -60,6 +60,7 @@
     name: "{{ item }}"
     state: present
   loop:
+    - flathub
     - us.zoom.zoom
     - com.github.finefindus.eyedropper
     - org.flameshot.Flameshot
