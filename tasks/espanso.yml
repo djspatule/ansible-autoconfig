@@ -8,7 +8,7 @@
       - libxkbcommon-dev
       - libdbus-1-dev
       - libssl-dev
-      - libwxgtk3.*-dev
+      - libwxgtk3.0-gtk3-dev
     state: present
     update_cache: yes
 
@@ -70,3 +70,17 @@
 - name: Show Espanso status
   debug:
     var: espanso_status.stdout_lines
+
+- name: Ensure espanso config directory exists
+  become_user: "{{ ansible_user }}"
+  file:
+    path: "{{ ansible_env.HOME }}/.config/espanso/match"
+    state: directory
+    mode: '0700'
+
+- name: Deploy espanso base.yml config
+  become_user: "{{ ansible_user }}"
+  copy:
+    src: files/espanso/base.yml
+    dest: "{{ ansible_env.HOME }}/.config/espanso/match/base.yml"
+    mode: '0600'

@@ -1,4 +1,5 @@
 - name: install apt packages
+  become: true
   package:
     name:
       # CLI utilities
