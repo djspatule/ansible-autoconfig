@@ -60,10 +60,10 @@
     name: "{{ item }}"
     state: present
   loop:
-    - zoom
-    - eyedropper
+    - us.zoom.zoom
+    - com.github.finefindus.eyedropper
     - org.flameshot.Flameshot
-    - betterbird
+    - eu.betterbird.Betterbird
     - org.onlyoffice.desktopeditors
     - com.rustdesk.RustDesk
     - com.sublimetext.three
