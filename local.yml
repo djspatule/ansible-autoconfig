@@ -2,6 +2,7 @@
 - hosts: localhost
   connection: local
   become: true
+  become_user: root
   vars:
     espanso_src: "{{ ansible_env.HOME }}/.local/src/espanso"
     cargo_make_version: "0.34.0"
