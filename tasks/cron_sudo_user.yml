@@ -1,13 +1,13 @@
 ---
 - name: add ansible user
   ansible.builtin.user:
-    name: "{{ cron_sudo_user }}"
+    name: "{{ automation_user }}"
     system: true
 
 - name: set up sudo for ansible user
   ansible.builtin.copy:
-    dest: "/etc/sudoers.d/{{ cron_sudo_user }}"
+    dest: "/etc/sudoers.d/{{ automation_user }}"
     owner: root
     group: root
     mode: "0440"
-    content: "{{ cron_sudo_user }} ALL=(ALL) NOPASSWD: ALL"
+    content: "{{ automation_user }} ALL=(ALL) NOPASSWD: ALL"

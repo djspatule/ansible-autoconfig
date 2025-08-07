@@ -2,13 +2,12 @@
 - hosts: localhost
   connection: local
   become: true
-  become_user: root
   vars:
     espanso_src: "{{ ansible_env.HOME }}/.local/src/espanso"
     cargo_make_version: "0.34.0"
     desktop_user: lion
     desktop_home: "/home/{{ desktop_user }}"
-    cron_sudo_user: velociraptor
+    automation_user: velociraptor
 
   pre_tasks:
     - name: update repositories
@@ -30,7 +29,7 @@
   - name: add ansible-pull cron job
     ansible.builtin.cron:
       name: ansible auto-provision
-      user: "{{ cron_sudo_user }}"
+      user: "{{ automation_user }}"
       minute: "*/10"
       job: >-
         ansible-pull -o -U https://github.com/djspatule/ansible-autoconfig.git --vault-password-file ~/secret.txt
