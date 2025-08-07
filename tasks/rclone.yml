@@ -10,13 +10,13 @@
     mode: '0700'
 
 - name: Check if /home/lion/Google Drive Perso exists
-  become: yes
+  become_user: lion
   stat:
     path: "/home/lion/Google Drive Perso"
   register: gdrive_mountpoint
 
 - name: Check if /home/lion/Google Drive Perso is a mountpoint
-  become: yes
+  become_user: lion
   command: mountpoint -q "/home/lion/Google Drive Perso"
   register: gdrive_is_mount
   failed_when: false
