@@ -1,5 +1,4 @@
 - name: Install Espanso with Wayland support from source
-  hosts: localhost
   become: true
   vars:
     espanso_src: "{{ ansible_env.HOME }}/.local/src/espanso"
