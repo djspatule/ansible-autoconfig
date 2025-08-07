@@ -8,7 +8,7 @@
     cargo_make_version: "0.34.0"
     desktop_user: lion
     desktop_home: "/home/{{ desktop_user }}"
-    ansible_sudo_user: velociraptor
+    cron_sudo_user: velociraptor
 
   pre_tasks:
     - name: update repositories
@@ -23,14 +23,14 @@
   - import_tasks: tasks/gnome.yml
   - import_tasks: tasks/fonts.yml
   - import_tasks: tasks/bashrc.yml
-  - import_tasks: tasks/ansible_sudo_user.yml
+  - import_tasks: tasks/cron_sudo_user.yml
   - import_tasks: tasks/micro_config.yml
   - import_tasks: tasks/rclone.yml
 
   - name: add ansible-pull cron job
     ansible.builtin.cron:
       name: ansible auto-provision
-      user: "{{ ansible_sudo_user }}"
+      user: "{{ cron_sudo_user }}"
       minute: "*/10"
       job: >-
         ansible-pull -o -U https://github.com/djspatule/ansible-autoconfig.git --vault-password-file ~/secret.txt
