@@ -55,6 +55,13 @@
     - vivaldi
   when: ansible_distribution in ["Debian", "Ubuntu"]
 
+- name: Add Flathub remote
+  community.general.flatpak_remote:
+    name: flathub
+    url: https://flathub.org/repo/
+    state: present
+  when: ansible_distribution in ["Debian", "Ubuntu"]
+
 - name: Install Flatpak packages
   community.general.flatpak:
     name: "{{ item }}"
