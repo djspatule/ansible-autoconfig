@@ -58,7 +58,7 @@
 - name: Add Flathub remote
   community.general.flatpak_remote:
     name: flathub
-    url: https://flathub.org/repo/
+    flatpakrepo_url: https://flathub.org/repo/flathub.flatpakrepo
     state: present
   when: ansible_distribution in ["Debian", "Ubuntu"]
 
