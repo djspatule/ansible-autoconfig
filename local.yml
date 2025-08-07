@@ -22,7 +22,7 @@
   - import_tasks: tasks/gnome.yml
   - import_tasks: tasks/fonts.yml
   - import_tasks: tasks/bashrc.yml
-  - import_tasks: tasks/cron_sudo_user.yml
+  - import_tasks: tasks/automation_user.yml
   - import_tasks: tasks/micro_config.yml
   - import_tasks: tasks/rclone.yml
 
