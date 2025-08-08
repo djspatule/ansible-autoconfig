@@ -87,34 +87,63 @@
 
 # AM-application-manager
 
+- name: Check if AM is installed
+  ansible.builtin.stat:
+    path: /usr/local/bin/am
+  register: am_binary
+
 - name: Download AM-application-manager INSTALL script
   ansible.builtin.get_url:
     url: https://raw.githubusercontent.com/ivan-hc/AM/main/INSTALL
     dest: /tmp/AM_INSTALL
     mode: '0755'
+  when: not am_binary.stat.exists
 
 - name: Run AM-application-manager INSTALL script
   ansible.builtin.command: /tmp/AM_INSTALL
   become: yes
+  when: not am_binary.stat.exists
 
 - name: Remove AM-application-manager INSTALL script
   ansible.builtin.file:
     path: /tmp/AM_INSTALL
     state: absent
   become: yes
+  when: not am_binary.stat.exists
 
-- name: Install Beeper and OrcaSlicer AppImages using AM (auto-confirm prompts)
+- name: List installed AM packages
   become_user: "{{ desktop_user }}"
-  ansible.builtin.shell: |
-    yes | am -i beeper
-    yes | am -i orcaslicer-any
+  ansible.builtin.command: am -l
+  register: am_list
+  changed_when: false
+  failed_when: false
+  when: am_binary.stat.exists
+
+- name: Install Beeper AppImage using AM (auto-confirm prompt)
+  become_user: "{{ desktop_user }}"
+  ansible.builtin.shell: yes | am -i beeper
   args:
     executable: /bin/bash
   environment:
     PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
+  when:
+    - am_binary.stat.exists
+    - "'beeper' not in am_list.stdout"
+
+- name: Install OrcaSlicer AppImage using AM (auto-confirm prompt)
+  become_user: "{{ desktop_user }}"
+  ansible.builtin.shell: yes | am -i orcaslicer-any
+  args:
+    executable: /bin/bash
+  environment:
+    PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
+  when:
+    - am_binary.stat.exists
+    - "'orcaslicer-any' not in am_list.stdout"
 
 - name: Update AppImages with AM
   become_user: "{{ desktop_user }}"
   ansible.builtin.shell: am -u
   environment:
     PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
+  when: am_binary.stat.exists
