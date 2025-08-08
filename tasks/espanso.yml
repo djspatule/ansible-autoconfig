@@ -2,7 +2,7 @@
   ansible.builtin.shell: |
     set -e
     if apt-cache show libwxgtk3.2-dev >/dev/null 2>&1; then echo libwxgtk3.2-dev; exit 0; fi
-    if apt-cache show libwxgtk3.0-gtk3-dev >/dev/null 2>&1; then echo libwxgtk3.0-gtk3-dev; exit 0; fi
+    if apt-cache show libwxgtk3.3-dev >/dev/null 2>&1; then echo libwxgtk3.3-dev; exit 0; fi
     exit 1
   args:
     executable: /bin/bash
@@ -25,20 +25,20 @@
     update_cache: yes
 
 - name: Ensure Rust toolchain (rustup) is installed
-  shell: |
+  ansible.builtin.shell: |
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
     source "{{ ansible_env.HOME }}/.cargo/env"
   args:
+    executable: /bin/bash
     creates: "{{ ansible_env.HOME }}/.cargo/bin/rustc"
-  environment:
-    HOME: "{{ ansible_env.HOME }}"
 
 - name: Install cargo-make at specified version
   become_user: "{{ ansible_user }}"
-  shell: |
+  ansible.builtin.shell: |
     source "{{ ansible_env.HOME }}/.cargo/env"
     cargo install --force cargo-make --version {{ cargo_make_version }}
   args:
+    executable: /bin/bash
     creates: "{{ ansible_env.HOME }}/.cargo/bin/cargo-make"
 
 - name: Clone Espanso repository
