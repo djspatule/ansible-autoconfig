@@ -33,7 +33,7 @@
     creates: "{{ ansible_env.HOME }}/.cargo/bin/rustc"
 
 - name: Install cargo-make at specified version
-  become_user: "{{ ansible_user }}"
+  become_user: "{{ desktop_user }}"
   ansible.builtin.shell: |
     source "{{ ansible_env.HOME }}/.cargo/env"
     cargo install --force cargo-make --version {{ cargo_make_version }}
@@ -46,7 +46,7 @@
     repo: "https://github.com/federico-terzi/espanso.git"
     dest: "{{ espanso_src }}"
     update: yes
-  become_user: "{{ ansible_user }}"
+  become_user: "{{ desktop_user }}"
 
 - name: Compile Espanso binary for Wayland (no X11)
   shell: >
@@ -55,7 +55,7 @@
     cargo make --profile release --env NO_X11=true build-binary
   args:
     chdir: "{{ espanso_src }}"
-  become_user: "{{ ansible_user }}"
+  become_user: "{{ desktop_user }}"
 
 - name: Move espanso binary to /usr/local/bin
   copy:
@@ -67,15 +67,15 @@
   command: setcap "cap_dac_override+p" /usr/local/bin/espanso
 
 - name: Register Espanso systemd service for user
-  become_user: "{{ ansible_user }}"
+  become_user: "{{ desktop_user }}"
   command: espanso service register
 
 - name: Start Espanso service
-  become_user: "{{ ansible_user }}"
+  become_user: "{{ desktop_user }}"
   command: espanso start
 
 - name: Confirm Espanso is running
-  become_user: "{{ ansible_user }}"
+  become_user: "{{ desktop_user }}"
   command: espanso status
   register: espanso_status
 
@@ -84,7 +84,7 @@
     var: espanso_status.stdout_lines
 
 - name: Ensure espanso config directories exist
-  become_user: "{{ ansible_user }}"
+  become_user: "{{ desktop_user }}"
   file:
     path: "{{ item }}"
     state: directory
@@ -94,14 +94,14 @@
     - "{{ ansible_env.HOME }}/.config/espanso/config"
 
 - name: Deploy espanso base.yml config
-  become_user: "{{ ansible_user }}"
+  become_user: "{{ desktop_user }}"
   copy:
     src: files/espanso/base.yml
     dest: "{{ ansible_env.HOME }}/.config/espanso/match/base.yml"
     mode: '0600'
 
 - name: Deploy espanso default.yml (FR keyboard)
-  become_user: "{{ ansible_user }}"
+  become_user: "{{ desktop_user }}"
   copy:
     src: files/espanso/default.yml
     dest: "{{ ansible_env.HOME }}/.config/espanso/config/default.yml"
