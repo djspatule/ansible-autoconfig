@@ -23,23 +23,17 @@
       - "{{ wx_pkg.stdout }}"
     state: present
     update_cache: yes
+  become: yes
 
-- name: Ensure Rust toolchain (rustup) is installed
+- name: Ensure Rust toolchain (rustup) is installed for desktop user
   ansible.builtin.shell: |
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-    source "{{ ansible_env.HOME }}/.cargo/env"
   args:
     executable: /bin/bash
-    creates: "{{ ansible_env.HOME }}/.cargo/bin/rustc"
-
-- name: Install cargo-make at specified version
+    creates: "{{ desktop_home }}/.cargo/bin/rustc"
   become_user: "{{ desktop_user }}"
-  ansible.builtin.shell: |
-    source "{{ ansible_env.HOME }}/.cargo/env"
-    cargo install --force cargo-make --version {{ cargo_make_version }}
-  args:
-    executable: /bin/bash
-    creates: "{{ ansible_env.HOME }}/.cargo/bin/cargo-make"
+
+  
 
 - name: Clone Espanso repository
   git:
@@ -49,10 +43,9 @@
   become_user: "{{ desktop_user }}"
 
 - name: Compile Espanso binary for Wayland (no X11)
-  shell: >
-    source "{{ ansible_env.HOME }}/.cargo/env"
-    cd "{{ espanso_src }}"
-    cargo make --profile release --env NO_X11=true build-binary
+  shell: |
+    export PATH="{{ desktop_home }}/.cargo/bin:$PATH"
+    cargo build -p espanso --release --no-default-features --features modulo,vendored-tls,wayland
   args:
     chdir: "{{ espanso_src }}"
   become_user: "{{ desktop_user }}"
@@ -62,21 +55,29 @@
     src: "{{ espanso_src }}/target/release/espanso"
     dest: /usr/local/bin/espanso
     mode: '0755'
+  become: yes
 
 - name: Grant CAP_DAC_OVERRIDE capability to espanso binary
   command: setcap "cap_dac_override+p" /usr/local/bin/espanso
+  become: yes
 
 - name: Register Espanso systemd service for user
   become_user: "{{ desktop_user }}"
   command: espanso service register
+  environment:
+    PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
 
 - name: Start Espanso service
   become_user: "{{ desktop_user }}"
   command: espanso start
+  environment:
+    PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
 
 - name: Confirm Espanso is running
   become_user: "{{ desktop_user }}"
   command: espanso status
+  environment:
+    PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
   register: espanso_status
 
 - name: Show Espanso status
@@ -90,19 +91,19 @@
     state: directory
     mode: '0700'
   loop:
-    - "{{ ansible_env.HOME }}/.config/espanso/match"
-    - "{{ ansible_env.HOME }}/.config/espanso/config"
+    - "{{ desktop_home }}/.config/espanso/match"
+    - "{{ desktop_home }}/.config/espanso/config"
 
 - name: Deploy espanso base.yml config
   become_user: "{{ desktop_user }}"
   copy:
     src: files/espanso/base.yml
-    dest: "{{ ansible_env.HOME }}/.config/espanso/match/base.yml"
+    dest: "{{ desktop_home }}/.config/espanso/match/base.yml"
     mode: '0600'
 
 - name: Deploy espanso default.yml (FR keyboard)
   become_user: "{{ desktop_user }}"
   copy:
     src: files/espanso/default.yml
-    dest: "{{ ansible_env.HOME }}/.config/espanso/config/default.yml"
+    dest: "{{ desktop_home }}/.config/espanso/config/default.yml"
     mode: '0600'
