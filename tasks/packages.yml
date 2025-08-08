@@ -119,6 +119,14 @@
   failed_when: false
   when: am_binary.stat.exists
 
+- name: Debug AM package list
+  ansible.builtin.debug:
+    msg:
+      - "am_list.rc: {{ am_list.rc | default('undefined') }}"
+      - "am_list.stdout: {{ am_list.stdout | default('undefined') }}"
+      - "am_list.stderr: {{ am_list.stderr | default('undefined') }}"
+  when: am_binary.stat.exists
+
 - name: Install Beeper AppImage using AM (auto-confirm prompt)
   become_user: "{{ desktop_user }}"
   ansible.builtin.shell: yes | am -i beeper
@@ -128,7 +136,7 @@
     PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
   when:
     - am_binary.stat.exists
-    - "'beeper' not in am_list.stdout"
+    - "'beeper' not in (am_list.stdout | default(''))"
 
 - name: Install OrcaSlicer AppImage using AM (auto-confirm prompt)
   become_user: "{{ desktop_user }}"
@@ -139,7 +147,7 @@
     PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
   when:
     - am_binary.stat.exists
-    - "'orcaslicer-any' not in am_list.stdout"
+    - "'orcaslicer-any' not in (am_list.stdout | default(''))"
 
 - name: Update AppImages with AM
   become_user: "{{ desktop_user }}"
