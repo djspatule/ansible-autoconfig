@@ -1,5 +1,4 @@
----
-- name: add ansible user
+- name: add automation user
   ansible.builtin.user:
     name: "{{ automation_user }}"
     system: true
