@@ -25,7 +25,12 @@
    tags: [automation_user, debug_pre]
 
  - name: list users with uid >= 1000 (for visibility)
-   ansible.builtin.command: awk -F: '$3 >= 1000 { print $1 ":" $3 }' /etc/passwd
+   ansible.builtin.command:
+     argv:
+       - awk
+       - -F:
+       - "$3 >= 1000 { print $1 \":\" $3 }"
+       - /etc/passwd
    register: high_uid_users
    changed_when: false
    failed_when: false
