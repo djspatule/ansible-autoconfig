@@ -89,7 +89,7 @@
     # Touchpad
     - { key: "/org/gnome/desktop/peripherals/touchpad/click-method", value: "'fingers'" }
     - { key: "/org/gnome/desktop/peripherals/touchpad/natural-scroll", value: "false" }
-    - { key: "/org/gnome/desktop/peripherals/touchpad/speed", value: "-0.27067669172932329" }
+    - { key: "/org/gnome/desktop/peripherals/touchpad/speed", value: "0.05" }
     - { key: "/org/gnome/desktop/peripherals/touchpad/tap-to-click", value: "true" }
     - { key: "/org/gnome/desktop/peripherals/touchpad/two-finger-scrolling-enabled", value: "true" }
 

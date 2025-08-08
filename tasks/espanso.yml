@@ -1,3 +1,15 @@
+- name: Determine available wxWidgets dev package
+  ansible.builtin.shell: |
+    set -e
+    if apt-cache show libwxgtk3.2-dev >/dev/null 2>&1; then echo libwxgtk3.2-dev; exit 0; fi
+    if apt-cache show libwxgtk3.0-gtk3-dev >/dev/null 2>&1; then echo libwxgtk3.0-gtk3-dev; exit 0; fi
+    exit 1
+  args:
+    executable: /bin/bash
+  register: wx_pkg
+  changed_when: false
+  failed_when: wx_pkg.rc != 0
+
 - name: Install system build dependencies
   apt:
     name:
@@ -8,7 +20,7 @@
       - libxkbcommon-dev
       - libdbus-1-dev
       - libssl-dev
-      - libwxgtk3.2-dev
+      - "{{ wx_pkg.stdout }}"
     state: present
     update_cache: yes
 
@@ -71,16 +83,26 @@
   debug:
     var: espanso_status.stdout_lines
 
-- name: Ensure espanso config directory exists
+- name: Ensure espanso config directories exist
   become_user: "{{ ansible_user }}"
   file:
-    path: "{{ ansible_env.HOME }}/.config/espanso/match"
+    path: "{{ item }}"
     state: directory
     mode: '0700'
+  loop:
+    - "{{ ansible_env.HOME }}/.config/espanso/match"
+    - "{{ ansible_env.HOME }}/.config/espanso/config"
 
 - name: Deploy espanso base.yml config
   become_user: "{{ ansible_user }}"
   copy:
     src: files/espanso/base.yml
     dest: "{{ ansible_env.HOME }}/.config/espanso/match/base.yml"
+    mode: '0600'
+
+- name: Deploy espanso default.yml (FR keyboard)
+  become_user: "{{ ansible_user }}"
+  copy:
+    src: files/espanso/default.yml
+    dest: "{{ ansible_env.HOME }}/.config/espanso/config/default.yml"
     mode: '0600'

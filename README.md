@@ -10,6 +10,6 @@ run with
 > sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git -C main
 
 Todo
-[] move espanso "config" with FR keyboard from files to ~/.config/espanso/config/default.yml
-
-[] protect against useless downloads (fonts, etc.) to limit the number of "changes" when 
+[X] move espanso "config" with FR keyboard from files to ~/.config/espanso/config/default.yml
+[X] automate the dynamic install of the most recent version of the package for dependency: libwxgtk3.*-dev
+[] protect against useless downloads (fonts, etc.) to limit the number of "changes" when running
