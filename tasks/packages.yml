@@ -29,6 +29,7 @@
       - libreoffice #to be configured
       - firefox
       - xournalpp
+      - ttf-mscorefonts-installer
       #- insync-nautilus TO BE REPAIRED WITH THE CORRECT APT SOURCES? /etc/apt/sources.list.d/ubuntu.sources
       # GNOME
       - catfish

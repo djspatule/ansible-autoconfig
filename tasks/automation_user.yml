@@ -6,7 +6,7 @@
       desktop_home: "{{ desktop_home | default('UNSET') }}"
       ansible_user_id: "{{ ansible_user_id | default('UNSET') }}"
       become: "{{ become | default('UNSET') }}"
-    tags: [automation_user, debug_pre]
+  tags: [automation_user, debug_pre]
 
 - name: check if automation user exists (pre)
   ansible.builtin.getent:
