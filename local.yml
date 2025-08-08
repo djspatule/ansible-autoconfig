@@ -2,19 +2,68 @@
 - hosts: localhost
   connection: local
   become: true
-  # vars:
-  #   espanso_src: "{{ ansible_env.HOME }}/.local/src/espanso"
-  #   cargo_make_version: "0.34.0"
-  #   desktop_user: lion
-  #   desktop_home: "/home/{{ desktop_user }}"
-  #   automation_user: velociraptor
+  vars:
+    espanso_src: "{{ ansible_env.HOME }}/.local/src/espanso"
+    cargo_make_version: "0.34.0"
+    desktop_user: lion
+    desktop_home: "/home/{{ desktop_user }}"
+    automation_user: velociraptor
 
   pre_tasks:
+    - name: Debug | Play/user context (pre-tasks, no become)
+      ansible.builtin.debug:
+        msg:
+          - "controller_whoami={{ lookup('ansible.builtin.pipe', 'whoami') }}"
+          - "ansible_user_id={{ ansible_user_id | default('n/a') }}"
+          - "ansible_effective_user_id={{ ansible_effective_user_id | default('n/a') }}"
+          - "ansible_env.SUDO_USER={{ ansible_env.SUDO_USER | default('') }}"
+          - "play_become_default={{ (become | default(false)) | string }}"
+
+    - name: Debug | Runtime identity without become
+      ansible.builtin.shell: |
+        echo "whoami=$(whoami)"
+        id
+        echo "EUID=$EUID"
+      register: runtime_identity_no_become
+      changed_when: false
+
+    - name: Show | Runtime identity without become
+      ansible.builtin.debug:
+        var: runtime_identity_no_become.stdout_lines
+
+    - name: Debug | Runtime identity with become
+      become: yes
+      ansible.builtin.shell: |
+        echo "whoami=$(whoami)"
+        id
+        echo "EUID=$EUID"
+      register: runtime_identity_with_become
+      changed_when: false
+
+    - name: Show | Runtime identity with become
+      ansible.builtin.debug:
+        var: runtime_identity_with_become.stdout_lines
+
+    - name: Debug | Check apt/dpkg locks before update
+      become: yes
+      ansible.builtin.shell: |
+        set -e
+        echo "Locks state:";
+        ls -l /var/lib/apt/lists/lock /var/lib/dpkg/lock-frontend 2>/dev/null || true
+        echo "Lock holders (if any):";
+        fuser -v /var/lib/apt/lists/lock /var/lib/dpkg/lock-frontend 2>/dev/null || true
+      register: apt_locks_before
+      changed_when: false
+
+    - name: Show | apt/dpkg locks before update
+      ansible.builtin.debug:
+        var: apt_locks_before.stdout_lines
+
     - name: update repositories
       become: true
       ansible.builtin.apt:
         update_cache: true
-        upgrade: yes
+        upgrade: dist
       changed_when: false
 
   tasks:
