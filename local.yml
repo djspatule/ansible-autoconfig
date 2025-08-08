@@ -33,4 +33,4 @@
       user: "{{ automation_user }}"
       minute: "*/10"
       job: >-
-        ansible-pull -o -U https://github.com/djspatule/ansible-autoconfig.git --vault-password-file "home/{{ automation_user }}/secret.txt"
+        ansible-pull -o -U https://github.com/djspatule/ansible-autoconfig.git --vault-password-file "home/{{ desktop_user }}/secret.txt"

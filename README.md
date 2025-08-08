@@ -16,5 +16,5 @@ run with
 
 [] automate the execution of a script stating "espanso stop; sleep 1; espanso start" whenever a new USB keyboard is connected.
 
-[] protect against useless downloads (fonts, etc.) to limit the number of "changes" when running
+[X] protect against useless downloads (fonts, etc.) to limit the number of "changes" when running
 [] differentiate a desktop use-case on Gnome from a server use case (vars, tasks, etc.) both running a "base" set of tasks

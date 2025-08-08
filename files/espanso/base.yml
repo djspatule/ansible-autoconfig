@@ -654,9 +654,6 @@ matches:
   - trigger: "aaa"
     replace: "Lionel Arnaud, Biomemory, 3-5 impasse Reille, 75014 Paris"
     word: true
-  - trigger: "aaap"
-    replace: "Lionel Arnaud, 55 rue de Paradis, 75010 Paris"
-    word: true
   - trigger: "p&s"
     replace: "Pierre et Stéphane"
     word: true
