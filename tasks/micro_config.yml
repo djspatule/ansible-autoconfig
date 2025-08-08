@@ -7,9 +7,16 @@
     state: directory
     mode: '0755'
 
+- name: Check if search.lua plugin is present
+  become_user: "{{ desktop_user }}"
+  ansible.builtin.stat:
+    path: "{{ desktop_home }}/.config/micro/plug/search/search.lua"
+  register: micro_search_plugin
+
 - name: Download search.lua plugin
   become_user: "{{ desktop_user }}"
   ansible.builtin.get_url:
     url: "https://raw.githubusercontent.com/dmaluka/micro-search/master/search.lua"
     dest: "{{ desktop_home }}/.config/micro/plug/search/search.lua"
     mode: '0644'
+  when: not micro_search_plugin.stat.exists

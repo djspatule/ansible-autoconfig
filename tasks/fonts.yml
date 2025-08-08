@@ -24,11 +24,17 @@
     remote_src: true
     creates: /usr/share/fonts/roboto/Roboto-Regular.ttf
 
+- name: Check if Manrope font is installed
+  ansible.builtin.stat:
+    path: /usr/share/fonts/Manrope-Regular.ttf
+  register: manrope_font
+
 - name: Install Manrope font from Google Fonts
   ansible.builtin.get_url:
     url: https://github.com/davelab6/manrope/raw/master/ttf%20format%20(legacy)/manrope-regular.ttf
     dest: /usr/share/fonts/Manrope-Regular.ttf
     mode: "0644"
+  when: not manrope_font.stat.exists
 
 - name: Refresh font cache
   ansible.builtin.command: fc-cache -f -v

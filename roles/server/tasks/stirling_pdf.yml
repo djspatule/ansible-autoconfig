@@ -13,12 +13,20 @@
     enabled: yes
   become: yes
 
+- name: Check if Stirling PDF container exists
+  community.docker.docker_container_info:
+    name: stirling-pdf
+  register: stirling_pdf_info
+  failed_when: false
+  become: yes
+
 - name: Pull frooodle/s-pdf image
   community.docker.docker_image:
     name: frooodle/s-pdf
     tag: latest
     source: pull
   become: yes
+  when: stirling_pdf_info.container is not defined
 
 - name: Run Stirling PDF container
   community.docker.docker_container:
@@ -35,3 +43,4 @@
     env:
       DOCKER_ENABLE_SECURITY: "false"
   become: yes
+  when: stirling_pdf_info.container is not defined
