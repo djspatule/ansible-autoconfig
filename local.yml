@@ -2,18 +2,18 @@
 - hosts: localhost
   connection: local
   become: true
-  vars:
-    espanso_src: "{{ ansible_env.HOME }}/.local/src/espanso"
-    cargo_make_version: "0.34.0"
-    desktop_user: lion
-    desktop_home: "/home/{{ desktop_user }}"
-    automation_user: velociraptor
+  # vars:
+  #   espanso_src: "{{ ansible_env.HOME }}/.local/src/espanso"
+  #   cargo_make_version: "0.34.0"
+  #   desktop_user: lion
+  #   desktop_home: "/home/{{ desktop_user }}"
+  #   automation_user: velociraptor
 
   pre_tasks:
     - name: update repositories
       ansible.builtin.apt:
         update_cache: true
-        upgrade: dist
+        upgrade: yes
       changed_when: false
 
   tasks:

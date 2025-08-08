@@ -8,3 +8,7 @@ It was improved with the Ansible-pull tutorial and then coding was improved with
 ## Usage
 run with 
 > sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git -C main
+
+Todo
+[] repair the repo update
+[] protect against useless downloads (fonts, etc.) to limit the number of "changes" when 
