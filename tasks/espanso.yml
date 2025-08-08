@@ -10,6 +10,33 @@
   changed_when: false
   failed_when: wx_pkg.rc != 0
 
+- name: Check if espanso binary already installed
+  ansible.builtin.stat:
+    path: /usr/local/bin/espanso
+  register: espanso_bin
+  changed_when: false
+
+- name: Debug espanso binary presence
+  ansible.builtin.debug:
+    msg:
+      - "espanso installed: {{ espanso_bin.stat.exists }}"
+      - "espanso path (expected): /usr/local/bin/espanso"
+
+- name: Get espanso version if installed
+  ansible.builtin.command: espanso --version
+  become_user: "{{ desktop_user }}"
+  environment:
+    PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
+  register: espanso_version
+  changed_when: false
+  failed_when: false
+  when: espanso_bin.stat.exists
+
+- name: Show espanso version
+  ansible.builtin.debug:
+    var: espanso_version.stdout
+  when: espanso_bin.stat.exists
+
 - name: Install system build dependencies
   apt:
     name:
@@ -20,6 +47,7 @@
       - libxkbcommon-dev
       - libdbus-1-dev
       - libssl-dev
+      - libcap2-bin
       - "{{ wx_pkg.stdout }}"
     state: present
     update_cache: yes
@@ -32,6 +60,7 @@
     executable: /bin/bash
     creates: "{{ desktop_home }}/.cargo/bin/rustc"
   become_user: "{{ desktop_user }}"
+  when: not espanso_bin.stat.exists
 
   
 
@@ -41,6 +70,7 @@
     dest: "{{ espanso_src }}"
     update: yes
   become_user: "{{ desktop_user }}"
+  when: not espanso_bin.stat.exists
 
 - name: Compile Espanso binary for Wayland (no X11)
   shell: |
@@ -49,6 +79,7 @@
   args:
     chdir: "{{ espanso_src }}"
   become_user: "{{ desktop_user }}"
+  when: not espanso_bin.stat.exists
 
 - name: Move espanso binary to /usr/local/bin
   copy:
@@ -56,22 +87,43 @@
     dest: /usr/local/bin/espanso
     mode: '0755'
   become: yes
+  when: not espanso_bin.stat.exists
 
 - name: Grant CAP_DAC_OVERRIDE capability to espanso binary
   command: setcap "cap_dac_override+p" /usr/local/bin/espanso
   become: yes
+  when: espanso_bin.stat.exists and (espanso_caps.stdout is defined and 'cap_dac_override' not in espanso_caps.stdout)
+
+- name: Check espanso current capabilities
+  ansible.builtin.command: getcap /usr/local/bin/espanso
+  register: espanso_caps
+  changed_when: false
+  failed_when: false
+  when: espanso_bin.stat.exists
+
+- name: Debug espanso capabilities
+  ansible.builtin.debug:
+    var: espanso_caps.stdout
+  when: espanso_bin.stat.exists
 
 - name: Register Espanso systemd service for user
   become_user: "{{ desktop_user }}"
   command: espanso service register
   environment:
     PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
+  args:
+    creates: "{{ desktop_home }}/.config/systemd/user/espanso.service"
+  when: espanso_bin.stat.exists
 
 - name: Start Espanso service
   become_user: "{{ desktop_user }}"
   command: espanso start
   environment:
     PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
+  register: espanso_start
+  changed_when: "'already running' not in (espanso_start.stdout | default('') + ' ' + espanso_start.stderr | default(''))"
+  failed_when: false
+  when: espanso_bin.stat.exists
 
 - name: Confirm Espanso is running
   become_user: "{{ desktop_user }}"
@@ -79,10 +131,16 @@
   environment:
     PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
   register: espanso_status
+  failed_when: false
+  changed_when: false
+  when: espanso_bin.stat.exists
 
 - name: Show Espanso status
   debug:
-    var: espanso_status.stdout_lines
+    msg:
+      - "espanso status: {{ espanso_status.stdout | default('n/a') }}"
+      - "espanso start output: {{ espanso_start.stdout | default('n/a') }}"
+  when: espanso_bin.stat.exists
 
 - name: Ensure espanso config directories exist
   become_user: "{{ desktop_user }}"
