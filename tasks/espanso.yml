@@ -6,7 +6,7 @@
       - libcap2-bin
     state: present
 
- - name: Check espanso current version (if any)
+- name: Check espanso current version (if any)
   ansible.builtin.command: espanso --version
   register: espanso_version
   changed_when: false
