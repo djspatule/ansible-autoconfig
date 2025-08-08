@@ -18,3 +18,4 @@ run with
 
 [X] protect against useless downloads (fonts, etc.) to limit the number of "changes" when running
 [] differentiate a desktop use-case on Gnome from a server use case (vars, tasks, etc.) both running a "base" set of tasks
+[] try to "import" the files for the GUI apps (InSync, Betterbird, LibreOffice, etc.)

@@ -12,7 +12,7 @@
       - mc
       - bat
       - clamav
-      - rclone
+      - rclone # configured! see rclone.yml
       - cowsay
       - oneko
       - cmatrix
@@ -26,7 +26,7 @@
       - drawing
       - imagemagick
       # Office
-      - libreoffice
+      - libreoffice #to be configured
       - firefox
       - xournalpp
       #- insync-nautilus TO BE REPAIRED WITH THE CORRECT APT SOURCES? /etc/apt/sources.list.d/ubuntu.sources
@@ -37,7 +37,7 @@
       - lm-sensors
       - gnome-shell-extensions
       - gnome-shell-extension-manager
-      - gnome-shell-extension-gsconnect
+      - gnome-shell-extension-gsconnect #to be installed and configured
     state: present
     update_cache: yes
   when: ansible_distribution in ["Debian", "Ubuntu"]
@@ -50,7 +50,7 @@
     - tigervnc
     - colorwall
     - slack
-    - spotify
+    - spotify #to be configured
     - vivaldi
   when: ansible_distribution in ["Debian", "Ubuntu"]
 
@@ -69,7 +69,7 @@
     - us.zoom.Zoom
     - com.github.finefindus.eyedropper
     - org.flameshot.Flameshot
-    - eu.betterbird.Betterbird
+    - eu.betterbird.Betterbird #to be configured
     - org.onlyoffice.desktopeditors
     - com.rustdesk.RustDesk
     - com.sublimetext.three
@@ -129,7 +129,7 @@
 
 - name: Install Beeper AppImage using AM (auto-confirm prompt)
   become_user: "{{ desktop_user }}"
-  ansible.builtin.shell: yes | am -i beeper
+  ansible.builtin.shell: yes | am -i beeper #to be configured
   args:
     executable: /bin/bash
   environment:
