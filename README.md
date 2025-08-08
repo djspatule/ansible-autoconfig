@@ -10,5 +10,6 @@ run with
 > sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git -C main
 
 Todo
-[] repair the repo update
+[] move espanso "config" with FR keyboard from files to ~/.config/espanso/config/default.yml
+
 [] protect against useless downloads (fonts, etc.) to limit the number of "changes" when 
