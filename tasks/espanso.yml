@@ -1,10 +1,8 @@
  - name: Ensure prerequisites for DEB install
-  apt:
+   ansible.builtin.package:
     name:
       - wget
       - libcap2-bin
-    state: present
-    update_cache: yes
   become: yes
 
  - name: Check espanso current version (if any)
@@ -32,7 +30,9 @@
   when: espanso_version.rc != 0
 
  - name: Ensure capability set on espanso binary
-  ansible.builtin.command: setcap "cap_dac_override+p" $(which espanso)
+  ansible.builtin.shell: setcap "cap_dac_override+p" $(which espanso)
+  args:
+    executable: /bin/bash
   become: yes
   register: espanso_cap_set
   changed_when: true
