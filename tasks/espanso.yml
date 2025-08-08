@@ -1,8 +1,10 @@
- - name: Ensure prerequisites for DEB install
-   ansible.builtin.package:
+- name: Ensure prerequisites for DEB install
+  become: yes
+  ansible.builtin.package:
     name:
       - wget
       - libcap2-bin
+    state: present
 
  - name: Check espanso current version (if any)
   ansible.builtin.command: espanso --version
@@ -10,34 +12,34 @@
   changed_when: false
   failed_when: false
 
- - name: Debug current espanso version
+- name: Debug current espanso version
   ansible.builtin.debug:
     var: espanso_version.stdout
 
- - name: Download latest Espanso DEB (wayland amd64)
+- name: Download latest Espanso DEB (wayland amd64)
   ansible.builtin.get_url:
     url: "https://github.com/espanso/espanso/releases/latest/download/espanso-debian-wayland-amd64.deb"
     dest: "/tmp/espanso-debian-wayland-amd64.deb"
     mode: '0644'
   when: espanso_version.rc != 0
 
- - name: Install Espanso DEB
+- name: Install Espanso DEB
+  become: yes
   apt:
     deb: "/tmp/espanso-debian-wayland-amd64.deb"
     state: present
-  become: yes
   when: espanso_version.rc != 0
 
- - name: Ensure capability set on espanso binary
+- name: Ensure capability set on espanso binary
+  become: yes
   ansible.builtin.shell: setcap "cap_dac_override+p" $(which espanso)
   args:
     executable: /bin/bash
-  become: yes
   register: espanso_cap_set
   changed_when: true
   failed_when: false
 
- - name: Verify capability is present
+- name: Verify capability is present
   ansible.builtin.shell: |
     set -o pipefail
     getcap $(which espanso) | grep -q cap_dac_override
@@ -47,13 +49,13 @@
   changed_when: false
   failed_when: false
 
- - name: Debug capability result
+- name: Debug capability result
   ansible.builtin.debug:
     msg:
       - "setcap rc: {{ espanso_cap_set.rc }}"
       - "cap present: {{ espanso_cap_check.rc == 0 }}"
 
- - name: Register Espanso service (idempotent)
+- name: Register Espanso service (idempotent)
   ansible.builtin.command: espanso service register
   become_user: "{{ desktop_user }}"
   environment:
@@ -62,11 +64,11 @@
   changed_when: "'creating service file' in (espanso_register.stdout | default(''))"
   failed_when: false
 
- - name: Debug register output
+- name: Debug register output
   ansible.builtin.debug:
     var: espanso_register.stdout
 
- - name: Start Espanso
+- name: Start Espanso
   ansible.builtin.command: espanso start
   become_user: "{{ desktop_user }}"
   environment:
@@ -75,7 +77,7 @@
   changed_when: "'already running' not in (espanso_start.stdout | default('') + ' ' + espanso_start.stderr | default(''))"
   failed_when: false
 
- - name: Check Espanso status
+- name: Check Espanso status
   ansible.builtin.command: espanso status
   become_user: "{{ desktop_user }}"
   environment:
@@ -84,14 +86,14 @@
   changed_when: false
   failed_when: false
 
- - name: Debug espanso status
+- name: Debug espanso status
   ansible.builtin.debug:
     msg:
       - "version: {{ espanso_version.stdout | default('n/a') }}"
       - "start: {{ espanso_start.stdout | default('n/a') }}"
       - "status: {{ espanso_status.stdout | default('n/a') }}"
 
- - name: Ensure espanso config directories exist
+- name: Ensure espanso config directories exist
   become_user: "{{ desktop_user }}"
   file:
     path: "{{ item }}"
@@ -101,18 +103,16 @@
     - "{{ desktop_home }}/.config/espanso/match"
     - "{{ desktop_home }}/.config/espanso/config"
 
- - name: Deploy espanso base.yml config
+- name: Deploy espanso base.yml config
   become_user: "{{ desktop_user }}"
   copy:
     src: files/espanso/base.yml
     dest: "{{ desktop_home }}/.config/espanso/match/base.yml"
     mode: '0600'
 
- - name: Deploy espanso default.yml (FR keyboard)
+- name: Deploy espanso default.yml (FR keyboard)
   become_user: "{{ desktop_user }}"
   copy:
     src: files/espanso/default.yml
     dest: "{{ desktop_home }}/.config/espanso/config/default.yml"
     mode: '0600'
-
-
