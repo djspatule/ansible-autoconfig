@@ -11,11 +11,10 @@ run with
 
 # ToDo
 
-[X] move espanso "config" with FR keyboard from files to ~/.config/espanso/config/default.yml
-[X] automate the dynamic install of the most recent version of the package for dependency: libwxgtk3.*-dev
+[X] install espanso's latest .deb & move espanso "config" with FR keyboard from files to ~/.config/espanso/config/default.yml
+
 
 [] automate the execution of a script stating "espanso stop; sleep 1; espanso start" whenever a new USB keyboard is connected.
-
 
 [] protect against useless downloads (fonts, etc.) to limit the number of "changes" when running
 [] differentiate a desktop use-case on Gnome from a server use case (vars, tasks, etc.) both running a "base" set of tasks
