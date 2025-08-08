@@ -3,7 +3,7 @@
   connection: local
   become: true
   vars:
-    espanso_src: "{{ ansible_env.HOME }}/.local/src/espanso"
+    espanso_src: "{{ desktop_home }}/.local/src/espanso"
     cargo_make_version: "0.34.0"
     desktop_user: lion
     desktop_home: "/home/{{ desktop_user }}"
