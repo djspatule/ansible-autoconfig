@@ -3,7 +3,6 @@
     name:
       - wget
       - libcap2-bin
-  become: yes
 
  - name: Check espanso current version (if any)
   ansible.builtin.command: espanso --version
