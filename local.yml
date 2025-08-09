@@ -1,16 +1,10 @@
 ---
-- hosts: localhost
-  connection: local
+- hosts: all
+  tags: always
   become: true
-  # vars:
-  #   espanso_src: "{{ desktop_home }}/.local/src/espanso"
-  #   cargo_make_version: "0.34.0"
-  #   desktop_user: lion
-  #   desktop_home: "/home/{{ desktop_user }}"
-  #   automation_user: velociraptor
-
   pre_tasks:
     - name: update repositories
+      tags: always
       become: true
       ansible.builtin.apt:
         update_cache: true
@@ -18,8 +12,7 @@
       changed_when: false
 
 # run roles
-- hosts: localhost
-  connection: local
+- hosts: all
   tags: base
   become: true
   roles:
@@ -31,16 +24,14 @@
 #   roles:
 #     - workstation
 
-- hosts: localhost
-  connection: local
+- hosts: server
   tags: server
   become: true
   roles:
     - server
 
 # end of run cleanup and reporting
-- hosts: localhost
-  connection: local
+- hosts: all
   become: true
   tasks:
   - name: cleanup package cache (debian and ubuntu)
