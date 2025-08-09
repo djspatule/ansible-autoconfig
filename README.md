@@ -21,3 +21,4 @@ run with
 [] try to "import" the files for the GUI apps (InSync, Betterbird, LibreOffice, etc.)
 [] Adjust locale when needed in the system settings (for french numbers and dates)  
 [] find inspiration in jaylacroix's code : https://github.com/LearnLinuxTV/personal_ansible_desktop_configs/tree/main and eventually omakub's code
+  [] use tags to only test/execute parts of the script... that should accelerate dev and limit need for protection against downloads.
