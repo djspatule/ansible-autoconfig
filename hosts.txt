@@ -1,0 +1,8 @@
+[server]
+raspberrypi
+
+[workstation]
+virtuannah
+savanhome
+savannahome
+savannahwork
