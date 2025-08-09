@@ -1,12 +1,12 @@
 - block:
-  - import_tasks: tasks/espanso.yml
-  - import_tasks: tasks/packages.yml
-  - import_tasks: tasks/gnome.yml
-  - import_tasks: tasks/fonts.yml
-  - import_tasks: tasks/bashrc.yml
-  - import_tasks: tasks/automation_user.yml
-  - import_tasks: tasks/micro_config.yml
-  - import_tasks: tasks/rclone.yml
+  - import_tasks: espanso.yml
+  - import_tasks: packages.yml
+  - import_tasks: gnome.yml
+  - import_tasks: fonts.yml
+  - import_tasks: bashrc.yml
+  - import_tasks: automation_user.yml
+  - import_tasks: micro_config.yml
+  - import_tasks: rclone.yml
 
   - name: add ansible-pull cron job
     ansible.builtin.cron:
@@ -14,4 +14,4 @@
       user: "{{ automation_user }}"
       minute: "*/10"
       job: >-
-        ansible-pull -o -U https://github.com/djspatule/ansible-autoconfig.git --vault-password-file "home/{{ desktop_user }}/secret.txt"
+        ansible-pull -o -U https://github.com/djspatule/ansible-autoconfig.git --vault-password-file "/home/{{ desktop_user }}/secret.txt"

@@ -18,7 +18,8 @@
       changed_when: false
 
 # run roles
-- hosts: all
+- hosts: localhost
+  connection: local
   tags: base
   become: true
   roles:
@@ -30,14 +31,16 @@
 #   roles:
 #     - workstation
 
-- hosts: server
+- hosts: localhost
+  connection: local
   tags: server
   become: true
   roles:
     - server
 
 # end of run cleanup and reporting
-- hosts: all
+- hosts: localhost
+  connection: local
   become: true
   tasks:
   - name: cleanup package cache (debian and ubuntu)
