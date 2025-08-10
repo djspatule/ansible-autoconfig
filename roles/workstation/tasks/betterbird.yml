@@ -1,0 +1,34 @@
+---
+# Adjust if your profile dir name differs on target systems
+- vars:
+    bb_root: "{{ ansible_env.HOME }}/.var/app/eu.betterbird.Betterbird/.thunderbird"
+    bb_profile: "c38hedqq.default-default"
+
+- name: Ensure Betterbird profile dir exists
+  file:
+    path: "{{ bb_root }}/{{ bb_profile }}"
+    state: directory
+    mode: "0700"
+
+- name: Deploy Betterbird minimal config
+  unarchive:
+    src: "files/betterbird_minimal.tar.gz"
+    dest: "{{ bb_root }}/{{ bb_profile }}"
+    mode: "0600"
+    owner: "{{ ansible_user | default(lookup('env','USER')) }}"
+    group: "{{ ansible_user | default(lookup('env','USER')) }}"
+
+- name: Ensure profiles.ini points to our profile
+  copy:
+    dest: "{{ bb_root }}/profiles.ini"
+    mode: "0644"
+    content: |
+      [Profile0]
+      Name=default
+      IsRelative=1
+      Path={{ bb_profile }}
+      Default=1
+
+      [General]
+      StartWithLastProfile=1
+      Version=2
