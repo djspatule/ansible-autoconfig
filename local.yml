@@ -1,36 +1,62 @@
 ---
-- hosts: localhost
-  connection: local
+- hosts: all
+  tags: always
   become: true
-  vars:
-    espanso_src: "{{ desktop_home }}/.local/src/espanso"
-    cargo_make_version: "0.34.0"
-    desktop_user: lion
-    desktop_home: "/home/{{ desktop_user }}"
-    automation_user: velociraptor
-
   pre_tasks:
     - name: update repositories
+      tags: always
       become: true
       ansible.builtin.apt:
         update_cache: true
         upgrade: dist
       changed_when: false
 
-  tasks:
-  - import_tasks: tasks/espanso.yml
-  - import_tasks: tasks/packages.yml
-  - import_tasks: tasks/gnome.yml
-  - import_tasks: tasks/fonts.yml
-  - import_tasks: tasks/bashrc.yml
-  - import_tasks: tasks/automation_user.yml
-  - import_tasks: tasks/micro_config.yml
-  - import_tasks: tasks/rclone.yml
+# run roles
+- hosts: all
+  tags: base
+  become: true
+  roles:
+    - base
 
-  - name: add ansible-pull cron job
-    ansible.builtin.cron:
-      name: ansible auto-provision
-      user: "{{ automation_user }}"
-      minute: "*/10"
-      job: >-
-        ansible-pull -o -U https://github.com/djspatule/ansible-autoconfig.git --vault-password-file "home/{{ desktop_user }}/secret.txt"
+- hosts: workstation
+  tags: workstation
+  become: true
+  roles:
+    - workstation
+
+- hosts: server
+  tags: server
+  become: true
+  roles:
+    - server
+
+# end of run cleanup and reporting
+- hosts: all
+  become: true
+  tasks:
+    - name: cleanup package cache (debian and ubuntu)
+      tags: always
+      apt:
+        autoclean: true
+      changed_when: false
+      when: ansible_distribution in ["Debian", "Pop!_OS", "Ubuntu"]
+
+    - name: autoremove orphan packages (debian and ubuntu)
+      tags: always
+      apt:
+        autoremove: true
+        purge: true
+      when: ansible_distribution in ["Debian", "Pop!_OS", "Ubuntu"]
+
+  # - name: send completion alert
+  #   include_tasks: playbooks/send_completion_alert.yml
+  #   tags: always
+  #   when:
+  #     - task_failed is not defined
+
+  # - name: send failure alert
+  #   include_tasks: playbooks/send_failure_alert.yml
+  #   tags: always
+  #   when:
+  #     - task_failed is defined
+  #     - task_failed == true

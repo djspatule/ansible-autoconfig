@@ -11,7 +11,7 @@ branch: master
 # microcode_intel_install: true
 
 # app defaults
-gui_editor: micro
+gui_editor: flatpak run com.sublimetext.three
 # terminal_emulator: gnome-terminal
 # web_browser: flatpak run org.mozilla.firefox
 

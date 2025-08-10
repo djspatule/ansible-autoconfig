@@ -1,0 +1,5 @@
+# vars:
+espanso_src: "{{ desktop_home }}/.local/src/espanso"
+desktop_user: lion
+desktop_home: "/home/{{ desktop_user }}"
+automation_user: velociraptor

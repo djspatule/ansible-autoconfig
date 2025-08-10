@@ -1,0 +1,163 @@
+---
+- name: install apt packages
+  ansible.builtin.package:
+    name:
+      # CLI utilities
+      - btop
+      - python3-psutil
+      - micro
+      - fastfetch
+      - pdfgrep
+      - tldr
+      - ncdu
+      - mc
+      - bat
+      - clamav
+      - rclone # configured! see rclone.yml
+      - cowsay
+      - oneko
+      - cmatrix
+      - eza
+      - sl
+      - tree
+      - ripgrep
+      - flatpak
+      # Media
+      - vlc
+      - drawing
+      - imagemagick
+      # Office
+      - libreoffice # to be configured
+      - firefox
+      - xournalpp
+      - ttf-mscorefonts-installer
+      # - insync-nautilus TO BE REPAIRED WITH THE CORRECT APT SOURCES? /etc/apt/sources.list.d/ubuntu.sources
+      # GNOME
+      - catfish
+      - gnome-tweaks
+      - gir1.2-gtop-2.0
+      - lm-sensors
+      - gnome-shell-extensions
+      - gnome-shell-extension-manager
+      - gnome-shell-extension-gsconnect # to be installed and configured
+    state: present
+    update_cache: true
+  when: ansible_distribution in ["Debian", "Ubuntu"]
+
+- name: Install snap packages
+  community.general.snap:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - tigervnc
+    - colorwall
+    - slack
+    - spotify #to be configured
+    - vivaldi
+  when: ansible_distribution in ["Debian", "Ubuntu"]
+
+- name: Add Flathub remote
+  community.general.flatpak_remote:
+    name: flathub
+    flatpakrepo_url: https://flathub.org/repo/flathub.flatpakrepo
+    state: present
+  when: ansible_distribution in ["Debian", "Ubuntu"]
+
+- name: Install Flatpak packages
+  community.general.flatpak:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - us.zoom.Zoom
+    - com.github.finefindus.eyedropper
+    - org.flameshot.Flameshot
+    - eu.betterbird.Betterbird #to be configured
+    - org.onlyoffice.desktopeditors
+    - com.rustdesk.RustDesk
+    - com.sublimetext.three
+  when: ansible_distribution in ["Debian", "Ubuntu"]
+  #ignore_errors: true
+
+- name: Allow org.flameshot.Flameshot to take screenshots
+  become: true
+  become_user: "{{ desktop_user }}"
+  ansible.builtin.command: >
+    flatpak permission-set screenshot screenshot org.flameshot.Flameshot true
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ lookup('ansible.builtin.pipe', 'id -u ' + desktop_user) }}"
+  when: ansible_distribution in ["Debian", "Ubuntu"]
+
+# AM-application-manager
+# https://github.com/ivan-hc/AM
+
+- name: AM-application-manager tasks
+  tags: [appimage]
+  block:
+    - name: Check if AM is installed
+      ansible.builtin.stat:
+        path: /usr/local/bin/am
+      register: am_binary
+
+    - name: Download AM-application-manager INSTALL script
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/ivan-hc/AM/main/INSTALL
+        dest: /tmp/AM_INSTALL
+        mode: '0755'
+      when: not am_binary.stat.exists
+
+    - name: Run AM-application-manager INSTALL script
+      ansible.builtin.command: /tmp/AM_INSTALL
+      become: true
+      when: not am_binary.stat.exists
+
+    - name: Remove AM-application-manager INSTALL script
+      ansible.builtin.file:
+        path: /tmp/AM_INSTALL
+        state: absent
+      become: true
+      when: not am_binary.stat.exists
+
+    - name: List installed AM packages
+      become_user: "{{ desktop_user }}"
+      ansible.builtin.command: am -l
+      register: am_list
+      changed_when: false
+      failed_when: false
+      when: am_binary.stat.exists
+
+    - name: Debug AM package list
+      ansible.builtin.debug:
+        msg:
+          - "am_list.rc: {{ am_list.rc | default('undefined') }}"
+          - "am_list.stdout: {{ am_list.stdout | default('undefined') }}"
+          - "am_list.stderr: {{ am_list.stderr | default('undefined') }}"
+      when: am_binary.stat.exists
+
+    - name: Install Beeper AppImage using AM (auto-confirm prompt)
+      become_user: "{{ desktop_user }}"
+      ansible.builtin.shell: true | am -i beeper #to be configured
+      args:
+        executable: /bin/bash
+      environment:
+        PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
+      when:
+        - am_binary.stat.exists
+        - "'beeper' not in (am_list.stdout | default(''))"
+
+    - name: Install OrcaSlicer AppImage using AM (auto-confirm prompt)
+      become_user: "{{ desktop_user }}"
+      ansible.builtin.shell: true | am -i orcaslicer-any
+      args:
+        executable: /bin/bash
+      environment:
+        PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
+      when:
+        - am_binary.stat.exists
+        - "'orcaslicer-any' not in (am_list.stdout | default(''))"
+
+    - name: Update AppImages with AM
+      become_user: "{{ desktop_user }}"
+      ansible.builtin.shell: am -u
+      environment:
+        PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
+      when: am_binary.stat.exists

@@ -12,12 +12,12 @@ run with
 # ToDo
 
 [X] install espanso's latest .deb & move espanso "config" with FR keyboard from files to ~/.config/espanso/config/default.yml
+[X] protect against useless downloads (fonts, etc.) to limit the number of "changes" when running
 
 
 [] automate the execution of a script stating "espanso stop; sleep 1; espanso start" whenever a new USB keyboard is connected.
-
-[X] protect against useless downloads (fonts, etc.) to limit the number of "changes" when running
 [] differentiate a desktop use-case on Gnome from a server use case (vars, tasks, etc.) both running a "base" set of tasks
 [] try to "import" the files for the GUI apps (InSync, Betterbird, LibreOffice, etc.)
 [] Adjust locale when needed in the system settings (for french numbers and dates)  
 [] find inspiration in jaylacroix's code : https://github.com/LearnLinuxTV/personal_ansible_desktop_configs/tree/main and eventually omakub's code
+  [] use tags to only test/execute parts of the script... that should accelerate dev and limit need for protection against downloads.
