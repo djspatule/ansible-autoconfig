@@ -1,3 +1,4 @@
+---
 - block:
   - import_tasks: espanso.yml
   - import_tasks: packages.yml
