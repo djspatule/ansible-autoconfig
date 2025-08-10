@@ -34,19 +34,19 @@
 - hosts: all
   become: true
   tasks:
-  - name: cleanup package cache (debian and ubuntu)
-    tags: always
-    apt:
-      autoclean: yes
-    changed_when: false
-    when: ansible_distribution in ["Debian", "Pop!_OS", "Ubuntu"]
+    - name: cleanup package cache (debian and ubuntu)
+      tags: always
+      apt:
+        autoclean: true
+      changed_when: false
+      when: ansible_distribution in ["Debian", "Pop!_OS", "Ubuntu"]
 
-  - name: autoremove orphan packages (debian and ubuntu)
-    tags: always
-    apt:
-      autoremove: yes
-      purge: yes
-    when: ansible_distribution in ["Debian", "Pop!_OS", "Ubuntu"]
+    - name: autoremove orphan packages (debian and ubuntu)
+      tags: always
+      apt:
+        autoremove: true
+        purge: true
+      when: ansible_distribution in ["Debian", "Pop!_OS", "Ubuntu"]
 
   # - name: send completion alert
   #   include_tasks: playbooks/send_completion_alert.yml
