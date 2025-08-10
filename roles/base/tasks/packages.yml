@@ -87,72 +87,76 @@
   when: ansible_distribution in ["Debian", "Ubuntu"]
 
 # AM-application-manager
+# https://github.com/ivan-hc/AM
 
-- name: Check if AM is installed
-  ansible.builtin.stat:
-    path: /usr/local/bin/am
-  register: am_binary
+- block:
+  tags: appimage
 
-- name: Download AM-application-manager INSTALL script
-  ansible.builtin.get_url:
-    url: https://raw.githubusercontent.com/ivan-hc/AM/main/INSTALL
-    dest: /tmp/AM_INSTALL
-    mode: '0755'
-  when: not am_binary.stat.exists
+  - name: Check if AM is installed
+    ansible.builtin.stat:
+      path: /usr/local/bin/am
+    register: am_binary
 
-- name: Run AM-application-manager INSTALL script
-  ansible.builtin.command: /tmp/AM_INSTALL
-  become: yes
-  when: not am_binary.stat.exists
+  - name: Download AM-application-manager INSTALL script
+    ansible.builtin.get_url:
+      url: https://raw.githubusercontent.com/ivan-hc/AM/main/INSTALL
+      dest: /tmp/AM_INSTALL
+      mode: '0755'
+    when: not am_binary.stat.exists
 
-- name: Remove AM-application-manager INSTALL script
-  ansible.builtin.file:
-    path: /tmp/AM_INSTALL
-    state: absent
-  become: yes
-  when: not am_binary.stat.exists
+  - name: Run AM-application-manager INSTALL script
+    ansible.builtin.command: /tmp/AM_INSTALL
+    become: yes
+    when: not am_binary.stat.exists
 
-- name: List installed AM packages
-  become_user: "{{ desktop_user }}"
-  ansible.builtin.command: am -l
-  register: am_list
-  changed_when: false
-  failed_when: false
-  when: am_binary.stat.exists
+  - name: Remove AM-application-manager INSTALL script
+    ansible.builtin.file:
+      path: /tmp/AM_INSTALL
+      state: absent
+    become: yes
+    when: not am_binary.stat.exists
 
-- name: Debug AM package list
-  ansible.builtin.debug:
-    msg:
-      - "am_list.rc: {{ am_list.rc | default('undefined') }}"
-      - "am_list.stdout: {{ am_list.stdout | default('undefined') }}"
-      - "am_list.stderr: {{ am_list.stderr | default('undefined') }}"
-  when: am_binary.stat.exists
+  - name: List installed AM packages
+    become_user: "{{ desktop_user }}"
+    ansible.builtin.command: am -l
+    register: am_list
+    changed_when: false
+    failed_when: false
+    when: am_binary.stat.exists
 
-- name: Install Beeper AppImage using AM (auto-confirm prompt)
-  become_user: "{{ desktop_user }}"
-  ansible.builtin.shell: yes | am -i beeper #to be configured
-  args:
-    executable: /bin/bash
-  environment:
-    PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
-  when:
-    - am_binary.stat.exists
-    - "'beeper' not in (am_list.stdout | default(''))"
+  - name: Debug AM package list
+    ansible.builtin.debug:
+      msg:
+        - "am_list.rc: {{ am_list.rc | default('undefined') }}"
+        - "am_list.stdout: {{ am_list.stdout | default('undefined') }}"
+        - "am_list.stderr: {{ am_list.stderr | default('undefined') }}"
+    when: am_binary.stat.exists
 
-- name: Install OrcaSlicer AppImage using AM (auto-confirm prompt)
-  become_user: "{{ desktop_user }}"
-  ansible.builtin.shell: yes | am -i orcaslicer-any
-  args:
-    executable: /bin/bash
-  environment:
-    PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
-  when:
-    - am_binary.stat.exists
-    - "'orcaslicer-any' not in (am_list.stdout | default(''))"
+  - name: Install Beeper AppImage using AM (auto-confirm prompt)
+    become_user: "{{ desktop_user }}"
+    ansible.builtin.shell: yes | am -i beeper #to be configured
+    args:
+      executable: /bin/bash
+    environment:
+      PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
+    when:
+      - am_binary.stat.exists
+      - "'beeper' not in (am_list.stdout | default(''))"
 
-- name: Update AppImages with AM
-  become_user: "{{ desktop_user }}"
-  ansible.builtin.shell: am -u
-  environment:
-    PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
-  when: am_binary.stat.exists
+  - name: Install OrcaSlicer AppImage using AM (auto-confirm prompt)
+    become_user: "{{ desktop_user }}"
+    ansible.builtin.shell: yes | am -i orcaslicer-any
+    args:
+      executable: /bin/bash
+    environment:
+      PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
+    when:
+      - am_binary.stat.exists
+      - "'orcaslicer-any' not in (am_list.stdout | default(''))"
+
+  - name: Update AppImages with AM
+    become_user: "{{ desktop_user }}"
+    ansible.builtin.shell: am -u
+    environment:
+      PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
+    when: am_binary.stat.exists
