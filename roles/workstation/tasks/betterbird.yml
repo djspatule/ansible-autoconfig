@@ -1,34 +1,37 @@
 ---
-# Adjust if your profile dir name differs on target systems
-- vars:
-    bb_root: "{{ ansible_env.HOME }}/.var/app/eu.betterbird.Betterbird/.thunderbird"
-    bb_profile: "c38hedqq.default-default"
+# roles/workstation/tasks/betterbird.yml
+- name: Configure Betterbird (Flatpak profile)
+  become: true
+  become_user: "{{ desktop_user | default('lion') }}"
+  vars:
+    bb_root: "/home/{{ desktop_user | default('lion') }}/.var/app/eu.betterbird.Betterbird/.thunderbird"
+    bb_profile: "c38hedqq.default-default"   # adjust if different on target
+  block:
+    - name: Ensure Betterbird profile dir exists
+      file:
+        path: "{{ bb_root }}/{{ bb_profile }}"
+        state: directory
+        mode: "0700"
 
-- name: Ensure Betterbird profile dir exists
-  file:
-    path: "{{ bb_root }}/{{ bb_profile }}"
-    state: directory
-    mode: "0700"
+    - name: Deploy Betterbird minimal config
+      unarchive:
+        src: "files/betterbird_minimal.tar.gz"
+        dest: "{{ bb_root }}/{{ bb_profile }}"
+        mode: "0600"
+        owner: "{{ desktop_user | default('lion') }}"
+        group: "{{ desktop_user | default('lion') }}"
 
-- name: Deploy Betterbird minimal config
-  unarchive:
-    src: "files/betterbird_minimal.tar.gz"
-    dest: "{{ bb_root }}/{{ bb_profile }}"
-    mode: "0600"
-    owner: "{{ ansible_user | default(lookup('env','USER')) }}"
-    group: "{{ ansible_user | default(lookup('env','USER')) }}"
+    - name: Ensure profiles.ini points to our profile
+      copy:
+        dest: "{{ bb_root }}/profiles.ini"
+        mode: "0644"
+        content: |
+          [Profile0]
+          Name=default
+          IsRelative=1
+          Path={{ bb_profile }}
+          Default=1
 
-- name: Ensure profiles.ini points to our profile
-  copy:
-    dest: "{{ bb_root }}/profiles.ini"
-    mode: "0644"
-    content: |
-      [Profile0]
-      Name=default
-      IsRelative=1
-      Path={{ bb_profile }}
-      Default=1
-
-      [General]
-      StartWithLastProfile=1
-      Version=2
+          [General]
+          StartWithLastProfile=1
+          Version=2
