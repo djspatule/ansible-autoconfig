@@ -6,4 +6,3 @@
     owner: "{{ desktop_user }}"
     group: "{{ desktop_user }}"
     mode: "0644"
-

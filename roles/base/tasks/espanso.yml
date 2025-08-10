@@ -1,5 +1,6 @@
+---
 - name: Ensure prerequisites for DEB install
-  become: yes
+  become: true
   ansible.builtin.package:
     name:
       - wget
@@ -24,14 +25,14 @@
   when: espanso_version.rc != 0
 
 - name: Install Espanso DEB
-  become: yes
+  become: true
   apt:
     deb: "/tmp/espanso-debian-wayland-amd64.deb"
     state: present
   when: espanso_version.rc != 0
 
 - name: Ensure capability set on espanso binary
-  become: yes
+  become: true
   ansible.builtin.shell: setcap "cap_dac_override+p" $(which espanso)
   args:
     executable: /bin/bash
@@ -116,3 +117,4 @@
     src: files/espanso/default.yml
     dest: "{{ desktop_home }}/.config/espanso/config/default.yml"
     mode: '0600'
+    

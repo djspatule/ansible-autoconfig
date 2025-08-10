@@ -1,3 +1,4 @@
+---
 # espanso match file
 
 # For a complete introduction, visit the official docs at: https://espanso.org/docs/
@@ -585,13 +586,13 @@ matches:
     replace: "partout"
     word: true
     propagate_case: true
-  - trigger: "xp"                                                                                                        
-    replace: "expérience"                                                                                                  
-    word: true                                                                                                            
-    propagate_case: true    
-  - trigger: "xps"                                                                                                        
-    replace: "expériences"                                                                                                  
-    word: true                                                                                                            
+  - trigger: "xp"
+    replace: "expérience"
+    word: true
+    propagate_case: true
+  - trigger: "xps"
+    replace: "expériences"
+    word: true
     propagate_case: true
 
 # English
@@ -681,7 +682,7 @@ matches:
     replace: "réponds au plus récents des messages de la conversation fournie ci-dessous en t'alignant sur le ton et la forme employés dans mes précédents messages de cette conversation et en tenant compte des instructions spécifiques fournies à la fin de ce paragraphe. Reste précis et concis. Ne répète pas inutilement plusieurs fois la même idées dans plusieurs paragraphes.  Mais comprends l'objectif de l'email et ajoute les éléments qui te semble le compléter, le clarifier et l'améliorer lorsque c'est utile afin d'atteindre plus vite et mieux l'objectif visé. Dans ce cadre, tu es donc libre de prendre des initiatives."
     word: true
 
-#Perso
+# Perso
 
   - trigger: "promptp"
     replace: "Consider the following context of my request: I am Lionel ARNAUD, a male born in 1984 (August 11th) with two children: A boy named Oscar born on January the 14th 2017 and a girl named Romy born on April the 25th. My concubine is Myriam, born in 1985 who is currently shopowner of an small concept-store selling ethical products online (https://www.lesethiquetes.fr) and at a physical store in Paris 10th arrondissement. I am Chief Operating Officer at Biomemory, a start-up in the field of DNA data storage. I myself am a geek interested in Aviation, The two world wars, Feudal Japan and the samurais in particular, Espionage, Zen Buddhism and meditation, Kickboxing, Comics and graphic novels, History of science, Science news, DIY Biotech and biohacking, Skepticism, Major contemporary scientific theories (evolution, Quantum physics, etc.), Ethology and the great apes in particular, Science fiction and heroic fantasy in particular, Zero waste, Computing and networks (hardware, programming, Linux, webhosting, FOSS, etc.), Survival skills, Prehistory (especially primitive techniques/technologies), Guitar and music, Sewing."

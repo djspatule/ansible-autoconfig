@@ -1,3 +1,4 @@
+---
 - name: install apt packages
   ansible.builtin.package:
     name:
@@ -26,11 +27,11 @@
       - drawing
       - imagemagick
       # Office
-      - libreoffice #to be configured
+      - libreoffice # to be configured
       - firefox
       - xournalpp
       - ttf-mscorefonts-installer
-      #- insync-nautilus TO BE REPAIRED WITH THE CORRECT APT SOURCES? /etc/apt/sources.list.d/ubuntu.sources
+      # - insync-nautilus TO BE REPAIRED WITH THE CORRECT APT SOURCES? /etc/apt/sources.list.d/ubuntu.sources
       # GNOME
       - catfish
       - gnome-tweaks
@@ -38,9 +39,9 @@
       - lm-sensors
       - gnome-shell-extensions
       - gnome-shell-extension-manager
-      - gnome-shell-extension-gsconnect #to be installed and configured
+      - gnome-shell-extension-gsconnect # to be installed and configured
     state: present
-    update_cache: yes
+    update_cache: true
   when: ansible_distribution in ["Debian", "Ubuntu"]
 
 - name: Install snap packages
@@ -75,13 +76,13 @@
     - com.rustdesk.RustDesk
     - com.sublimetext.three
   when: ansible_distribution in ["Debian", "Ubuntu"]
-  #ignore_errors: yes
+  #ignore_errors: true
 
 - name: Allow org.flameshot.Flameshot to take screenshots
-  become: yes
+  become: true
   become_user: "{{ desktop_user }}"
   ansible.builtin.command: >
-    flatpak permission-set screenshot screenshot org.flameshot.Flameshot yes
+    flatpak permission-set screenshot screenshot org.flameshot.Flameshot true
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ lookup('ansible.builtin.pipe', 'id -u ' + desktop_user) }}"
   when: ansible_distribution in ["Debian", "Ubuntu"]
@@ -106,14 +107,14 @@
 
     - name: Run AM-application-manager INSTALL script
       ansible.builtin.command: /tmp/AM_INSTALL
-      become: yes
+      become: true
       when: not am_binary.stat.exists
 
     - name: Remove AM-application-manager INSTALL script
       ansible.builtin.file:
         path: /tmp/AM_INSTALL
         state: absent
-      become: yes
+      become: true
       when: not am_binary.stat.exists
 
     - name: List installed AM packages
@@ -134,7 +135,7 @@
 
     - name: Install Beeper AppImage using AM (auto-confirm prompt)
       become_user: "{{ desktop_user }}"
-      ansible.builtin.shell: yes | am -i beeper #to be configured
+      ansible.builtin.shell: true | am -i beeper #to be configured
       args:
         executable: /bin/bash
       environment:
@@ -145,7 +146,7 @@
 
     - name: Install OrcaSlicer AppImage using AM (auto-confirm prompt)
       become_user: "{{ desktop_user }}"
-      ansible.builtin.shell: yes | am -i orcaslicer-any
+      ansible.builtin.shell: true | am -i orcaslicer-any
       args:
         executable: /bin/bash
       environment:

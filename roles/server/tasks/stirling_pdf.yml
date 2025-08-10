@@ -3,29 +3,29 @@
   ansible.builtin.apt:
     name: docker.io
     state: present
-    update_cache: yes
-  become: yes
+    update_cache: true
+  become: true
 
 - name: Ensure Docker service is running
   ansible.builtin.service:
     name: docker
     state: started
-    enabled: yes
-  become: yes
+    enabled: true
+  become: true
 
 - name: Check if Stirling PDF container exists
   community.docker.docker_container_info:
     name: stirling-pdf
   register: stirling_pdf_info
   failed_when: false
-  become: yes
+  become: true
 
 - name: Pull frooodle/s-pdf image
   community.docker.docker_image:
     name: frooodle/s-pdf
     tag: latest
     source: pull
-  become: yes
+  become: true
   when: stirling_pdf_info.container is not defined
 
 - name: Run Stirling PDF container
@@ -42,5 +42,5 @@
       - "{{ stirling_pdf_logs_dir | default('/location/of/logs') }}:/logs"
     env:
       DOCKER_ENABLE_SECURITY: "false"
-  become: yes
+  become: true
   when: stirling_pdf_info.container is not defined

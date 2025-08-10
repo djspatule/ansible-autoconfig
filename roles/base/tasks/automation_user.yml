@@ -1,3 +1,4 @@
+---
 - name: show automation-related variables
   ansible.builtin.debug:
     msg:
