@@ -1,6 +1,7 @@
 ---
 # roles/workstation/tasks/betterbird.yml
 - name: Configure Betterbird (Flatpak profile)
+  tags: betterbird
   become: true
   become_user: "{{ desktop_user | default('lion') }}"
   vars:
