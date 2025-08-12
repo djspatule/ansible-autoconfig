@@ -22,8 +22,7 @@
         group: "{{ desktop_user | default('lion') }}"
         mode: preserve
         remote_src: true
-      # become: true
-      # become_user: lion
+      become: true
 
 
     - name: Ensure profiles.ini points to our profile
