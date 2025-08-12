@@ -14,13 +14,14 @@
         state: directory
         mode: "0700"
 
-    - name: Deploy Betterbird minimal config by copying folder
+    - name: Copy Betterbird minimal config already present on remote
       ansible.builtin.copy:
-        src: "{{ role_path }}/files/betterbird_minimal/"
+        src: "{{ role_path }}/files/users/lion/betterbird_minimal/"
         dest: "{{ bb_root }}/{{ bb_profile }}/"
         owner: "{{ desktop_user | default('lion') }}"
         group: "{{ desktop_user | default('lion') }}"
         mode: preserve
+        remote_src: true
       # become: true
       # become_user: lion
 
