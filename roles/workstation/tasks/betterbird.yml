@@ -14,12 +14,16 @@
         state: directory
         mode: "0700"
 
-    - name: Deploy Betterbird minimal config
-      unarchive:
-        src: "files/betterbird_minimal.tar.gz"
-        dest: "{{ bb_root }}/{{ bb_profile }}"
+    - name: Deploy Betterbird minimal config by copying folder
+      ansible.builtin.copy:
+        src: "{{ role_path }}/files/betterbird_minimal/"
+        dest: "{{ bb_root }}/{{ bb_profile }}/"
         owner: "{{ desktop_user | default('lion') }}"
         group: "{{ desktop_user | default('lion') }}"
+        mode: preserve
+      # become: true
+      # become_user: lion
+
 
     - name: Ensure profiles.ini points to our profile
       copy:
