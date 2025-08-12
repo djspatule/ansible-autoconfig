@@ -17,7 +17,7 @@
     - name: Deploy Betterbird minimal config
       unarchive:
         src: "files/betterbird_minimal.tar.gz"
-        dest: "{{ bb_root }}/{{ bb_profile
+        dest: "{{ bb_root }}/{{ bb_profile }}"
         owner: "{{ desktop_user | default('lion') }}"
         group: "{{ desktop_user | default('lion') }}"
 
