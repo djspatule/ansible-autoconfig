@@ -23,6 +23,7 @@
         mode: preserve
         remote_src: true
       become: true
+      become_user: root
 
 
     - name: Ensure profiles.ini points to our profile
