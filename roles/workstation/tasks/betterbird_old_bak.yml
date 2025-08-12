@@ -1,10 +1,12 @@
-- name: Configure Betterbird with minimal profile
+---
+# roles/workstation/tasks/betterbird.yml
+- name: Configure Betterbird (Flatpak profile)
   tags: betterbird
   become: true
   become_user: "{{ desktop_user | default('lion') }}"
   vars:
     bb_root: "/home/{{ desktop_user | default('lion') }}/.var/app/eu.betterbird.Betterbird/.thunderbird"
-    bb_profile: "c38hedqq.default-default"
+    bb_profile: "c38hedqq.default-default"   # adjust if different on target
   block:
     - name: Ensure Betterbird profile dir exists
       file:
@@ -12,13 +14,17 @@
         state: directory
         mode: "0700"
 
-    - name: Copy minimal Betterbird config (filters, prefs, logins, etc.)
+    - name: Copy Betterbird minimal config already present on remote
       ansible.builtin.copy:
         src: "{{ role_path }}/files/users/lion/betterbird_minimal/"
         dest: "{{ bb_root }}/{{ bb_profile }}/"
         owner: "{{ desktop_user | default('lion') }}"
         group: "{{ desktop_user | default('lion') }}"
         mode: preserve
+        remote_src: true
+      become: true
+      become_user: root
+
 
     - name: Ensure profiles.ini points to our profile
       copy:
