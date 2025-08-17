@@ -134,8 +134,23 @@
           - "am_list.stderr: {{ am_list.stderr | default('undefined') }}"
       when: am_binary.stat.exists
 
+    - name: Check AM mode (AppMan vs AM)
+      become_user: "{{ desktop_user }}"
+      ansible.builtin.command: am -h
+      register: am_help
+      changed_when: false
+      failed_when: false
+      when: am_binary.stat.exists
+
+    - name: Switch AM to user mode (AppMan)
+      become_user: "{{ desktop_user }}"
+      ansible.builtin.command: am --user
+      when:
+        - am_binary.stat.exists
+        - am_help.stdout is not defined or ("AppMan" not in am_help.stdout)
+
     - name: Install Beeper AppImage using AM (auto-confirm prompt)
-      become: true
+      become_user: "{{ desktop_user }}"
       ansible.builtin.shell: true | am -i beeper #to be configured
       args:
         executable: /bin/bash
@@ -146,7 +161,7 @@
         - "'beeper' not in (am_list.stdout | default(''))"
 
     - name: Install OrcaSlicer AppImage using AM (auto-confirm prompt)
-      become: true
+      become_user: "{{ desktop_user }}"
       ansible.builtin.shell: true | am -i orcaslicer-any
       args:
         executable: /bin/bash
