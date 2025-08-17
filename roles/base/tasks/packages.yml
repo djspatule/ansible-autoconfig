@@ -135,7 +135,7 @@
       when: am_binary.stat.exists
 
     - name: Install Beeper AppImage using AM (auto-confirm prompt)
-      become_user: "{{ desktop_user }}"
+      become: true
       ansible.builtin.shell: true | am -i beeper #to be configured
       args:
         executable: /bin/bash
@@ -146,7 +146,7 @@
         - "'beeper' not in (am_list.stdout | default(''))"
 
     - name: Install OrcaSlicer AppImage using AM (auto-confirm prompt)
-      become_user: "{{ desktop_user }}"
+      become: true
       ansible.builtin.shell: true | am -i orcaslicer-any
       args:
         executable: /bin/bash
