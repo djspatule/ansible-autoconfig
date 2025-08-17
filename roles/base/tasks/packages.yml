@@ -3,6 +3,7 @@
   ansible.builtin.package:
     name:
       # CLI utilities
+      - curl
       - btop
       - python3-psutil
       - micro
