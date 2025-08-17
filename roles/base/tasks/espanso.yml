@@ -5,6 +5,7 @@
     name:
       - wget
       - libcap2-bin
+      - wl-clipboard
     state: present
 
 - name: Check espanso current version (if any)
