@@ -85,6 +85,64 @@
         state: absent
       ignore_errors: true
 
+    - name: If installs.ini exists, discover its Install section (selected root)
+      ansible.builtin.shell: |
+        set -eo pipefail
+        [ -f "{{ bb_root }}/installs.ini" ] || exit 0
+        awk -F'[][]' '/^\[Install/{print $2; exit}' "{{ bb_root }}/installs.ini"
+      args:
+        executable: /bin/bash
+      register: bb_install_section
+      changed_when: false
+      failed_when: false
+
+    - name: Set Default in installs.ini to selected profile (selected root)
+      when: (bb_install_section.stdout | length) > 0
+      ansible.builtin.ini_file:
+        path: "{{ bb_root }}/installs.ini"
+        section: "{{ bb_install_section.stdout }}"
+        option: Default
+        value: "{{ bb_profile }}"
+        mode: "0644"
+
+    - name: Lock installs.ini to selected profile (selected root)
+      when: (bb_install_section.stdout | length) > 0
+      ansible.builtin.ini_file:
+        path: "{{ bb_root }}/installs.ini"
+        section: "{{ bb_install_section.stdout }}"
+        option: Locked
+        value: "1"
+        mode: "0644"
+
+    - name: If installs.ini exists, discover its Install section (alternate root)
+      ansible.builtin.shell: |
+        set -eo pipefail
+        [ -f "{{ bb_root_alt }}/installs.ini" ] || exit 0
+        awk -F'[][]' '/^\[Install/{print $2; exit}' "{{ bb_root_alt }}/installs.ini"
+      args:
+        executable: /bin/bash
+      register: bb_install_section_alt
+      changed_when: false
+      failed_when: false
+
+    - name: Set Default in installs.ini to selected profile (alternate root)
+      when: (bb_install_section_alt.stdout | length) > 0
+      ansible.builtin.ini_file:
+        path: "{{ bb_root_alt }}/installs.ini"
+        section: "{{ bb_install_section_alt.stdout }}"
+        option: Default
+        value: "{{ bb_profile }}"
+        mode: "0644"
+
+    - name: Lock installs.ini to selected profile (alternate root)
+      when: (bb_install_section_alt.stdout | length) > 0
+      ansible.builtin.ini_file:
+        path: "{{ bb_root_alt }}/installs.ini"
+        section: "{{ bb_install_section_alt.stdout }}"
+        option: Locked
+        value: "1"
+        mode: "0644"
+
     - name: Ensure filter directories exist in the selected profile
       ansible.builtin.file:
         path: "{{ item }}"
@@ -121,7 +179,8 @@
         echo "bb_profile={{ bb_profile }}"
         echo "===== ls -la {{ bb_root }}" && ls -la "{{ bb_root }}" || true
         echo "===== profiles.ini" && (cat "{{ bb_root }}/profiles.ini" || echo "profiles.ini missing")
-        echo "===== installs.ini" && (cat "{{ bb_root }}/installs.ini" || echo "installs.ini missing (expected)")
+        echo "===== installs.ini (selected root)" && (cat "{{ bb_root }}/installs.ini" || echo "installs.ini missing (expected)")
+        echo "===== installs.ini (alternate root)" && (cat "{{ bb_root_alt }}/installs.ini" || echo "installs.ini missing (expected)")
         echo "===== profile directories" && (find "{{ bb_root }}" -maxdepth 1 -mindepth 1 -type d -printf '%f\n' | sort || true)
       args:
         executable: /bin/bash
