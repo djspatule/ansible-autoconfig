@@ -15,7 +15,6 @@
       - bat
       - clamav
       - rclone # configured! see rclone.yml
-      - cowsay
       - oneko
       - cmatrix
       - eza
