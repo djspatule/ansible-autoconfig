@@ -3,13 +3,31 @@
   become: true
   become_user: "{{ desktop_user | default('lion') }}"
   vars:
-    bb_root: "/home/{{ desktop_user | default('lion') }}/.var/app/eu.betterbird.Betterbird/.thunderbird"
+    bb_root_preferred: "/home/{{ desktop_user | default('lion') }}/.var/app/eu.betterbird.Betterbird/thunderbird"
+    bb_root_alt: "/home/{{ desktop_user | default('lion') }}/.var/app/eu.betterbird.Betterbird/.thunderbird"
+    bb_root: "{{ bb_root_preferred }}"
     bb_profile: "c38hedqq.default-default"
   block:
     - name: Ensure Betterbird is not running (avoid locked profile files)
       ansible.builtin.command: flatpak kill eu.betterbird.Betterbird
       changed_when: false
       failed_when: false
+
+    - name: Detect Betterbird profile root paths
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: bb_root_stats
+      loop:
+        - "{{ bb_root_preferred }}"
+        - "{{ bb_root_alt }}"
+
+    - name: Choose Betterbird profile root based on existence
+      ansible.builtin.set_fact:
+        bb_root: >-
+          {{ (bb_root_stats.results[0].stat.exists | default(false))
+                | ternary(bb_root_preferred,
+                         (bb_root_stats.results[1].stat.exists | default(false))
+                           | ternary(bb_root_alt, bb_root_preferred)) }}
 
     - name: Ensure Betterbird profile dir exists
       file:
@@ -48,6 +66,8 @@
     - name: Debug Betterbird profile state
       ansible.builtin.shell: |
         set -eu
+        echo "bb_root_preferred={{ bb_root_preferred }}"
+        echo "bb_root_alt={{ bb_root_alt }}"
         echo "bb_root={{ bb_root }}"
         echo "bb_profile={{ bb_profile }}"
         echo "===== ls -la {{ bb_root }}" && ls -la "{{ bb_root }}" || true
