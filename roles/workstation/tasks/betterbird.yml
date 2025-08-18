@@ -7,6 +7,7 @@
     bb_root_alt: "/home/{{ desktop_user | default('lion') }}/.var/app/eu.betterbird.Betterbird/.thunderbird"
     bb_root: "{{ bb_root_preferred }}"
     bb_profile: "c38hedqq.default-default"
+    bb_src: "{{ role_path }}/files/users/lion/betterbird_minimal"
   block:
     - name: Ensure Betterbird is not running (avoid locked profile files)
       ansible.builtin.command: flatpak kill eu.betterbird.Betterbird
@@ -35,13 +36,28 @@
         state: directory
         mode: "0700"
 
-    - name: Copy minimal Betterbird config (filters, prefs, logins, etc.)
+    - name: Find files for minimal Betterbird config
+      ansible.builtin.find:
+        paths: "{{ bb_src }}"
+        recurse: true
+        file_type: any
+      register: bb_src_items
+
+    - name: Ensure destination directories exist for minimal config (excluding filters subtree)
+      ansible.builtin.file:
+        path: "{{ bb_root }}/{{ bb_profile }}/{{ item.path | regex_replace('^' + bb_src + '/', '') }}"
+        state: directory
+        mode: "0700"
+      loop: "{{ bb_src_items.files | selectattr('isdir', 'defined') | selectattr('isdir') | rejectattr('path', 'search', '/filters(/|$)') | list }}"
+
+    - name: Copy minimal Betterbird config files (excluding filters subtree)
       ansible.builtin.copy:
-        src: "{{ role_path }}/files/users/lion/betterbird_minimal/"
-        dest: "{{ bb_root }}/{{ bb_profile }}/"
+        src: "{{ item.path }}"
+        dest: "{{ bb_root }}/{{ bb_profile }}/{{ item.path | regex_replace('^' + bb_src + '/', '') }}"
         owner: "{{ desktop_user | default('lion') }}"
         group: "{{ desktop_user | default('lion') }}"
         mode: preserve
+      loop: "{{ bb_src_items.files | rejectattr('isdir', 'defined') | rejectattr('path', 'search', '/filters(/|$)') | list }}"
 
     - name: Ensure profiles.ini points to our profile
       copy:
@@ -58,10 +74,43 @@
           StartWithLastProfile=1
           Version=2
 
-    - name: Remove installs.ini so profiles.ini is honored
+    - name: Remove installs.ini in selected root so profiles.ini is honored
       ansible.builtin.file:
         path: "{{ bb_root }}/installs.ini"
         state: absent
+
+    - name: Also remove installs.ini in the alternate root if present
+      ansible.builtin.file:
+        path: "{{ bb_root_alt }}/installs.ini"
+        state: absent
+      ignore_errors: true
+
+    - name: Ensure filter directories exist in the selected profile
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0700"
+      loop:
+        - "{{ bb_root }}/{{ bb_profile }}/ImapMail/imap.gmail.com"
+        - "{{ bb_root }}/{{ bb_profile }}/Mail/Local Folders"
+
+    - name: Copy msgFilterRules.dat for IMAP account if present
+      ansible.builtin.copy:
+        src: "{{ bb_src }}/filters/home/lion/.var/app/eu.betterbird.Betterbird/.thunderbird/{{ bb_profile }}/ImapMail/imap.gmail.com/msgFilterRules.dat"
+        dest: "{{ bb_root }}/{{ bb_profile }}/ImapMail/imap.gmail.com/msgFilterRules.dat"
+        owner: "{{ desktop_user | default('lion') }}"
+        group: "{{ desktop_user | default('lion') }}"
+        mode: "0644"
+      ignore_errors: true
+
+    - name: Copy msgFilterRules.dat for Local Folders if present
+      ansible.builtin.copy:
+        src: "{{ bb_src }}/filters/home/lion/.var/app/eu.betterbird.Betterbird/.thunderbird/{{ bb_profile }}/Mail/Local Folders/msgFilterRules.dat"
+        dest: "{{ bb_root }}/{{ bb_profile }}/Mail/Local Folders/msgFilterRules.dat"
+        owner: "{{ desktop_user | default('lion') }}"
+        group: "{{ desktop_user | default('lion') }}"
+        mode: "0644"
+      ignore_errors: true
 
     - name: Debug Betterbird profile state
       ansible.builtin.shell: |
