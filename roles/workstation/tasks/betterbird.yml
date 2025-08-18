@@ -6,6 +6,11 @@
     bb_root: "/home/{{ desktop_user | default('lion') }}/.var/app/eu.betterbird.Betterbird/.thunderbird"
     bb_profile: "c38hedqq.default-default"
   block:
+    - name: Ensure Betterbird is not running (avoid locked profile files)
+      ansible.builtin.command: flatpak kill eu.betterbird.Betterbird
+      changed_when: false
+      failed_when: false
+
     - name: Ensure Betterbird profile dir exists
       file:
         path: "{{ bb_root }}/{{ bb_profile }}"
@@ -34,3 +39,27 @@
           [General]
           StartWithLastProfile=1
           Version=2
+
+    - name: Remove installs.ini so profiles.ini is honored
+      ansible.builtin.file:
+        path: "{{ bb_root }}/installs.ini"
+        state: absent
+
+    - name: Debug Betterbird profile state
+      ansible.builtin.shell: |
+        set -eu
+        echo "bb_root={{ bb_root }}"
+        echo "bb_profile={{ bb_profile }}"
+        echo "===== ls -la {{ bb_root }}" && ls -la "{{ bb_root }}" || true
+        echo "===== profiles.ini" && (cat "{{ bb_root }}/profiles.ini" || echo "profiles.ini missing")
+        echo "===== installs.ini" && (cat "{{ bb_root }}/installs.ini" || echo "installs.ini missing (expected)")
+        echo "===== profile directories" && (find "{{ bb_root }}" -maxdepth 1 -mindepth 1 -type d -printf '%f\n' | sort || true)
+      args:
+        executable: /bin/bash
+      register: betterbird_debug
+      changed_when: false
+      failed_when: false
+
+    - name: Show Betterbird debug info
+      ansible.builtin.debug:
+        msg: "{{ betterbird_debug.stdout }}"
