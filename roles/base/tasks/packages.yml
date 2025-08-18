@@ -134,24 +134,13 @@
           - "am_list.stderr: {{ am_list.stderr | default('undefined') }}"
       when: am_binary.stat.exists
 
-    - name: Check AM mode (AppMan vs AM)
-      become_user: "{{ desktop_user }}"
-      ansible.builtin.command: am -h
-      register: am_help
-      changed_when: false
-      failed_when: false
-      when: am_binary.stat.exists
+    # Intentionally not switching to AppMan; keep system mode
 
-    - name: Switch AM to user mode (AppMan)
-      become_user: "{{ desktop_user }}"
-      ansible.builtin.command: am --user
-      when:
-        - am_binary.stat.exists
-        - am_help.stdout is not defined or ("AppMan" not in am_help.stdout)
-
-    - name: Install Beeper AppImage using AM (auto-confirm prompt)
-      become_user: "{{ desktop_user }}"
-      ansible.builtin.shell: true | am -i beeper #to be configured
+    - name: Install Beeper AppImage using AM (system mode, non-interactive)
+      become: true
+      become_user: root
+      become_method: su
+      ansible.builtin.shell: true | env -u SUDO_USER -u SUDO_UID -u SUDO_GID am -i beeper #to be configured
       args:
         executable: /bin/bash
       environment:
@@ -160,9 +149,11 @@
         - am_binary.stat.exists
         - "'beeper' not in (am_list.stdout | default(''))"
 
-    - name: Install OrcaSlicer AppImage using AM (auto-confirm prompt)
-      become_user: "{{ desktop_user }}"
-      ansible.builtin.shell: true | am -i orcaslicer-any
+    - name: Install OrcaSlicer AppImage using AM (system mode, non-interactive)
+      become: true
+      become_user: root
+      become_method: su
+      ansible.builtin.shell: true | env -u SUDO_USER -u SUDO_UID -u SUDO_GID am -i orcaslicer-any
       args:
         executable: /bin/bash
       environment:
@@ -171,9 +162,11 @@
         - am_binary.stat.exists
         - "'orcaslicer-any' not in (am_list.stdout | default(''))"
 
-    - name: Update AppImages with AM
-      become_user: "{{ desktop_user }}"
-      ansible.builtin.shell: am -u
+    - name: Update AppImages with AM (system mode, non-interactive)
+      become: true
+      become_user: root
+      become_method: su
+      ansible.builtin.shell: env -u SUDO_USER -u SUDO_UID -u SUDO_GID am -u
       environment:
         PATH: "/usr/local/bin:{{ ansible_env.PATH }}"
       when: am_binary.stat.exists
