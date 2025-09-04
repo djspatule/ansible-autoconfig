@@ -650,7 +650,7 @@ matches:
     word: true
     propagate_case: true
   - trigger: "mmm"
-    replace: "lionel@biomemory.com"
+    replace: "lionel.arnaud@biomemory.com"
     word: true
   - trigger: "aaa"
     replace: "Lionel Arnaud, Biomemory, 3-5 impasse Reille, 75014 Paris"
