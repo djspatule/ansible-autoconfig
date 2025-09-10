@@ -30,9 +30,12 @@
     owner: "{{ desktop_user }}"
     group: "{{ desktop_user }}"
     mode: '0755'
-  when:
-    - not gdrive_mountpoint.stat.exists
-    - gdrive_is_mount.rc != 0
+    # gdrive_is_mount is only defined when the directory already exists
+    # (previous task is conditioned on gdrive_mountpoint.stat.exists). When
+    # the directory is missing, we still want to create it without referencing
+    # gdrive_is_mount. Use a single expression with short-circuit evaluation to
+    # avoid accessing gdrive_is_mount when undefined.
+    when: not gdrive_mountpoint.stat.exists or (gdrive_is_mount is defined and gdrive_is_mount.rc != 0)
 
 - name: Copy rclone config
   ansible.builtin.copy:
