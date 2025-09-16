@@ -104,6 +104,9 @@ export LESS_TERMCAP_us=$'\E[01;32m'
 # alias SERVERNAME='ssh YOURWEBSITE.com -l USERNAME -p PORTNUMBERHERE'
 alias pi='ssh pi@78.202.39.55'
 
+# Alias's for ansible-pull
+alias ap='sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git --vault-password-file ~/secret.txt -C main'
+
 # Alias's to change the directory
 alias web='cd /var/www/html'
 
