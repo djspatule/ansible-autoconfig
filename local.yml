@@ -10,6 +10,7 @@
         update_cache: true
         upgrade: dist
       changed_when: false
+      when: ansible_distribution in ["Debian", "Pop!_OS", "Ubuntu"]
 
 # run roles
 - hosts: all
