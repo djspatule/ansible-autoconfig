@@ -7,7 +7,7 @@ It was improved with the Ansible-pull tutorial and then coding was improved with
 
 ## Usage
 run with 
-> sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git -C main
+>   sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git --vault-password-file ~/secret.txt -C main
 
 # ToDo
 
