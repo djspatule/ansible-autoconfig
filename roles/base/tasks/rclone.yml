@@ -1,61 +1,62 @@
 ---
 # rclone config
-
-- name: Ensure rclone config directory exists
-  ansible.builtin.file:
-    path: "{{ desktop_home }}/.config/rclone"
-    state: directory
-    owner: "{{ desktop_user }}"
-    group: "{{ desktop_user }}"
-    mode: '0700'
-
-- name: Check if Google Drive directory exists
-  become_user: "{{ desktop_user }}"
-  ansible.builtin.stat:
-    path: "{{ desktop_home }}/Google Drive Perso"
-  register: gdrive_mountpoint
-
-- name: Check if Google Drive directory is a mountpoint
-  become_user: "{{ desktop_user }}"
-  ansible.builtin.command: mountpoint -q "{{ desktop_home }}/Google Drive Perso"
-  register: gdrive_is_mount
-  failed_when: false
-  changed_when: false
-  when: gdrive_mountpoint.stat.exists
-
-- name: Create Google Drive directory if not a mount
-  ansible.builtin.file:
-    path: "{{ desktop_home }}/Google Drive Perso"
-    state: directory
-    owner: "{{ desktop_user }}"
-    group: "{{ desktop_user }}"
-    mode: '0755'
-  # gdrive_is_mount is only defined when the directory already exists
-  # (previous task is conditioned on gdrive_mountpoint.stat.exists). When
-  # the directory is missing, we still want to create it without referencing
-  # gdrive_is_mount. Use a single expression with short-circuit evaluation to
-  # avoid accessing gdrive_is_mount when undefined.
-  when: not gdrive_mountpoint.stat.exists or (gdrive_is_mount is defined and gdrive_is_mount.rc != 0)
-
-- name: Copy rclone config
-  ansible.builtin.copy:
-    src: files/rclone.conf
-    dest: "{{ desktop_home }}/.config/rclone/rclone.conf"
-    owner: "{{ desktop_user }}"
-    group: "{{ desktop_user }}"
-    mode: '0600'
-
-- name: Copy rclone mount script
-  ansible.builtin.copy:
-    src: files/rclone_mount.sh
-    dest: "{{ desktop_home }}/rclone_mount.sh"
-    owner: "{{ desktop_user }}"
-    group: "{{ desktop_user }}"
-    mode: '0755'
-
-- name: Add rclone mount to cron
-  ansible.builtin.cron:
-    name: "Mount Google Drive Perso with rclone"
-    user: "{{ desktop_user }}"
-    job: "{{ desktop_home }}/rclone_mount.sh"
-    state: present
+- name: Overall rclone config task
+- tags: rclone
+  - name: Ensure rclone config directory exists
+    ansible.builtin.file:
+      path: "{{ desktop_home }}/.config/rclone"
+      state: directory
+      owner: "{{ desktop_user }}"
+      group: "{{ desktop_user }}"
+      mode: '0700'
+  
+  - name: Check if Google Drive directory exists
+    become_user: "{{ desktop_user }}"
+    ansible.builtin.stat:
+      path: "{{ desktop_home }}/Google Drive Perso"
+    register: gdrive_mountpoint
+  
+  - name: Check if Google Drive directory is a mountpoint
+    become_user: "{{ desktop_user }}"
+    ansible.builtin.command: mountpoint -q "{{ desktop_home }}/Google Drive Perso"
+    register: gdrive_is_mount
+    failed_when: false
+    changed_when: false
+    when: gdrive_mountpoint.stat.exists
+  
+  - name: Create Google Drive directory if not a mount
+    ansible.builtin.file:
+      path: "{{ desktop_home }}/Google Drive Perso"
+      state: directory
+      owner: "{{ desktop_user }}"
+      group: "{{ desktop_user }}"
+      mode: '0755'
+    # gdrive_is_mount is only defined when the directory already exists
+    # (previous task is conditioned on gdrive_mountpoint.stat.exists). When
+    # the directory is missing, we still want to create it without referencing
+    # gdrive_is_mount. Use a single expression with short-circuit evaluation to
+    # avoid accessing gdrive_is_mount when undefined.
+    when: not gdrive_mountpoint.stat.exists or (gdrive_is_mount is defined and gdrive_is_mount.rc != 0)
+  
+  - name: Copy rclone config
+    ansible.builtin.copy:
+      src: files/rclone.conf
+      dest: "{{ desktop_home }}/.config/rclone/rclone.conf"
+      owner: "{{ desktop_user }}"
+      group: "{{ desktop_user }}"
+      mode: '0600'
+  
+  - name: Copy rclone mount script
+    ansible.builtin.copy:
+      src: files/rclone_mount.sh
+      dest: "{{ desktop_home }}/rclone_mount.sh"
+      owner: "{{ desktop_user }}"
+      group: "{{ desktop_user }}"
+      mode: '0755'
+  
+  - name: Add rclone mount to cron
+    ansible.builtin.cron:
+      name: "Mount Google Drive Perso with rclone"
+      user: "{{ desktop_user }}"
+      job: "{{ desktop_home }}/rclone_mount.sh"
+      state: present
