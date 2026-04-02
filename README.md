@@ -9,6 +9,10 @@ It was improved with the Ansible-pull tutorial and then coding was improved with
 run with 
 >   sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git --vault-password-file ~/secret.txt -C main
 
+test with (to avoid dealing with Pull Requests)
+> ansible-pull -U /chemin/vers/ton/repo_local -d /tmp/ansible-pull-test local.yml
+> ansible-playbook -i "localhost," -c local local.yml --check #remember that ansible-pull is just a wrapper for ansible-playbook....And the check option allows to test on a system without implementing anything ('dry run').
+
 # ToDo
 
 [X] install espanso's latest .deb & move espanso "config" with FR keyboard from files to ~/.config/espanso/config/default.yml
