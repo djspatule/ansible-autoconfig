@@ -1,0 +1,27 @@
+---
+- name: Ensure the server bootstrap role runs on Debian-family hosts
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.os_family == "Debian"
+    fail_msg: server_base currently supports Debian-family hosts only.
+
+- name: Refresh apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install base CLI packages for servers
+  ansible.builtin.apt:
+    name: "{{ server_cli_packages }}"
+    state: present
+
+- name: Install Docker from distro packages
+  ansible.builtin.apt:
+    name: "{{ server_docker_packages }}"
+    state: present
+
+- name: Ensure Docker service is enabled and running
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true

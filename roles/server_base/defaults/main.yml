@@ -1,0 +1,24 @@
+---
+# Start with the CLI portion of roles/base/tasks/packages.yml and keep this
+# server list free of desktop-only packages.
+server_cli_packages:
+  - curl
+  - btop
+  - python3-psutil
+  - micro
+  - fastfetch
+  - pdfgrep
+  - tldr
+  - ncdu
+  - mc
+  - bat
+  - clamav
+  - rclone
+  - cmatrix
+  - eza
+  - sl
+  - tree
+  - ripgrep
+
+server_docker_packages:
+  - docker.io
