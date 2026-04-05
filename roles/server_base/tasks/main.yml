@@ -21,17 +21,11 @@
     state: started
     enabled: true
 
-- name: Check whether CLI snap packages are already installed
-  ansible.builtin.command: "snap list {{ item }}"
+- name: Install CLI snap packages
+  ansible.builtin.command: "snap install {{ item }}"
+  args:
+    creates: "/snap/bin/{{ item }}"
   loop: "{{ server_snap_packages }}"
-  register: server_snap_list
-  changed_when: false
-  failed_when: false
-
-- name: Install CLI snap packages unavailable in apt
-  ansible.builtin.command: "snap install {{ item.item }}"
-  loop: "{{ server_snap_list.results }}"
-  when: item.rc != 0
 
 - name: Install Docker from distro packages
   ansible.builtin.apt:
