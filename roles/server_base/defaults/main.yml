@@ -8,7 +8,6 @@ server_cli_packages:
   - micro
   - fastfetch
   - pdfgrep
-  - tealdeer
   - ncdu
   - mc
   - bat
@@ -17,8 +16,12 @@ server_cli_packages:
   - cmatrix
   - eza
   - sl
+  - snapd
   - tree
   - ripgrep
 
 server_docker_packages:
   - docker.io
+
+server_snap_packages:
+  - tldr

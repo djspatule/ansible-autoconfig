@@ -15,6 +15,24 @@
     name: "{{ server_cli_packages }}"
     state: present
 
+- name: Ensure snapd is enabled and running
+  ansible.builtin.service:
+    name: snapd
+    state: started
+    enabled: true
+
+- name: Check whether CLI snap packages are already installed
+  ansible.builtin.command: "snap list {{ item }}"
+  loop: "{{ server_snap_packages }}"
+  register: server_snap_list
+  changed_when: false
+  failed_when: false
+
+- name: Install CLI snap packages unavailable in apt
+  ansible.builtin.command: "snap install {{ item.item }}"
+  loop: "{{ server_snap_list.results }}"
+  when: item.rc != 0
+
 - name: Install Docker from distro packages
   ansible.builtin.apt:
     name: "{{ server_docker_packages }}"
