@@ -1,0 +1,15 @@
+---
+homepage_container_name: homepage
+homepage_image: ghcr.io/gethomepage/homepage:latest
+homepage_config_dir: /opt/homepage/config
+homepage_port: 3000
+homepage_allowed_hosts:
+  - "{{ inventory_hostname }}:{{ homepage_port }}"
+  - "{{ ansible_facts.hostname }}:{{ homepage_port }}"
+  - "{{ ansible_facts.default_ipv4.address }}:{{ homepage_port }}"
+homepage_title: Serverannah Homepage
+homepage_description: Simple landing page for server services
+homepage_theme: dark
+homepage_color: slate
+homepage_language: fr
+homepage_header_style: boxed

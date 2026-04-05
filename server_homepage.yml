@@ -1,0 +1,10 @@
+---
+- name: Deploy Homepage on a headless server
+  hosts: all
+  connection: local
+  become: true
+  gather_facts: true
+
+  roles:
+    - server_base
+    - server_homepage

@@ -1,0 +1,67 @@
+---
+- name: Ensure Homepage config directory exists
+  ansible.builtin.file:
+    path: "{{ homepage_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install Homepage settings
+  ansible.builtin.template:
+    src: settings.yaml.j2
+    dest: "{{ homepage_config_dir }}/settings.yaml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Install Homepage service definitions
+  ansible.builtin.template:
+    src: services.yaml.j2
+    dest: "{{ homepage_config_dir }}/services.yaml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Install Homepage bookmarks
+  ansible.builtin.copy:
+    src: bookmarks.yaml
+    dest: "{{ homepage_config_dir }}/bookmarks.yaml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Install Homepage widgets
+  ansible.builtin.copy:
+    src: widgets.yaml
+    dest: "{{ homepage_config_dir }}/widgets.yaml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Install Homepage docker integration settings
+  ansible.builtin.copy:
+    src: docker.yaml
+    dest: "{{ homepage_config_dir }}/docker.yaml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Pull Homepage image
+  community.docker.docker_image:
+    name: "{{ homepage_image }}"
+    source: pull
+
+- name: Run Homepage container
+  community.docker.docker_container:
+    name: "{{ homepage_container_name }}"
+    image: "{{ homepage_image }}"
+    state: started
+    restart_policy: unless-stopped
+    published_ports:
+      - "{{ homepage_port }}:3000"
+    volumes:
+      - "{{ homepage_config_dir }}:/app/config"
+      - /var/run/docker.sock:/var/run/docker.sock
+    env:
+      HOMEPAGE_ALLOWED_HOSTS: "{{ homepage_allowed_hosts | unique | join(',') }}"

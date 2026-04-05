@@ -1,0 +1,6 @@
+---
+- Administration:
+    - Ansible Autoconfig:
+        - abbr: AA
+          href: https://github.com/djspatule/ansible-autoconfig
+          description: Source repository
