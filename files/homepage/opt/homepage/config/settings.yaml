@@ -1,0 +1,13 @@
+---
+title: Serverannah Homepage
+description: Simple landing page for server services
+theme: dark
+color: slate
+language: fr
+headerStyle: boxed
+target: _self
+hideVersion: false
+disableUpdateCheck: false
+statusStyle: dot
+useEqualHeights: true
+fullWidth: true

@@ -1,0 +1,10 @@
+---
+- Infrastructure:
+    - Homepage:
+        icon: homepage.png
+        href: /
+        description: Server dashboard
+        server: local-docker
+        container: homepage
+        showStats: true
+        siteMonitor: http://127.0.0.1:3000/

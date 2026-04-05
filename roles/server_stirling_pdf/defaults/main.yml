@@ -1,0 +1,5 @@
+---
+stirling_pdf_container_name: stirling-pdf
+stirling_pdf_image: stirlingtools/stirling-pdf:latest
+stirling_pdf_root_dir: /opt/stirling-pdf
+stirling_pdf_port: 8080

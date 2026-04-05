@@ -1,5 +1,5 @@
 ---
-- name: Deploy Homepage on a headless server
+- name: Deploy Stirling PDF on a headless server
   hosts: server
   connection: local
   become: true
@@ -7,4 +7,4 @@
 
   roles:
     - server_base
-    - server_homepage
+    - server_stirling_pdf

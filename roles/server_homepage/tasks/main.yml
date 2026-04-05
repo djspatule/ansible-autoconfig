@@ -1,51 +1,20 @@
 ---
-- name: Ensure Homepage config directory exists
+- name: Ensure Homepage root directory exists
   ansible.builtin.file:
-    path: "{{ homepage_config_dir }}"
+    path: "{{ homepage_root_dir }}"
     state: directory
     owner: root
     group: root
     mode: "0755"
 
-- name: Install Homepage settings
-  ansible.builtin.template:
-    src: settings.yaml.j2
-    dest: "{{ homepage_config_dir }}/settings.yaml"
-    owner: root
-    group: root
-    mode: "0644"
-
-- name: Install Homepage service definitions
-  ansible.builtin.template:
-    src: services.yaml.j2
-    dest: "{{ homepage_config_dir }}/services.yaml"
-    owner: root
-    group: root
-    mode: "0644"
-
-- name: Install Homepage bookmarks
+- name: Deploy Homepage config tree
   ansible.builtin.copy:
-    src: bookmarks.yaml
-    dest: "{{ homepage_config_dir }}/bookmarks.yaml"
+    src: "{{ playbook_dir }}/files/homepage/opt/homepage/"
+    dest: "{{ homepage_root_dir }}/"
     owner: root
     group: root
-    mode: "0644"
-
-- name: Install Homepage widgets
-  ansible.builtin.copy:
-    src: widgets.yaml
-    dest: "{{ homepage_config_dir }}/widgets.yaml"
-    owner: root
-    group: root
-    mode: "0644"
-
-- name: Install Homepage docker integration settings
-  ansible.builtin.copy:
-    src: docker.yaml
-    dest: "{{ homepage_config_dir }}/docker.yaml"
-    owner: root
-    group: root
-    mode: "0644"
+    mode: preserve
+    directory_mode: "0755"
 
 - name: Pull Homepage image
   community.docker.docker_image:

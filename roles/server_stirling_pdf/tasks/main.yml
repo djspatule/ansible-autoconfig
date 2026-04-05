@@ -1,0 +1,33 @@
+---
+- name: Ensure Stirling PDF directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ stirling_pdf_root_dir }}"
+    - "{{ stirling_pdf_root_dir }}/trainingData"
+    - "{{ stirling_pdf_root_dir }}/extraConfigs"
+    - "{{ stirling_pdf_root_dir }}/logs"
+
+- name: Pull Stirling PDF image
+  community.docker.docker_image:
+    name: "{{ stirling_pdf_image }}"
+    source: pull
+
+- name: Run Stirling PDF container
+  community.docker.docker_container:
+    name: "{{ stirling_pdf_container_name }}"
+    image: "{{ stirling_pdf_image }}"
+    state: started
+    restart_policy: unless-stopped
+    published_ports:
+      - "{{ stirling_pdf_port }}:8080"
+    volumes:
+      - "{{ stirling_pdf_root_dir }}/trainingData:/usr/share/tesseract-ocr/5/tessdata"
+      - "{{ stirling_pdf_root_dir }}/extraConfigs:/configs"
+      - "{{ stirling_pdf_root_dir }}/logs:/logs"
+    env:
+      DOCKER_ENABLE_SECURITY: "false"
