@@ -22,9 +22,9 @@
     enabled: true
 
 - name: Install CLI snap packages
-  ansible.builtin.command: "snap install {{ item }}"
-  args:
-    creates: "/snap/bin/{{ item }}"
+  community.general.snap:
+    name: "{{ item }}"
+    state: present
   loop: "{{ server_snap_packages }}"
 
 - name: Install Docker from distro packages
