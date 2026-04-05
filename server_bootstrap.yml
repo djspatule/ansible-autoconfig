@@ -1,6 +1,6 @@
 ---
 - name: Bootstrap a headless server with ansible-pull
-  hosts: localhost
+  hosts: all
   connection: local
   become: true
   gather_facts: true
