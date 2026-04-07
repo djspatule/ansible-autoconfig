@@ -1,0 +1,14 @@
+---
+- name: Pull BentoPDF image
+  community.docker.docker_image:
+    name: "{{ bentopdf_image }}"
+    source: pull
+
+- name: Run BentoPDF container
+  community.docker.docker_container:
+    name: "{{ bentopdf_container_name }}"
+    image: "{{ bentopdf_image }}"
+    state: started
+    restart_policy: unless-stopped
+    published_ports:
+      - "{{ bentopdf_port }}:8080"

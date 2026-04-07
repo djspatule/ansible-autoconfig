@@ -1,0 +1,4 @@
+---
+bentopdf_container_name: bentopdf
+bentopdf_image: ghcr.io/alam00000/bentopdf-simple:latest
+bentopdf_port: 8080

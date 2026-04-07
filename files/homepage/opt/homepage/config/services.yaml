@@ -8,3 +8,11 @@
         container: homepage
         showStats: true
         siteMonitor: http://127.0.0.1:3000/
+    - BentoPDF:
+        icon: mdi-file-pdf-box
+        href: http://127.0.0.1:8080/
+        description: Privacy-first PDF toolkit
+        server: local-docker
+        container: bentopdf
+        showStats: true
+        siteMonitor: http://127.0.0.1:8080/
