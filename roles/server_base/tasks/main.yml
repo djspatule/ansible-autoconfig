@@ -13,15 +13,19 @@
     server_docker_packages: "{{ server_packages_by_family[ansible_facts.os_family].docker }}"
     server_snap_packages: "{{ server_packages_by_family[ansible_facts.os_family].snaps }}"
 
+# Refreshing package metadata is useful before install, but it should not count
+# as configuration drift in the idempotency output.
 - name: Refresh apt cache
   ansible.builtin.apt:
     update_cache: true
     cache_valid_time: 3600
+  changed_when: false
   when: ansible_facts.os_family == "Debian"
 
 - name: Refresh pacman cache
   community.general.pacman:
     update_cache: true
+  changed_when: false
   when: ansible_facts.os_family == "Archlinux"
 
 - name: Install base CLI packages for servers
@@ -43,6 +47,8 @@
   loop: "{{ server_snap_packages }}"
   when: server_snap_packages | length > 0
 
+# Docker comes from the distro here on purpose: fewer moving parts while the
+# server foundation is still being proven across different machines.
 - name: Install Docker from distro packages
   ansible.builtin.package:
     name: "{{ server_docker_packages }}"

@@ -1,4 +1,7 @@
 ---
 bentopdf_container_name: bentopdf
 bentopdf_image: ghcr.io/alam00000/bentopdf-simple:latest
+# Use the same shared network as Homepage so one reverse proxy can front both
+# services without host-specific Docker plumbing.
+bentopdf_network_name: autoconfig-services
 bentopdf_port: 8080

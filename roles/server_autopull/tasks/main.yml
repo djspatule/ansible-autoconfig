@@ -1,4 +1,6 @@
 ---
+# Keep the recurring pull logic in its own role so the base server setup can be
+# reused even on machines that should not self-update yet.
 - name: Install autoconfig pull helper script
   ansible.builtin.template:
     src: autoconfig-pull.sh.j2

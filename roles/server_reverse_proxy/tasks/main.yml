@@ -1,0 +1,48 @@
+---
+- name: Ensure reverse proxy directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ server_reverse_proxy_root_dir }}"
+    - "{{ server_reverse_proxy_config_dir }}"
+    - "{{ server_reverse_proxy_data_dir }}"
+
+- name: Ensure reverse proxy container network exists
+  community.docker.docker_network:
+    name: "{{ server_reverse_proxy_network_name }}"
+    state: present
+
+# The proxy config is generated from host vars so one role can front different
+# services on the VM and on real servers without forking the role.
+- name: Install reverse proxy configuration
+  ansible.builtin.template:
+    src: Caddyfile.j2
+    dest: "{{ server_reverse_proxy_config_dir }}/Caddyfile"
+    owner: root
+    group: root
+    mode: "0644"
+  register: server_reverse_proxy_config
+
+- name: Pull reverse proxy image
+  community.docker.docker_image:
+    name: "{{ server_reverse_proxy_image }}"
+    source: pull
+
+- name: Run reverse proxy container
+  community.docker.docker_container:
+    name: "{{ server_reverse_proxy_container_name }}"
+    image: "{{ server_reverse_proxy_image }}"
+    state: started
+    # Restart when the Caddyfile changes so the new routes actually get loaded.
+    restart: "{{ server_reverse_proxy_config.changed }}"
+    restart_policy: unless-stopped
+    published_ports: "{{ server_reverse_proxy_published_ports }}"
+    networks:
+      - name: "{{ server_reverse_proxy_network_name }}"
+    volumes:
+      - "{{ server_reverse_proxy_config_dir }}/Caddyfile:/etc/caddy/Caddyfile:ro"
+      - "{{ server_reverse_proxy_data_dir }}:/data"

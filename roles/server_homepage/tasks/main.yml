@@ -7,6 +7,13 @@
     group: root
     mode: "0755"
 
+- name: Ensure Homepage container network exists
+  community.docker.docker_network:
+    name: "{{ homepage_network_name }}"
+    state: present
+
+# Homepage and the reverse proxy share a named Docker network so the proxy can
+# route to service names instead of host-specific bridge addresses.
 - name: Deploy Homepage config tree
   ansible.builtin.copy:
     src: "{{ homepage_source_dir }}"
@@ -29,6 +36,8 @@
     restart_policy: unless-stopped
     published_ports:
       - "{{ homepage_port }}:3000"
+    networks:
+      - name: "{{ homepage_network_name }}"
     volumes:
       - "{{ homepage_config_dir }}:/app/config"
       - /var/run/docker.sock:/var/run/docker.sock

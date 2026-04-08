@@ -6,6 +6,8 @@ branch="{{ autoconfig_branch }}"
 repo_dir="{{ autoconfig_repo_dir }}"
 playbook="{{ autoconfig_playbook }}"
 
+# Sync the repo before calling ansible-pull so the helper can also bootstrap a
+# fresh machine where the checkout directory does not exist yet.
 if [ ! -d "$repo_dir/.git" ]; then
   git clone --branch "$branch" "$repo_url" "$repo_dir"
 else
@@ -18,6 +20,8 @@ if [ -f "$repo_dir/requirements.yml" ]; then
   ansible-galaxy collection install -r "$repo_dir/requirements.yml"
 fi
 
+# Point Ansible at the repo-local config so inventory and defaults stay aligned
+# no matter where the helper is launched from.
 export ANSIBLE_CONFIG="$repo_dir/ansible.cfg"
 
 exec ansible-pull \

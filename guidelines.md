@@ -11,14 +11,23 @@
 - `server_bootstrap.yml`: install the base CLI set, Docker, and distro-specific dependencies.
 - `server_homepage.yml`: deploy Homepage on port `3000`.
 - `server_bentopdf.yml`: deploy BentoPDF on port `8080`.
+- `server_reverse_proxy.yml`: deploy the Caddy-based reverse proxy.
 - `server_core.yml`: the main server entry point. It always runs `server_base` and the recurring pull timer, and it adds Homepage or BentoPDF when the host enables them.
+  It can also add the reverse proxy when a host enables it.
 
 ## Current Role Boundaries
 
 - `roles/server_base`: package manager differences, Docker installation, and base server CLI tools.
 - `roles/server_homepage`: deploy Homepage config and container.
 - `roles/server_bentopdf`: deploy BentoPDF container.
+- `roles/server_reverse_proxy`: proxy enabled services through Caddy on host-defined ports.
 - `roles/server_autopull`: install the helper script and `systemd` timer that re-runs the configuration daily.
+
+## Isolation Strategy
+
+- The old `local.yml` and legacy desktop/server roles are kept intact.
+- The new server work is isolated behind `server_*.yml` playbooks and dedicated `roles/server_*` roles.
+- This keeps the new server path testable without rewriting the older desktop-oriented structure all at once.
 
 ## First-Run Bootstrap
 
@@ -48,6 +57,13 @@ Run through `ansible-pull` on a real target host:
 
 ```bash
 sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git -C server-bootstrap -d /opt/ansible-pull server_core.yml
+```
+
+Test the reverse proxy on the Arch VM with GET requests and host headers:
+
+```bash
+curl -H 'Host: homepage.localtest.me' http://127.0.0.1:8081/
+curl -H 'Host: bentopdf.localtest.me' http://127.0.0.1:8081/
 ```
 
 ## VM Feedback Loop

@@ -1,0 +1,14 @@
+---
+# Caddy is a good first reverse proxy here because the config stays readable and
+# the container is small enough to use as a learning example.
+server_reverse_proxy_container_name: server-reverse-proxy
+server_reverse_proxy_image: caddy:2.10-alpine
+server_reverse_proxy_root_dir: /opt/reverse-proxy
+server_reverse_proxy_config_dir: "{{ server_reverse_proxy_root_dir }}/caddy"
+server_reverse_proxy_data_dir: "{{ server_reverse_proxy_root_dir }}/data"
+server_reverse_proxy_network_name: autoconfig-services
+server_reverse_proxy_published_ports:
+  - "80:80"
+# Each site maps a hostname to one upstream service. This keeps the first slice
+# focused on routing before adding PHP, databases, or certificates.
+server_reverse_proxy_sites: []

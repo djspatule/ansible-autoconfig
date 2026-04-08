@@ -1,0 +1,15 @@
+{
+    # Stay on plain HTTP for this first slice so reverse-proxy routing is proven
+    # before adding domain management and certificate automation.
+    auto_https off
+    admin off
+}
+
+{% for site in server_reverse_proxy_sites %}
+# Use explicit http:// listeners so the VM can be tested on a high host port
+# without Caddy silently switching the site to HTTPS-only behavior.
+http://{{ site.hostname }} {
+    reverse_proxy {{ site.upstream }}
+}
+
+{% endfor %}

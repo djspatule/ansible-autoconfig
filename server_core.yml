@@ -6,9 +6,14 @@
   gather_facts: true
 
   roles:
+    # Keep the new server path isolated from the older desktop-focused playbooks.
     - server_base
+    # Apps stay opt-in per host so one "server core" can fit more than one machine.
     - role: server_homepage
       when: server_homepage_enabled | default(false)
     - role: server_bentopdf
       when: server_bentopdf_enabled | default(false)
+    - role: server_reverse_proxy
+      when: server_reverse_proxy_enabled | default(false)
+    # The timer is last so the recurring pull only gets installed after a good run.
     - server_autopull

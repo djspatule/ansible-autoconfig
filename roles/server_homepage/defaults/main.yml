@@ -3,7 +3,10 @@ homepage_container_name: homepage
 homepage_image: ghcr.io/gethomepage/homepage:latest
 homepage_root_dir: /opt/homepage
 homepage_config_dir: /opt/homepage/config
+# Keep the source tree stow-like so these files can later move into a dotfiles
+# package without rewriting the deployment logic.
 homepage_source_dir: "{{ role_path }}/../../files/homepage/opt/homepage/"
+homepage_network_name: autoconfig-services
 homepage_port: 3000
 homepage_allowed_hosts:
   - "{{ inventory_hostname }}:{{ homepage_port }}"

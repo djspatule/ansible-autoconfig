@@ -19,6 +19,8 @@ fi
 
 . /etc/os-release
 
+# Install only the minimum needed to let the repo configure the rest. That
+# keeps first-boot logic small and leaves long-term state in Ansible itself.
 case "${ID}:${ID_LIKE:-}" in
   ubuntu:*|debian:*|linuxmint:*|pop:*|*:*debian*)
     apt-get update
@@ -33,6 +35,8 @@ case "${ID}:${ID_LIKE:-}" in
     ;;
 esac
 
+# Clone or fast-forward the repo before the first pull so the same script works
+# on both a blank machine and a previously bootstrapped one.
 if [ ! -d "$repo_dir/.git" ]; then
   git clone --branch "$branch" "$repo_url" "$repo_dir"
 else
