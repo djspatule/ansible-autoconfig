@@ -1,0 +1,10 @@
+[Unit]
+Description=Schedule Ansible pull for autoconfig
+
+[Timer]
+OnCalendar={{ autoconfig_on_calendar }}
+RandomizedDelaySec={{ autoconfig_randomized_delay }}
+Persistent={{ autoconfig_persistent | ternary('true', 'false') }}
+
+[Install]
+WantedBy=timers.target

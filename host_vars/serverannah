@@ -1,3 +1,8 @@
 ---
 ansible_connection: local
-ansible_python_interpreter: /usr/bin/python3
+ansible_python_interpreter: auto_silent
+autoconfig_playbook: server_core.yml
+server_homepage_enabled: true
+server_bentopdf_enabled: true
+homepage_extra_allowed_hosts:
+  - 192.168.1.7:3000

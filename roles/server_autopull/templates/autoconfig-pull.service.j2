@@ -1,0 +1,8 @@
+[Unit]
+Description=Run Ansible pull for autoconfig
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/autoconfig-pull

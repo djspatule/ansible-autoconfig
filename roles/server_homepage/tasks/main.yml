@@ -9,7 +9,7 @@
 
 - name: Deploy Homepage config tree
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/files/homepage/opt/homepage/"
+    src: "{{ homepage_source_dir }}"
     dest: "{{ homepage_root_dir }}/"
     owner: root
     group: root
@@ -33,4 +33,4 @@
       - "{{ homepage_config_dir }}:/app/config"
       - /var/run/docker.sock:/var/run/docker.sock
     env:
-      HOMEPAGE_ALLOWED_HOSTS: "{{ homepage_allowed_hosts | unique | join(',') }}"
+      HOMEPAGE_ALLOWED_HOSTS: "{{ (homepage_allowed_hosts + homepage_extra_allowed_hosts) | unique | join(',') }}"

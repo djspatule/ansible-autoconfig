@@ -1,17 +1,31 @@
 ---
-- name: Ensure the server bootstrap role runs on Debian-family hosts
+- name: Ensure the server bootstrap role runs on supported hosts
   ansible.builtin.assert:
     that:
-      - ansible_facts.os_family == "Debian"
-    fail_msg: server_base currently supports Debian-family hosts only.
+      - ansible_facts.os_family in server_packages_by_family
+    fail_msg: >-
+      server_base currently supports only these OS families:
+      {{ server_packages_by_family.keys() | join(', ') }}.
+
+- name: Load package plan for this OS family
+  ansible.builtin.set_fact:
+    server_cli_packages: "{{ server_packages_by_family[ansible_facts.os_family].cli }}"
+    server_docker_packages: "{{ server_packages_by_family[ansible_facts.os_family].docker }}"
+    server_snap_packages: "{{ server_packages_by_family[ansible_facts.os_family].snaps }}"
 
 - name: Refresh apt cache
   ansible.builtin.apt:
     update_cache: true
     cache_valid_time: 3600
+  when: ansible_facts.os_family == "Debian"
+
+- name: Refresh pacman cache
+  community.general.pacman:
+    update_cache: true
+  when: ansible_facts.os_family == "Archlinux"
 
 - name: Install base CLI packages for servers
-  ansible.builtin.apt:
+  ansible.builtin.package:
     name: "{{ server_cli_packages }}"
     state: present
 
@@ -20,15 +34,17 @@
     name: snapd
     state: started
     enabled: true
+  when: server_snap_packages | length > 0
 
 - name: Install CLI snap packages
   community.general.snap:
     name: "{{ item }}"
     state: present
   loop: "{{ server_snap_packages }}"
+  when: server_snap_packages | length > 0
 
 - name: Install Docker from distro packages
-  ansible.builtin.apt:
+  ansible.builtin.package:
     name: "{{ server_docker_packages }}"
     state: present
 

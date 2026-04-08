@@ -1,28 +1,51 @@
 ---
 # Start with the CLI portion of roles/base/tasks/packages.yml and keep this
 # server list free of desktop-only packages.
-server_cli_packages:
-  - curl
-  - btop
-  - python3-psutil
-  - micro
-  - fastfetch
-  - pdfgrep
-  - ncdu
-  - mc
-  - bat
-  - clamav
-  - rclone
-  - cmatrix
-  - eza
-  - sl
-  - snapd
-  - tree
-  - ripgrep
-
-server_docker_packages:
-  - docker.io
-  - python3-docker
-
-server_snap_packages:
-  - tldr
+server_packages_by_family:
+  Debian:
+    cli:
+      - curl
+      - btop
+      - python3-psutil
+      - micro
+      - fastfetch
+      - pdfgrep
+      - ncdu
+      - mc
+      - bat
+      - clamav
+      - rclone
+      - cmatrix
+      - eza
+      - sl
+      - snapd
+      - tree
+      - ripgrep
+    docker:
+      - docker.io
+      - python3-docker
+    snaps:
+      - tldr
+  Archlinux:
+    cli:
+      - curl
+      - btop
+      - python-psutil
+      - micro
+      - fastfetch
+      - pdfgrep
+      - ncdu
+      - mc
+      - bat
+      - clamav
+      - rclone
+      - cmatrix
+      - eza
+      - sl
+      - tree
+      - ripgrep
+      - tldr
+    docker:
+      - docker
+      - python-docker
+    snaps: []
