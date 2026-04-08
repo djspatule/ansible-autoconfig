@@ -39,7 +39,14 @@
   loop:
     - "{{ aumenuilya_root_dir }}"
     - "{{ aumenuilya_import_dir }}"
-    - "{{ aumenuilya_secret_dir }}"
+
+- name: Ensure AuMenuIlYA secret directory exists
+  ansible.builtin.file:
+    path: "{{ aumenuilya_secret_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
 
 # Let the containers own their runtime data. Enforcing root ownership here makes
 # the next Ansible run fight with normal WordPress and MariaDB behavior.
@@ -59,6 +66,7 @@
       {{ lookup('ansible.builtin.password', aumenuilya_db_password_file + ' length=32 chars=ascii_letters,digits') }}
     aumenuilya_db_root_password: >-
       {{ lookup('ansible.builtin.password', aumenuilya_db_root_password_file + ' length=32 chars=ascii_letters,digits') }}
+  no_log: true
 
 - name: Ensure AuMenuIlYA container network exists
   community.docker.docker_network:
@@ -149,6 +157,7 @@
       MARIADB_USER: "{{ aumenuilya_db_user }}"
       MARIADB_PASSWORD: "{{ aumenuilya_db_password }}"
       MARIADB_ROOT_PASSWORD: "{{ aumenuilya_db_root_password }}"
+  no_log: true
 
 - name: Wait for AuMenuIlYA database to become ready
   ansible.builtin.command:
@@ -167,6 +176,7 @@
   retries: "{{ aumenuilya_wait_retries }}"
   delay: "{{ aumenuilya_wait_delay }}"
   until: aumenuilya_db_ping.rc == 0
+  no_log: true
 
 - name: Check whether AuMenuIlYA database already has the wp_options table
   ansible.builtin.command:
@@ -186,6 +196,7 @@
         AND table_name = '{{ aumenuilya_table_prefix }}options';
   register: aumenuilya_db_seed_state
   changed_when: false
+  no_log: true
 
 # Use the database itself as the source of truth here. File markers can lie if
 # the database volume is replaced while the import directory survives.
@@ -196,6 +207,7 @@
   args:
     executable: /bin/bash
   when: aumenuilya_db_seed_state.stdout | trim != "1"
+  no_log: true
 
 # The official WordPress image bootstraps core files and wp-config.php, while
 # the restored wp-content keeps the site's theme, plugins, and uploads.
@@ -225,6 +237,7 @@
         if (isset($_SERVER['HTTP_X_FORWARDED_HOST'])) {
           $_SERVER['HTTP_HOST'] = $_SERVER['HTTP_X_FORWARDED_HOST'];
         }
+  no_log: true
 
 - name: Wait for generated AuMenuIlYA wp-config.php
   ansible.builtin.stat:
@@ -251,6 +264,7 @@
         WHERE option_name = 'home' LIMIT 1;
   register: aumenuilya_home_option
   changed_when: false
+  no_log: true
 
 # WP-CLI is used for the URL rewrite because WordPress stores URLs in serialized
 # data; a plain SQL replace would eventually corrupt some values. Theme and
@@ -286,3 +300,4 @@
       - --skip-plugins
       - --all-tables
   when: aumenuilya_home_option.stdout | trim != aumenuilya_public_url
+  no_log: true

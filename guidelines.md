@@ -13,7 +13,7 @@
 
 ## Current Role Boundaries
 
-- `roles/server`: the LearnLinuxTV-style aggregation role. Its task files are `base`, `homepage`, `bentopdf`, `aumenuilya`, `reverse_proxy`, and `autopull`.
+- `roles/server`: the LearnLinuxTV-style aggregation role. Its task files are `base`, `homepage`, `bentopdf`, `pihole`, `aumenuilya`, `reverse_proxy`, and `autopull`.
 
 ## Isolation Strategy
 
@@ -62,6 +62,13 @@ Test the reverse proxy on the Arch VM with GET requests and host headers:
 ```bash
 curl -H 'Host: homepage.localtest.me' http://127.0.0.1:8081/
 curl -H 'Host: bentopdf.localtest.me' http://127.0.0.1:8081/
+curl -H 'Host: pihole.localtest.me' http://127.0.0.1:8081/admin/
+```
+
+Test Pi-hole DNS itself on the Arch VM:
+
+```bash
+sudo docker exec pihole nslookup pi-hole.net 127.0.0.1
 ```
 
 ## VM Feedback Loop
@@ -69,6 +76,7 @@ curl -H 'Host: bentopdf.localtest.me' http://127.0.0.1:8081/
 - The disposable Arch VM is represented as `archlinux` in `hosts`.
 - `host_vars/archlinux` keeps the VM on the normal inventory path instead of using a fake localhost-only workflow.
 - Use the VM to prove portability and idempotency before applying changes on `serverannah`.
+- Pi-hole binds `5300` on the VM so DNS can be tested without stealing the VM host's normal resolver port.
 
 ## Known Caveats
 

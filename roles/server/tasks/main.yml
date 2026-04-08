@@ -18,6 +18,12 @@
     - server
     - bentopdf
 
+- import_tasks: pihole.yml
+  when: server_pihole_enabled | default(false)
+  tags:
+    - server
+    - pihole
+
 - import_tasks: aumenuilya.yml
   when: server_aumenuilya_enabled | default(false)
   tags:

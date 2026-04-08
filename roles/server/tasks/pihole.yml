@@ -1,0 +1,91 @@
+---
+- name: Ensure Pi-hole root-managed directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ pihole_root_dir }}"
+
+- name: Ensure Pi-hole secret directory exists
+  ansible.builtin.file:
+    path: "{{ pihole_secret_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+# Pi-hole updates files under /etc/pihole itself, so Ansible should avoid
+# resetting ownership there on every run.
+- name: Ensure Pi-hole runtime configuration directory exists
+  ansible.builtin.file:
+    path: "{{ pihole_config_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Check whether Pi-hole web password file exists
+  ansible.builtin.stat:
+    path: "{{ pihole_web_password_file }}"
+  register: pihole_web_password_file_stat
+  no_log: true
+
+- name: Generate Pi-hole web password on the target host
+  ansible.builtin.shell: "tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32"
+  register: pihole_web_password_generated
+  changed_when: true
+  when: not pihole_web_password_file_stat.stat.exists
+  no_log: true
+
+- name: Save generated Pi-hole web password
+  ansible.builtin.copy:
+    content: "{{ pihole_web_password_generated.stdout }}\n"
+    dest: "{{ pihole_web_password_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: not pihole_web_password_file_stat.stat.exists
+  no_log: true
+
+- name: Read Pi-hole web password from the managed secret file
+  ansible.builtin.slurp:
+    src: "{{ pihole_web_password_file }}"
+  register: pihole_web_password_slurp
+  no_log: true
+
+- name: Load Pi-hole web password
+  ansible.builtin.set_fact:
+    pihole_web_password: "{{ pihole_web_password_slurp.content | b64decode | trim }}"
+  no_log: true
+
+- name: Ensure Pi-hole container network exists
+  community.docker.docker_network:
+    name: "{{ pihole_network_name }}"
+    state: present
+
+# Keep the DNS service on the host, but let the admin UI stay private behind the
+# reverse proxy so websites and Pi-hole do not compete for extra host web ports.
+- name: Pull Pi-hole image
+  community.docker.docker_image:
+    name: "{{ pihole_image }}"
+    source: pull
+
+- name: Run Pi-hole container
+  community.docker.docker_container:
+    name: "{{ pihole_container_name }}"
+    image: "{{ pihole_image }}"
+    state: started
+    restart_policy: unless-stopped
+    published_ports: "{{ pihole_published_ports }}"
+    networks:
+      - name: "{{ pihole_network_name }}"
+    volumes:
+      - "{{ pihole_config_dir }}:/etc/pihole"
+    capabilities: "{{ pihole_capabilities }}"
+    env:
+      TZ: "{{ pihole_timezone }}"
+      FTLCONF_webserver_api_password: "{{ pihole_web_password }}"
+      FTLCONF_dns_listeningMode: "{{ pihole_dns_listening_mode }}"
+      FTLCONF_dns_upstreams: "{{ pihole_dns_upstreams | join(';') }}"
+  no_log: true

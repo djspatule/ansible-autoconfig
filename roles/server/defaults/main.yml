@@ -71,6 +71,33 @@ bentopdf_image: ghcr.io/alam00000/bentopdf-simple:latest
 bentopdf_network_name: autoconfig-services
 bentopdf_port: 8080
 
+server_pihole_enabled: false
+# Pi-hole stays on the same shared Docker network so the reverse proxy can front
+# the admin UI without exposing another host HTTP port.
+pihole_container_name: pihole
+# Pin the image so daily ansible-pull runs do not silently jump to a newer
+# Pi-hole release without an explicit code change.
+pihole_image: pihole/pihole:2026.04.0
+pihole_network_name: autoconfig-services
+pihole_root_dir: /opt/pihole
+pihole_config_dir: "{{ pihole_root_dir }}/etc-pihole"
+pihole_secret_dir: /etc/ansible/secrets
+pihole_web_password_file: "{{ pihole_secret_dir }}/pihole-web-password"
+pihole_timezone: Europe/Paris
+pihole_dns_listening_mode: ALL
+pihole_dns_upstreams:
+  - 1.1.1.1
+  - 1.0.0.1
+# Real hosts will normally bind 53 directly. The VM overrides this to a high
+# port so the feedback loop does not fight the host resolver.
+pihole_published_ports:
+  - "53:53/tcp"
+  - "53:53/udp"
+# NET_ADMIN is kept explicit because Pi-hole documents it as the practical
+# default for containerized network operations, even when DHCP stays off.
+pihole_capabilities:
+  - NET_ADMIN
+
 server_reverse_proxy_enabled: false
 # Caddy keeps the reverse proxy readable enough to use as a learning tool.
 server_reverse_proxy_container_name: server-reverse-proxy

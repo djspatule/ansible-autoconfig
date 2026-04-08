@@ -5,6 +5,7 @@ autoconfig_branch: server-bootstrap
 autoconfig_playbook: local.yml
 server_homepage_enabled: true
 server_bentopdf_enabled: true
+server_pihole_enabled: true
 # The VM is where reverse-proxy changes are exercised first.
 server_reverse_proxy_enabled: true
 server_aumenuilya_enabled: true
@@ -20,7 +21,12 @@ server_reverse_proxy_sites:
     upstream: homepage:3000
   - hostname: bentopdf.localtest.me
     upstream: bentopdf:8080
+  - hostname: pihole.localtest.me
+    upstream: pihole:80
   - hostname: aumenuilya.localtest.me
     upstream: aumenuilya:80
 aumenuilya_backup_root: /home/lion/aumenuilya-fixture
 aumenuilya_public_url: http://aumenuilya.localtest.me:8081
+pihole_published_ports:
+  - "5300:53/tcp"
+  - "5300:53/udp"
