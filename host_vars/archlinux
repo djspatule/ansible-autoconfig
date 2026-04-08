@@ -1,19 +1,26 @@
 ---
 ansible_connection: local
 ansible_python_interpreter: auto_silent
-autoconfig_playbook: server_core.yml
+autoconfig_branch: server-bootstrap
+autoconfig_playbook: local.yml
 server_homepage_enabled: true
 server_bentopdf_enabled: true
 # The VM is where reverse-proxy changes are exercised first.
 server_reverse_proxy_enabled: true
+server_aumenuilya_enabled: true
 homepage_extra_allowed_hosts:
   - 127.0.0.1:3000
   - homepage.localtest.me
   - homepage.localtest.me:8081
 server_reverse_proxy_published_ports:
   - 8081:80
+server_reverse_proxy_auto_https: false
 server_reverse_proxy_sites:
   - hostname: homepage.localtest.me
     upstream: homepage:3000
   - hostname: bentopdf.localtest.me
     upstream: bentopdf:8080
+  - hostname: aumenuilya.localtest.me
+    upstream: aumenuilya:80
+aumenuilya_backup_root: /home/lion/aumenuilya-fixture
+aumenuilya_public_url: http://aumenuilya.localtest.me:8081

@@ -49,6 +49,9 @@ if [ -f "$repo_dir/requirements.yml" ]; then
   ansible-galaxy collection install -r "$repo_dir/requirements.yml"
 fi
 
+# Make the very first pull honor the repo-local inventory and defaults.
+export ANSIBLE_CONFIG="$repo_dir/ansible.cfg"
+
 set -- ansible-pull -U "$repo_url" -C "$branch" -d "$repo_dir"
 
 if [ -n "$vault_password_file" ]; then

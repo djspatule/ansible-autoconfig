@@ -1,6 +1,6 @@
 ---
-# Keep the recurring pull logic in its own role so the base server setup can be
-# reused even on machines that should not self-update yet.
+# Keep the recurring pull logic in its own task file so the base server setup
+# can still be reused on machines that should not self-update yet.
 - name: Install autoconfig pull helper script
   ansible.builtin.template:
     src: autoconfig-pull.sh.j2
@@ -26,6 +26,9 @@
     group: root
     mode: "0644"
   notify: Reload systemd
+
+- name: Reload systemd before enabling the autoconfig timer
+  ansible.builtin.meta: flush_handlers
 
 - name: Ensure autoconfig timer is enabled and running
   ansible.builtin.systemd_service:

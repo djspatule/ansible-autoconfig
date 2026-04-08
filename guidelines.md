@@ -8,26 +8,18 @@
 
 ## Current Server Playbooks
 
-- `server_bootstrap.yml`: install the base CLI set, Docker, and distro-specific dependencies.
-- `server_homepage.yml`: deploy Homepage on port `3000`.
-- `server_bentopdf.yml`: deploy BentoPDF on port `8080`.
-- `server_reverse_proxy.yml`: deploy the Caddy-based reverse proxy.
-- `server_core.yml`: the main server entry point. It always runs `server_base` and the recurring pull timer, and it adds Homepage or BentoPDF when the host enables them.
-  It can also add the reverse proxy when a host enables it.
+- `local.yml`: the main entry point again. It runs `base` for workstations and `server` for hosts in the `server` inventory group.
+- `server_core.yml`: compatibility playbook that now simply runs the `server` role.
 
 ## Current Role Boundaries
 
-- `roles/server_base`: package manager differences, Docker installation, and base server CLI tools.
-- `roles/server_homepage`: deploy Homepage config and container.
-- `roles/server_bentopdf`: deploy BentoPDF container.
-- `roles/server_reverse_proxy`: proxy enabled services through Caddy on host-defined ports.
-- `roles/server_autopull`: install the helper script and `systemd` timer that re-runs the configuration daily.
+- `roles/server`: the LearnLinuxTV-style aggregation role. Its task files are `base`, `homepage`, `bentopdf`, `aumenuilya`, `reverse_proxy`, and `autopull`.
 
 ## Isolation Strategy
 
 - The old `local.yml` and legacy desktop/server roles are kept intact.
-- The new server work is isolated behind `server_*.yml` playbooks and dedicated `roles/server_*` roles.
-- This keeps the new server path testable without rewriting the older desktop-oriented structure all at once.
+- The old desktop-oriented `base` role now stays on workstation hosts.
+- The server path is isolated inside `roles/server/tasks/*.yml`, so the architecture matches the original repo shape while still keeping server-only logic away from desktop tasks.
 
 ## First-Run Bootstrap
 
@@ -51,6 +43,12 @@ Run the full server stack locally on a machine already prepared for Ansible:
 
 ```bash
 sudo ansible-playbook -i hosts --limit serverannah server_core.yml
+```
+
+Or use the canonical entry point directly:
+
+```bash
+sudo ansible-playbook -i hosts --limit serverannah local.yml
 ```
 
 Run through `ansible-pull` on a real target host:

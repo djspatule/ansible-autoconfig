@@ -1,0 +1,127 @@
+---
+# Keep server package names in one map so the role can stay portable across
+# Debian-family and Arch-family hosts without branching the whole role.
+server_packages_by_family:
+  Debian:
+    cli:
+      - curl
+      - btop
+      - python3-psutil
+      - micro
+      - fastfetch
+      - pdfgrep
+      - ncdu
+      - mc
+      - bat
+      - clamav
+      - rclone
+      - cmatrix
+      - eza
+      - sl
+      - snapd
+      - tree
+      - ripgrep
+      - rsync
+    docker:
+      - docker.io
+      - python3-docker
+    snaps:
+      - tldr
+  Archlinux:
+    cli:
+      - curl
+      - btop
+      - python-psutil
+      - micro
+      - fastfetch
+      - pdfgrep
+      - ncdu
+      - mc
+      - bat
+      - clamav
+      - rclone
+      - cmatrix
+      - eza
+      - sl
+      - tree
+      - ripgrep
+      - tldr
+      - rsync
+    docker:
+      - docker
+      - python-docker
+    snaps: []
+
+server_homepage_enabled: false
+homepage_container_name: homepage
+homepage_image: ghcr.io/gethomepage/homepage:latest
+homepage_root_dir: /opt/homepage
+homepage_config_dir: /opt/homepage/config
+homepage_source_dir: "{{ role_path }}/../../files/homepage/opt/homepage/"
+homepage_network_name: autoconfig-services
+homepage_port: 3000
+homepage_allowed_hosts:
+  - "{{ inventory_hostname }}:{{ homepage_port }}"
+  - "{{ ansible_facts.hostname }}:{{ homepage_port }}"
+homepage_extra_allowed_hosts: []
+
+server_bentopdf_enabled: false
+bentopdf_container_name: bentopdf
+bentopdf_image: ghcr.io/alam00000/bentopdf-simple:latest
+bentopdf_network_name: autoconfig-services
+bentopdf_port: 8080
+
+server_reverse_proxy_enabled: false
+# Caddy keeps the reverse proxy readable enough to use as a learning tool.
+server_reverse_proxy_container_name: server-reverse-proxy
+server_reverse_proxy_image: caddy:2.10-alpine
+server_reverse_proxy_root_dir: /opt/reverse-proxy
+server_reverse_proxy_config_dir: "{{ server_reverse_proxy_root_dir }}/caddy"
+server_reverse_proxy_data_dir: "{{ server_reverse_proxy_root_dir }}/data"
+server_reverse_proxy_network_name: autoconfig-services
+server_reverse_proxy_auto_https: false
+server_reverse_proxy_published_ports:
+  - "80:80"
+server_reverse_proxy_sites: []
+
+server_aumenuilya_enabled: false
+aumenuilya_network_name: autoconfig-services
+aumenuilya_root_dir: /opt/aumenuilya
+aumenuilya_app_dir: "{{ aumenuilya_root_dir }}/wordpress"
+aumenuilya_db_data_dir: "{{ aumenuilya_root_dir }}/mariadb"
+aumenuilya_import_dir: "{{ aumenuilya_root_dir }}/import"
+aumenuilya_secret_dir: /etc/ansible/secrets
+aumenuilya_db_container_name: aumenuilya-db
+aumenuilya_app_container_name: aumenuilya
+aumenuilya_db_image: mariadb:11.4
+# This backup comes from a 2022 WordPress install with legacy theme code.
+# Pinning an older WordPress/PHP image is more realistic than pretending that
+# unmaintained theme code will run cleanly on the newest PHP release.
+aumenuilya_wordpress_image: wordpress:5.9.3-php7.4-apache
+aumenuilya_wpcli_image: wordpress:cli-php7.4
+aumenuilya_db_name: aumenuilkomyriam
+aumenuilya_db_user: aumenuilkomyriam
+aumenuilya_db_password_file: "{{ aumenuilya_secret_dir }}/aumenuilya-db-password"
+aumenuilya_db_root_password_file: "{{ aumenuilya_secret_dir }}/aumenuilya-db-root-password"
+aumenuilya_table_prefix: wp_
+aumenuilya_old_url: http://www.aumenuilya.com
+aumenuilya_public_url: http://aumenuilya.localtest.me:8081
+aumenuilya_backup_root: ""
+aumenuilya_source_tree: "{{ aumenuilya_backup_root }}/www_old"
+aumenuilya_source_wp_content: "{{ aumenuilya_source_tree }}/wp-content/"
+aumenuilya_source_htaccess: "{{ aumenuilya_source_tree }}/.htaccess"
+aumenuilya_source_ads_txt: "{{ aumenuilya_backup_root }}/ads.txt"
+aumenuilya_source_sql_dump: "{{ aumenuilya_backup_root }}/aumenuilkomyriam_mysql_db_NoComments_20220515.sql"
+aumenuilya_published_ports: []
+aumenuilya_wait_retries: 30
+aumenuilya_wait_delay: 5
+
+autoconfig_repo_url: https://github.com/djspatule/ansible-autoconfig.git
+autoconfig_branch: main
+autoconfig_repo_dir: /opt/ansible-pull
+autoconfig_playbook: local.yml
+autoconfig_timer_name: autoconfig-pull
+autoconfig_on_calendar: daily
+autoconfig_randomized_delay: 30m
+autoconfig_persistent: true
+autoconfig_vault_password_file: ""

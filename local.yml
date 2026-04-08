@@ -10,10 +10,10 @@
         update_cache: true
         upgrade: dist
       changed_when: false
-      when: ansible_distribution in ["Debian", "Pop!_OS", "Ubuntu"]
+      when: ansible_facts['distribution'] in ["Debian", "Pop!_OS", "Ubuntu"]
 
 # run roles
-- hosts: all
+- hosts: workstation
   tags: base
   become: true
   roles:
@@ -29,6 +29,8 @@
   tags: server
   become: true
   roles:
+    # The server role now owns its own base/services stack so the older desktop
+    # base role can stay focused on workstation concerns.
     - server
 
 # end of run cleanup and reporting
@@ -40,14 +42,14 @@
       apt:
         autoclean: true
       changed_when: false
-      when: ansible_distribution in ["Debian", "Pop!_OS", "Ubuntu"]
+      when: ansible_facts['distribution'] in ["Debian", "Pop!_OS", "Ubuntu"]
 
     - name: autoremove orphan packages (debian and ubuntu)
       tags: always
       apt:
         autoremove: true
         purge: true
-      when: ansible_distribution in ["Debian", "Pop!_OS", "Ubuntu"]
+      when: ansible_facts['distribution'] in ["Debian", "Pop!_OS", "Ubuntu"]
 
   # - name: send completion alert
   #   include_tasks: playbooks/send_completion_alert.yml

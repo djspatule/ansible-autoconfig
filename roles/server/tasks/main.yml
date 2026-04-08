@@ -1,2 +1,36 @@
 ---
-- import_tasks: stirling_pdf.yml
+# Keep the server task list explicit and flat so each service can be tested with
+# tags and understood without chasing too much indirection.
+- import_tasks: base.yml
+  tags:
+    - server
+    - server_base
+
+- import_tasks: homepage.yml
+  when: server_homepage_enabled | default(false)
+  tags:
+    - server
+    - homepage
+
+- import_tasks: bentopdf.yml
+  when: server_bentopdf_enabled | default(false)
+  tags:
+    - server
+    - bentopdf
+
+- import_tasks: aumenuilya.yml
+  when: server_aumenuilya_enabled | default(false)
+  tags:
+    - server
+    - aumenuilya
+
+- import_tasks: reverse_proxy.yml
+  when: server_reverse_proxy_enabled | default(false)
+  tags:
+    - server
+    - reverse_proxy
+
+- import_tasks: autopull.yml
+  tags:
+    - server
+    - autopull
