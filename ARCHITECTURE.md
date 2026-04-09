@@ -23,18 +23,21 @@ flowchart TD
     E --> E4[bentopdf.yml]
     E --> E5[dotfiles.yml]
     E --> E6[game_timer.yml]
-    E --> E7[pihole.yml]
-    E --> E8[aumenuilya.yml]
-    E --> E9[reverse_proxy.yml]
-    E --> E10[autopull.yml]
+    E --> E7[nextcloud.yml]
+    E --> E8[pihole.yml]
+    E --> E9[aumenuilya.yml]
+    E --> E10[reverse_proxy.yml]
+    E --> E11[autopull.yml]
 
-    E7 --> G[Caddy container]
-    E2 --> H[Homepage container]
-    E3 --> I[BentoPDF container]
-    E4 --> J[game-timer container]
-    E5 --> K[Pi-hole container]
-    E6 --> L[WordPress container]
-    E6 --> M[MariaDB container]
+    E10 --> G[Caddy container]
+    E3 --> H[Homepage container]
+    E4 --> I[BentoPDF container]
+    E6 --> J[game-timer container]
+    E7 --> K[Nextcloud container]
+    E7 --> L[Nextcloud MariaDB container]
+    E8 --> M[Pi-hole container]
+    E9 --> N[WordPress container]
+    E9 --> O[WordPress MariaDB container]
 ```
 
 ## Top-Level Files
@@ -134,10 +137,11 @@ It imports the server task files in a flat and explicit order:
 4. `bentopdf.yml`
 5. `dotfiles.yml`
 6. `game_timer.yml`
-7. `pihole.yml`
-8. `aumenuilya.yml`
-9. `reverse_proxy.yml`
-10. `autopull.yml`
+7. `nextcloud.yml`
+8. `pihole.yml`
+9. `aumenuilya.yml`
+10. `reverse_proxy.yml`
+11. `autopull.yml`
 
 Each optional service is guarded by a host var such as `server_homepage_enabled`.
 
@@ -219,6 +223,17 @@ Current scope is intentionally conservative:
 - enabled on `serverannah` and `archlinux`
 - first package is `bash`
 - risky packages such as `ssh` or Hyprland are not auto-stowed yet
+
+### `roles/server/tasks/nextcloud.yml`
+
+Deploys Nextcloud as a Dockerized app with MariaDB.
+
+- creates persistent app, DB, and data directories
+- generates DB and admin secrets on the target host
+- runs MariaDB and Nextcloud containers
+- configures trusted domains and reverse-proxy settings with `occ`
+
+This service is designed around `serverannah` using `/mnt/SSD_1TO/nextcloud` as the main persistent storage root.
 
 ### `roles/server/tasks/pihole.yml`
 

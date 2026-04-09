@@ -85,6 +85,34 @@ game_timer_image: nginx:alpine
 game_timer_network_name: autoconfig-services
 game_timer_published_ports: []
 
+server_nextcloud_enabled: false
+# Nextcloud keeps both app state and user files on persistent storage. The real
+# server uses SSD_1TO so the service does not silently fall back to the root LV.
+nextcloud_network_name: autoconfig-services
+nextcloud_root_dir: /mnt/SSD_1TO/nextcloud
+nextcloud_app_dir: "{{ nextcloud_root_dir }}/app"
+nextcloud_db_data_dir: "{{ nextcloud_root_dir }}/db"
+nextcloud_data_dir: "{{ nextcloud_root_dir }}/data"
+nextcloud_secret_dir: /etc/ansible/secrets
+nextcloud_db_container_name: nextcloud-db
+nextcloud_db_image: mariadb:11
+nextcloud_container_name: nextcloud
+nextcloud_image: nextcloud:latest
+nextcloud_db_name: nextcloud
+nextcloud_db_user: nextclouduser
+nextcloud_db_password_file: "{{ nextcloud_secret_dir }}/nextcloud-db-password"
+nextcloud_db_root_password_file: "{{ nextcloud_secret_dir }}/nextcloud-db-root-password"
+nextcloud_admin_user: lion
+nextcloud_admin_password_file: "{{ nextcloud_secret_dir }}/nextcloud-admin-password"
+nextcloud_published_ports: []
+nextcloud_public_url: https://cloud.dinnizer.com
+nextcloud_trusted_domains:
+  - cloud.dinnizer.com
+nextcloud_trusted_proxies:
+  - server-reverse-proxy
+nextcloud_wait_retries: 30
+nextcloud_wait_delay: 5
+
 # Host vars can override this with the real disk layout. Keeping a default empty
 # list makes the mount task safe on hosts that do not need extra storage.
 server_storage_mounts: []

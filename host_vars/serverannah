@@ -7,6 +7,7 @@ server_dotfiles_enabled: true
 server_homepage_enabled: true
 server_bentopdf_enabled: true
 server_game_timer_enabled: true
+server_nextcloud_enabled: true
 # Keep Pi-hole off on the real server until the final DNS cutover and admin
 # hostname are chosen deliberately.
 server_pihole_enabled: false
@@ -25,6 +26,8 @@ server_reverse_proxy_sites:
     upstream: aumenuilya:80
   - hostname: tabletop-timer.com
     upstream: game-timer:80
+  - hostname: cloud.dinnizer.com
+    upstream: nextcloud:80
 dotfiles_stow_packages:
   - bash
 # Keep the current persistent data layout visible in host vars so future mount
@@ -54,5 +57,6 @@ server_storage_mounts:
     opts: defaults,nofail
     dump: 0
     passno: 2
+nextcloud_public_url: https://cloud.dinnizer.com
 aumenuilya_backup_root: /mnt/SSD_1TO/BackUp/Mimi/AuMenuIlYA
 aumenuilya_public_url: https://www.aumenuilya.com

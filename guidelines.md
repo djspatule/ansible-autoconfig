@@ -13,7 +13,7 @@
 
 ## Current Role Boundaries
 
-- `roles/server`: the LearnLinuxTV-style aggregation role. Its task files are `base`, `mounts`, `homepage`, `bentopdf`, `game_timer`, `pihole`, `aumenuilya`, `reverse_proxy`, and `autopull`.
+- `roles/server`: the LearnLinuxTV-style aggregation role. Its task files are `base`, `mounts`, `homepage`, `bentopdf`, `dotfiles`, `game_timer`, `nextcloud`, `pihole`, `aumenuilya`, `reverse_proxy`, and `autopull`.
 
 ## Isolation Strategy
 

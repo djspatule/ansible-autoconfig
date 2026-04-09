@@ -36,6 +36,12 @@
     - server
     - game_timer
 
+- import_tasks: nextcloud.yml
+  when: server_nextcloud_enabled | default(false)
+  tags:
+    - server
+    - nextcloud
+
 - import_tasks: pihole.yml
   when: server_pihole_enabled | default(false)
   tags:
