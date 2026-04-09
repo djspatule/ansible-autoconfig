@@ -36,6 +36,19 @@
   register: dotfiles_bashrc_stat
   when: "'bash' in dotfiles_stow_packages"
 
+- name: Resolve the existing bashrc symlink target
+  ansible.builtin.command:
+    argv:
+      - readlink
+      - -f
+      - "{{ dotfiles_home }}/.bashrc"
+  register: dotfiles_bashrc_link_target
+  changed_when: false
+  failed_when: false
+  when:
+    - "'bash' in dotfiles_stow_packages"
+    - dotfiles_bashrc_stat.stat.islnk | default(false)
+
 - name: Check whether a bashrc pre-stow backup already exists
   ansible.builtin.stat:
     path: "{{ dotfiles_home }}/.bashrc.pre-stow-backup"
@@ -65,7 +78,11 @@
   when:
     - "'bash' in dotfiles_stow_packages"
     - dotfiles_bashrc_stat.stat.exists
-    - not dotfiles_bashrc_stat.stat.islnk | default(false)
+    - >-
+      (not dotfiles_bashrc_stat.stat.islnk | default(false))
+      or
+      (dotfiles_bashrc_stat.stat.islnk | default(false)
+       and dotfiles_bashrc_link_target.stdout != dotfiles_repo_dir ~ '/bash/.bashrc')
 
 # Stow remains the symlink engine, while Ansible decides which packages are safe
 # to apply on this host. The first slice defaults to the universal bash package.
