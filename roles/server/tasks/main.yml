@@ -6,6 +6,12 @@
     - server
     - server_base
 
+- import_tasks: mounts.yml
+  when: server_storage_mounts | length > 0
+  tags:
+    - server
+    - server_mounts
+
 - import_tasks: homepage.yml
   when: server_homepage_enabled | default(false)
   tags:

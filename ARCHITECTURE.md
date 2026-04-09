@@ -18,14 +18,15 @@ flowchart TD
     A --> F[cleanup tasks on all hosts]
 
     E --> E1[base.yml]
-    E --> E2[homepage.yml]
-    E --> E3[bentopdf.yml]
-    E --> E4[dotfiles.yml]
-    E --> E5[game_timer.yml]
-    E --> E6[pihole.yml]
-    E --> E7[aumenuilya.yml]
-    E --> E8[reverse_proxy.yml]
-    E --> E9[autopull.yml]
+    E --> E2[mounts.yml]
+    E --> E3[homepage.yml]
+    E --> E4[bentopdf.yml]
+    E --> E5[dotfiles.yml]
+    E --> E6[game_timer.yml]
+    E --> E7[pihole.yml]
+    E --> E8[aumenuilya.yml]
+    E --> E9[reverse_proxy.yml]
+    E --> E10[autopull.yml]
 
     E7 --> G[Caddy container]
     E2 --> H[Homepage container]
@@ -128,14 +129,15 @@ Dispatch file.
 It imports the server task files in a flat and explicit order:
 
 1. `base.yml`
-2. `homepage.yml`
-3. `bentopdf.yml`
-4. `dotfiles.yml`
-5. `game_timer.yml`
-6. `pihole.yml`
-7. `aumenuilya.yml`
-8. `reverse_proxy.yml`
-9. `autopull.yml`
+2. `mounts.yml`
+3. `homepage.yml`
+4. `bentopdf.yml`
+5. `dotfiles.yml`
+6. `game_timer.yml`
+7. `pihole.yml`
+8. `aumenuilya.yml`
+9. `reverse_proxy.yml`
+10. `autopull.yml`
 
 Each optional service is guarded by a host var such as `server_homepage_enabled`.
 
@@ -175,6 +177,18 @@ Deploys Homepage.
 - deploys a stow-like config tree from `files/homepage/opt/homepage/config/`
 - creates/uses the shared Docker network
 - starts the Homepage container
+
+### `roles/server/tasks/mounts.yml`
+
+Storage foundation for hosts with extra disks.
+
+Responsibilities:
+
+- create the mount point directories
+- manage the corresponding `/etc/fstab` entries
+- ensure the filesystems are mounted now, not just declared for later boot
+
+This task file is driven by `server_storage_mounts` in host vars.
 
 ### `roles/server/tasks/bentopdf.yml`
 

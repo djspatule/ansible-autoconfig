@@ -1,0 +1,24 @@
+---
+# Drive extra storage from structured host vars instead of hand-edited fstab
+# lines so future machines can reuse the same data model.
+- name: Ensure server mount points exist
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop: "{{ server_storage_mounts }}"
+
+# Use the mount module so Ansible manages both /etc/fstab and the live mount
+# state in one place, instead of shelling out to mount commands manually.
+- name: Ensure server storage mounts are configured and mounted
+  ansible.posix.mount:
+    src: "{{ item.src }}"
+    path: "{{ item.path }}"
+    fstype: "{{ item.fstype }}"
+    opts: "{{ item.opts }}"
+    dump: "{{ item.dump | string }}"
+    passno: "{{ item.passno | string }}"
+    state: mounted
+  loop: "{{ server_storage_mounts }}"

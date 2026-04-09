@@ -85,6 +85,10 @@ game_timer_image: nginx:alpine
 game_timer_network_name: autoconfig-services
 game_timer_published_ports: []
 
+# Host vars can override this with the real disk layout. Keeping a default empty
+# list makes the mount task safe on hosts that do not need extra storage.
+server_storage_mounts: []
+
 server_dotfiles_enabled: false
 # Keep the first Stow slice intentionally small and low-risk: public repo clone,
 # user-scoped checkout, and only packages explicitly listed per host.
