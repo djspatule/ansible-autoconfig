@@ -1,0 +1,46 @@
+.progressButton {
+  border: none;
+  color: #ffffff;
+  padding: 10px 16px;
+  position: relative;
+  cursor: pointer;
+  font-family: "Fira Sans", sans-serif;
+  overflow: hidden;
+  border-radius: 5px;
+  min-width: 125px;
+  min-height: 190px;
+}
+
+.progressButton__progress {
+  position: absolute;
+  height: 0%;
+  width: 100%;
+  top: 0;
+  left: 0;
+  background: rgba(0, 0, 0, 0.2);
+  transition: width 0.3s;
+}
+
+.progressButton__text {
+  position: relative;
+}
+
+.big {
+  display: block;
+  font-size: 1.5em;
+  margin-top: 0.2em;
+  margin-bottom: 0.2em;
+  margin-left: 0;
+  margin-right: 0;
+  font-weight: bold;
+}
+
+.less-big {
+  display: block;
+  font-size: 1.17em;
+  margin-top: 0em;
+  margin-bottom: 0.5em;
+  margin-left: 0;
+  margin-right: 0;
+  font-weight: bold;
+}

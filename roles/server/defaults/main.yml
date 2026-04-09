@@ -74,12 +74,11 @@ bentopdf_network_name: autoconfig-services
 bentopdf_port: 8080
 
 server_game_timer_enabled: false
-# game-timer is a plain static site, so cloning the repo and serving it from a
-# tiny web container is simpler than inventing a build pipeline it does not need.
-game_timer_repo_url: https://github.com/djspatule/game-timer.git
-game_timer_repo_version: main
+# game-timer is a plain static site, so keeping a vendored snapshot here makes
+# ansible-pull deployment simpler than depending on authenticated Git access.
 game_timer_root_dir: /opt/game-timer
-game_timer_repo_dir: "{{ game_timer_root_dir }}/site"
+game_timer_site_dir: "{{ game_timer_root_dir }}/site"
+game_timer_source_dir: "{{ role_path }}/../../files/game-timer/site/"
 game_timer_container_name: game-timer
 game_timer_image: nginx:alpine
 game_timer_network_name: autoconfig-services

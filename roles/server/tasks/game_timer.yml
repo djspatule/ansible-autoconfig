@@ -7,12 +7,14 @@
     group: root
     mode: "0755"
 
-- name: Clone the game-timer repository
-  ansible.builtin.git:
-    repo: "{{ game_timer_repo_url }}"
-    dest: "{{ game_timer_repo_dir }}"
-    version: "{{ game_timer_repo_version }}"
-    force: true
+- name: Deploy the vendored game-timer site tree
+  ansible.builtin.copy:
+    src: "{{ game_timer_source_dir }}"
+    dest: "{{ game_timer_site_dir }}/"
+    owner: root
+    group: root
+    mode: preserve
+    directory_mode: "0755"
 
 - name: Ensure the game-timer container network exists
   community.docker.docker_network:
@@ -31,4 +33,4 @@
     networks:
       - name: "{{ game_timer_network_name }}"
     volumes:
-      - "{{ game_timer_repo_dir }}:/usr/share/nginx/html:ro"
+      - "{{ game_timer_site_dir }}:/usr/share/nginx/html:ro"
