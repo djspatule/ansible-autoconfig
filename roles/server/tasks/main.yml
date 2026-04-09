@@ -18,6 +18,12 @@
     - server
     - bentopdf
 
+- import_tasks: dotfiles.yml
+  when: server_dotfiles_enabled | default(false)
+  tags:
+    - server
+    - dotfiles
+
 - import_tasks: game_timer.yml
   when: server_game_timer_enabled | default(false)
   tags:

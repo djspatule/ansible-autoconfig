@@ -20,11 +20,12 @@ flowchart TD
     E --> E1[base.yml]
     E --> E2[homepage.yml]
     E --> E3[bentopdf.yml]
-    E --> E4[game_timer.yml]
-    E --> E5[pihole.yml]
-    E --> E6[aumenuilya.yml]
-    E --> E7[reverse_proxy.yml]
-    E --> E8[autopull.yml]
+    E --> E4[dotfiles.yml]
+    E --> E5[game_timer.yml]
+    E --> E6[pihole.yml]
+    E --> E7[aumenuilya.yml]
+    E --> E8[reverse_proxy.yml]
+    E --> E9[autopull.yml]
 
     E7 --> G[Caddy container]
     E2 --> H[Homepage container]
@@ -129,11 +130,12 @@ It imports the server task files in a flat and explicit order:
 1. `base.yml`
 2. `homepage.yml`
 3. `bentopdf.yml`
-4. `game_timer.yml`
-5. `pihole.yml`
-6. `aumenuilya.yml`
-7. `reverse_proxy.yml`
-8. `autopull.yml`
+4. `dotfiles.yml`
+5. `game_timer.yml`
+6. `pihole.yml`
+7. `aumenuilya.yml`
+8. `reverse_proxy.yml`
+9. `autopull.yml`
 
 Each optional service is guarded by a host var such as `server_homepage_enabled`.
 
@@ -187,6 +189,22 @@ Deploys the second website.
 - exposes it only through the shared Docker network by default
 
 This is the current pattern for plain static sites.
+
+### `roles/server/tasks/dotfiles.yml`
+
+First Stow-based dotfiles slice.
+
+Current responsibilities:
+
+- ensure the target user home exists
+- clone the public `omarchy-dotfiles` repo into a user-scoped checkout
+- run `stow --restow` for the host-selected package list
+
+Current scope is intentionally conservative:
+
+- enabled on `serverannah` and `archlinux`
+- first package is `bash`
+- risky packages such as `ssh` or Hyprland are not auto-stowed yet
 
 ### `roles/server/tasks/pihole.yml`
 
@@ -331,3 +349,5 @@ The safest future path is:
 4. keep secrets and highly host-specific files out of the generic stow set
 
 That keeps Ansible as the orchestrator and Stow as the placement mechanism.
+
+The first real implementation of that path now exists in `roles/server/tasks/dotfiles.yml`, but it still points at the external public repo until the packages are migrated into this repository.

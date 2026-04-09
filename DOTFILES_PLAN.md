@@ -13,6 +13,19 @@ Ansible can:
 
 That is a good direction if you want one repository to remain the source of truth while still benefiting from Stow's package model.
 
+## Current Status
+
+The first slice is now implemented in the server role.
+
+Current behavior:
+
+- installs `stow` through the server base package list
+- clones `https://github.com/djspatule/omarchy-dotfiles.git`
+- runs `stow --restow` as the target user
+- only stows the `bash` package by default
+
+This is intentionally small so the Stow path can be proven before riskier packages are added.
+
 ## Recommended Model
 
 Use Ansible as the orchestrator and Stow as the placement tool.

@@ -3,6 +3,7 @@ ansible_connection: local
 ansible_python_interpreter: auto_silent
 autoconfig_branch: server-bootstrap
 autoconfig_playbook: local.yml
+server_dotfiles_enabled: true
 server_homepage_enabled: true
 server_bentopdf_enabled: true
 server_game_timer_enabled: true
@@ -24,6 +25,8 @@ server_reverse_proxy_sites:
     upstream: aumenuilya:80
   - hostname: tabletop-timer.com
     upstream: game-timer:80
+dotfiles_stow_packages:
+  - bash
 # Keep the current persistent data layout visible in host vars so future mount
 # automation can be generated from structured data instead of a copied fstab.
 server_storage_mounts:

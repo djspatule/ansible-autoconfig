@@ -3,6 +3,7 @@ ansible_connection: local
 ansible_python_interpreter: auto_silent
 autoconfig_branch: server-bootstrap
 autoconfig_playbook: local.yml
+server_dotfiles_enabled: true
 server_homepage_enabled: true
 server_bentopdf_enabled: true
 server_game_timer_enabled: true
@@ -35,3 +36,5 @@ aumenuilya_public_url: http://aumenuilya.localtest.me:8081
 pihole_published_ports:
   - "5300:53/tcp"
   - "5300:53/udp"
+dotfiles_stow_packages:
+  - bash
