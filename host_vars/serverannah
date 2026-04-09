@@ -24,5 +24,32 @@ server_reverse_proxy_sites:
     upstream: aumenuilya:80
   - hostname: tabletop-timer.com
     upstream: game-timer:80
+# Keep the current persistent data layout visible in host vars so future mount
+# automation can be generated from structured data instead of a copied fstab.
+server_storage_mounts:
+  - src: UUID=89612d91-62bc-45b5-bc84-04e52994ca03
+    path: /mnt/SSD_512
+    fstype: ext4
+    opts: defaults,nofail
+    dump: 0
+    passno: 2
+  - src: UUID=a52bd55d-c955-4d7e-86b4-0ddf448304af
+    path: /mnt/SSD_1TO
+    fstype: ext4
+    opts: defaults,nofail
+    dump: 0
+    passno: 2
+  - src: UUID=83f9bfa8-56fe-47bd-bbc2-962b707450ec
+    path: /mnt/back-up
+    fstype: ext4
+    opts: defaults,nofail
+    dump: 0
+    passno: 2
+  - src: UUID=d41a355a-a5ba-47b3-8e00-a602131c933a
+    path: /mnt/verbatim
+    fstype: ext4
+    opts: defaults,nofail
+    dump: 0
+    passno: 2
 aumenuilya_backup_root: /mnt/SSD_1TO/BackUp/Mimi/AuMenuIlYA
 aumenuilya_public_url: https://www.aumenuilya.com
