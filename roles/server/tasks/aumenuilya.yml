@@ -152,6 +152,8 @@
       - --itemize-changes
       - --no-owner
       - --no-group
+      - --exclude
+      - languages/
       - "{{ aumenuilya_source_wp_content }}"
       - "{{ aumenuilya_app_dir }}/wp-content/"
   register: aumenuilya_rsync_wp_content

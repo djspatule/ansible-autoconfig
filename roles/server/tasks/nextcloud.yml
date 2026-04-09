@@ -22,7 +22,6 @@
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    mode: "0755"
   loop:
     - "{{ nextcloud_app_dir }}"
     - "{{ nextcloud_db_data_dir }}"

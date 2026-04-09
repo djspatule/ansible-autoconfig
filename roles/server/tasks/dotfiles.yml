@@ -97,6 +97,7 @@
   args:
     chdir: "{{ dotfiles_repo_dir }}"
   loop: "{{ dotfiles_stow_packages }}"
+  register: dotfiles_stow_result
   become: true
   become_user: "{{ dotfiles_user }}"
-  changed_when: true
+  changed_when: false
