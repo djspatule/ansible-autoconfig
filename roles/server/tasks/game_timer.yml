@@ -1,0 +1,34 @@
+---
+- name: Ensure game-timer root directory exists
+  ansible.builtin.file:
+    path: "{{ game_timer_root_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Clone the game-timer repository
+  ansible.builtin.git:
+    repo: "{{ game_timer_repo_url }}"
+    dest: "{{ game_timer_repo_dir }}"
+    version: "{{ game_timer_repo_version }}"
+    force: true
+
+- name: Ensure the game-timer container network exists
+  community.docker.docker_network:
+    name: "{{ game_timer_network_name }}"
+    state: present
+
+# Serve the cloned repository directly because this app is already plain HTML,
+# CSS, and JS with no build step.
+- name: Run the game-timer container
+  community.docker.docker_container:
+    name: "{{ game_timer_container_name }}"
+    image: "{{ game_timer_image }}"
+    state: started
+    restart_policy: unless-stopped
+    published_ports: "{{ game_timer_published_ports }}"
+    networks:
+      - name: "{{ game_timer_network_name }}"
+    volumes:
+      - "{{ game_timer_repo_dir }}:/usr/share/nginx/html:ro"

@@ -5,6 +5,7 @@ autoconfig_branch: server-bootstrap
 autoconfig_playbook: local.yml
 server_homepage_enabled: true
 server_bentopdf_enabled: true
+server_game_timer_enabled: true
 # Keep Pi-hole off on the real server until the final DNS cutover and admin
 # hostname are chosen deliberately.
 server_pihole_enabled: false
@@ -21,5 +22,7 @@ server_reverse_proxy_sites:
     redirect_to: https://www.aumenuilya.com
   - hostname: www.aumenuilya.com
     upstream: aumenuilya:80
+  - hostname: tabletop-timer.com
+    upstream: game-timer:80
 aumenuilya_backup_root: /mnt/SSD_1TO/BackUp/Mimi/AuMenuIlYA
 aumenuilya_public_url: https://www.aumenuilya.com

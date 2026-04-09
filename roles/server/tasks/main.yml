@@ -18,6 +18,12 @@
     - server
     - bentopdf
 
+- import_tasks: game_timer.yml
+  when: server_game_timer_enabled | default(false)
+  tags:
+    - server
+    - game_timer
+
 - import_tasks: pihole.yml
   when: server_pihole_enabled | default(false)
   tags:

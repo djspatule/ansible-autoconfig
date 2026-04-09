@@ -71,6 +71,18 @@ bentopdf_image: ghcr.io/alam00000/bentopdf-simple:latest
 bentopdf_network_name: autoconfig-services
 bentopdf_port: 8080
 
+server_game_timer_enabled: false
+# game-timer is a plain static site, so cloning the repo and serving it from a
+# tiny web container is simpler than inventing a build pipeline it does not need.
+game_timer_repo_url: https://github.com/djspatule/game-timer.git
+game_timer_repo_version: main
+game_timer_root_dir: /opt/game-timer
+game_timer_repo_dir: "{{ game_timer_root_dir }}/site"
+game_timer_container_name: game-timer
+game_timer_image: nginx:alpine
+game_timer_network_name: autoconfig-services
+game_timer_published_ports: []
+
 server_pihole_enabled: false
 # Pi-hole stays on the same shared Docker network so the reverse proxy can front
 # the admin UI without exposing another host HTTP port.
@@ -109,7 +121,7 @@ server_reverse_proxy_network_name: autoconfig-services
 server_reverse_proxy_auto_https: false
 server_reverse_proxy_published_ports:
   - "80:80"
- # Each site can either proxy to an upstream or redirect to a canonical host.
+# Each site can either proxy to an upstream or redirect to a canonical host.
 server_reverse_proxy_sites: []
 
 server_aumenuilya_enabled: false

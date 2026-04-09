@@ -13,7 +13,7 @@
 
 ## Current Role Boundaries
 
-- `roles/server`: the LearnLinuxTV-style aggregation role. Its task files are `base`, `homepage`, `bentopdf`, `pihole`, `aumenuilya`, `reverse_proxy`, and `autopull`.
+- `roles/server`: the LearnLinuxTV-style aggregation role. Its task files are `base`, `homepage`, `bentopdf`, `game_timer`, `pihole`, `aumenuilya`, `reverse_proxy`, and `autopull`.
 
 ## Isolation Strategy
 
@@ -62,6 +62,7 @@ Test the reverse proxy on the Arch VM with GET requests and host headers:
 ```bash
 curl -H 'Host: homepage.localtest.me' http://127.0.0.1:8081/
 curl -H 'Host: bentopdf.localtest.me' http://127.0.0.1:8081/
+curl -H 'Host: game-timer.localtest.me' http://127.0.0.1:8081/
 curl -H 'Host: pihole.localtest.me' http://127.0.0.1:8081/admin/
 ```
 
@@ -83,3 +84,15 @@ sudo docker exec pihole nslookup pi-hole.net 127.0.0.1
 - `ansible-pull` still emits a hostname-pattern warning during its internal git step. The actual playbook run is what matters.
 - `community.general` and `community.docker` are required and declared in `requirements.yml`.
 - Homepage config is stored under `files/homepage/opt/homepage/config/` so it can later be repackaged in a stow-like structure if needed.
+
+## Raspi Clues
+
+- Existing compose files on the raspi live under `/home/pi/docker/`.
+- Confirmed current service directories:
+  - `homepage/`
+  - `nextcloud/`
+  - `npm/`
+  - `frigate/`
+- `tabletop-timer.com` appears in the raspi nginx logs, which supports keeping it as the likely public hostname for `game-timer`.
+- `dinnizer.com` appears in an old Nginx Proxy Manager config, but there is no verified live Dinnizer deployment on the raspi to migrate directly.
+- The old Nextcloud compose contains plaintext credentials, so future migration work should treat the raspi files as discovery material, not as files to copy verbatim into git.

@@ -5,6 +5,7 @@ autoconfig_branch: server-bootstrap
 autoconfig_playbook: local.yml
 server_homepage_enabled: true
 server_bentopdf_enabled: true
+server_game_timer_enabled: true
 server_pihole_enabled: true
 # The VM is where reverse-proxy changes are exercised first.
 server_reverse_proxy_enabled: true
@@ -21,6 +22,8 @@ server_reverse_proxy_sites:
     upstream: homepage:3000
   - hostname: bentopdf.localtest.me
     upstream: bentopdf:8080
+  - hostname: game-timer.localtest.me
+    upstream: game-timer:80
   - hostname: pihole.localtest.me
     upstream: pihole:80
   - hostname: aumenuilya-preview.localtest.me
