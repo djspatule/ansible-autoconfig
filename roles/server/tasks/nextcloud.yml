@@ -195,6 +195,26 @@
   delay: 2
   until: nextcloud_config_stat.stat.exists
 
+# The container writes config.php before the installer fully finishes. Wait for
+# Nextcloud to report itself as installed before calling broader occ commands.
+- name: Wait for Nextcloud to report itself as installed
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - status
+      - --output=json
+  register: nextcloud_occ_status
+  changed_when: false
+  retries: "{{ nextcloud_wait_retries }}"
+  delay: 2
+  until: nextcloud_occ_status.stdout is search('"installed":true')
+
 # Keep the reverse-proxy-specific system config idempotent with occ instead of
 # editing PHP arrays by hand.
 - name: Set Nextcloud trusted domains
