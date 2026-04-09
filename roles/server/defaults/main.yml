@@ -127,6 +127,9 @@ dotfiles_home: "/home/{{ dotfiles_user }}"
 dotfiles_repo_dir: "{{ dotfiles_home }}/.local/share/omarchy-dotfiles"
 dotfiles_stow_packages:
   - bash
+# Adopt lets Stow take over an existing dotfile on the first run instead of
+# aborting because the file predates Stow management.
+dotfiles_stow_adopt_existing: true
 
 server_pihole_enabled: false
 # Pi-hole stays on the same shared Docker network so the reverse proxy can front

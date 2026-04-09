@@ -33,16 +33,17 @@
 # Stow remains the symlink engine, while Ansible decides which packages are safe
 # to apply on this host. The first slice defaults to the universal bash package.
 - name: Stow the selected dotfiles packages
-  ansible.builtin.command:
-    argv:
-      - stow
-      - --restow
-      - --target
-      - "{{ dotfiles_home }}"
-      - "{{ item }}"
+  ansible.builtin.shell: >-
+    stow --restow --target "{{ dotfiles_home }}" "{{ item }}"
+    || {% if dotfiles_stow_adopt_existing %}
+    stow --adopt --restow --target "{{ dotfiles_home }}" "{{ item }}"
+    {% else %}
+    false
+    {% endif %}
   args:
     chdir: "{{ dotfiles_repo_dir }}"
+    executable: /bin/bash
   loop: "{{ dotfiles_stow_packages }}"
   become: true
   become_user: "{{ dotfiles_user }}"
-  changed_when: false
+  changed_when: true
