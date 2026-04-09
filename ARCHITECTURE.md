@@ -42,7 +42,7 @@ flowchart TD
 
 Main playbook.
 
-- `all` pre-task refreshes apt only on Debian-family systems
+- `all` pre-task refreshes apt only on Debian-family systems TODO:  adapt to arch systems? <!-- TODO: Adapt to Arch systems ? -->
 - `workstation` hosts run the old `base` role
 - `workstation` hosts then run the old `workstation` role
 - `server` hosts run the newer aggregated `server` role
