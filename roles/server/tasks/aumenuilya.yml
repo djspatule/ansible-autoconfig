@@ -60,12 +60,70 @@
     - "{{ aumenuilya_app_dir }}/wp-content"
     - "{{ aumenuilya_db_data_dir }}"
 
+- name: Check whether the AuMenuIlYA DB password file exists
+  ansible.builtin.stat:
+    path: "{{ aumenuilya_db_password_file }}"
+  register: aumenuilya_db_password_file_stat
+  no_log: true
+
+- name: Generate the AuMenuIlYA DB password on the target host
+  ansible.builtin.shell: "tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32"
+  register: aumenuilya_db_password_generated
+  changed_when: true
+  when: not aumenuilya_db_password_file_stat.stat.exists
+  no_log: true
+
+- name: Save the generated AuMenuIlYA DB password
+  ansible.builtin.copy:
+    content: "{{ aumenuilya_db_password_generated.stdout }}\n"
+    dest: "{{ aumenuilya_db_password_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: not aumenuilya_db_password_file_stat.stat.exists
+  no_log: true
+
+- name: Check whether the AuMenuIlYA DB root password file exists
+  ansible.builtin.stat:
+    path: "{{ aumenuilya_db_root_password_file }}"
+  register: aumenuilya_db_root_password_file_stat
+  no_log: true
+
+- name: Generate the AuMenuIlYA DB root password on the target host
+  ansible.builtin.shell: "tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32"
+  register: aumenuilya_db_root_password_generated
+  changed_when: true
+  when: not aumenuilya_db_root_password_file_stat.stat.exists
+  no_log: true
+
+- name: Save the generated AuMenuIlYA DB root password
+  ansible.builtin.copy:
+    content: "{{ aumenuilya_db_root_password_generated.stdout }}\n"
+    dest: "{{ aumenuilya_db_root_password_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: not aumenuilya_db_root_password_file_stat.stat.exists
+  no_log: true
+
+- name: Read the managed AuMenuIlYA DB password file
+  ansible.builtin.slurp:
+    src: "{{ aumenuilya_db_password_file }}"
+  register: aumenuilya_db_password_slurp
+  no_log: true
+
+- name: Read the managed AuMenuIlYA DB root password file
+  ansible.builtin.slurp:
+    src: "{{ aumenuilya_db_root_password_file }}"
+  register: aumenuilya_db_root_password_slurp
+  no_log: true
+
+# Generate these secrets on the target host so the role stays valid under both
+# ansible-pull and a more traditional remote-controller workflow.
 - name: Load AuMenuIlYA database passwords
   ansible.builtin.set_fact:
-    aumenuilya_db_password: >-
-      {{ lookup('ansible.builtin.password', aumenuilya_db_password_file + ' length=32 chars=ascii_letters,digits') }}
-    aumenuilya_db_root_password: >-
-      {{ lookup('ansible.builtin.password', aumenuilya_db_root_password_file + ' length=32 chars=ascii_letters,digits') }}
+    aumenuilya_db_password: "{{ aumenuilya_db_password_slurp.content | b64decode | trim }}"
+    aumenuilya_db_root_password: "{{ aumenuilya_db_root_password_slurp.content | b64decode | trim }}"
   no_log: true
 
 - name: Ensure AuMenuIlYA container network exists

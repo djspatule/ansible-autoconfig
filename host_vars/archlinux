@@ -23,6 +23,8 @@ server_reverse_proxy_sites:
     upstream: bentopdf:8080
   - hostname: pihole.localtest.me
     upstream: pihole:80
+  - hostname: aumenuilya-preview.localtest.me
+    redirect_to: http://aumenuilya.localtest.me:8081
   - hostname: aumenuilya.localtest.me
     upstream: aumenuilya:80
 aumenuilya_backup_root: /home/lion/aumenuilya-fixture

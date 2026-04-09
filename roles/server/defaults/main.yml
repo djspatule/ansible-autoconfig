@@ -109,6 +109,7 @@ server_reverse_proxy_network_name: autoconfig-services
 server_reverse_proxy_auto_https: false
 server_reverse_proxy_published_ports:
   - "80:80"
+ # Each site can either proxy to an upstream or redirect to a canonical host.
 server_reverse_proxy_sites: []
 
 server_aumenuilya_enabled: false

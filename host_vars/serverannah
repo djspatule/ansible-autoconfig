@@ -18,7 +18,7 @@ server_reverse_proxy_published_ports:
   - 443:443
 server_reverse_proxy_sites:
   - hostname: aumenuilya.com
-    upstream: aumenuilya:80
+    redirect_to: https://www.aumenuilya.com
   - hostname: www.aumenuilya.com
     upstream: aumenuilya:80
 aumenuilya_backup_root: /mnt/SSD_1TO/BackUp/Mimi/AuMenuIlYA

@@ -17,7 +17,13 @@
 # may treat the hostname as an HTTPS site and reset plain HTTP requests.
 http://{{ site.hostname }} {
 {% endif %}
+{% if site.redirect_to is defined %}
+    # Redirect non-canonical hosts in the proxy itself so applications can keep
+    # a single public URL and avoid duplicate host handling.
+    redir {{ site.redirect_to }}{{ '{uri}' }} {{ site.redirect_status | default(308) }}
+{% else %}
     reverse_proxy {{ site.upstream }}
+{% endif %}
 }
 
 {% endfor %}
