@@ -103,7 +103,7 @@ pihole_dns_edns0_ecs: true
 # Importing adlists and exact allowlist domains from extracted text files is a
 # safer source-of-truth than copying the whole live database blindly.
 pihole_policy_import_enabled: false
-pihole_policy_root: "{{ autoconfig_repo_dir }}/backups/raspi/etc/pihole"
+pihole_policy_root: "{{ playbook_dir }}/backups/raspi/etc/pihole"
 pihole_adlists_file: "{{ pihole_policy_root }}/adlists_enabled.txt"
 pihole_allowlist_exact_file: "{{ pihole_policy_root }}/allowlist_exact.txt"
 pihole_import_comment: Managed by ansible Pi-hole import
