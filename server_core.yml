@@ -6,4 +6,5 @@
   gather_facts: true
 
   roles:
+    - base
     - server

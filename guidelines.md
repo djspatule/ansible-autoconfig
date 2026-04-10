@@ -8,18 +8,19 @@
 
 ## Current Server Playbooks
 
-- `local.yml`: the main entry point again. It runs `base` for workstations and `server` for hosts in the `server` inventory group.
+- `local.yml`: the main entry point again. It runs `base` for all active hosts and `server` for hosts in the `server` inventory group.
 - `server_core.yml`: compatibility playbook that now simply runs the `server` role.
 
 ## Current Role Boundaries
 
-- `roles/server`: the LearnLinuxTV-style aggregation role. Its task files are `base`, `mounts`, `homepage`, `bentopdf`, `dotfiles`, `game_timer`, `nextcloud`, `pihole`, `aumenuilya`, `reverse_proxy`, and `autopull`.
+- `roles/base`: the common role. It now owns shared packages, the first Stow-based dotfiles slice, and recurring `ansible-pull` automation.
+- `roles/server`: the LearnLinuxTV-style specialization role. Its task files are `docker`, `mounts`, `homepage`, `bentopdf`, `game_timer`, `nextcloud`, `pihole`, `aumenuilya`, and `reverse_proxy`.
 
 ## Isolation Strategy
 
-- The old `local.yml` and legacy desktop/server roles are kept intact.
-- The old desktop-oriented `base` role now stays on workstation hosts.
-- The server path is isolated inside `roles/server/tasks/*.yml`, so the architecture matches the original repo shape while still keeping server-only logic away from desktop tasks.
+- The old workstation-oriented task files still exist in the tree, but the active path now focuses on `base` plus `server` only.
+- Workstation hosts are removed from the current inventory until the common base is fully cleaned up.
+- The server path is isolated inside `roles/server/tasks/*.yml`, so the architecture now matches the original LearnLinuxTV split more closely.
 
 ## First-Run Bootstrap
 

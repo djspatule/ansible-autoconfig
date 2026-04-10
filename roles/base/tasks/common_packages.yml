@@ -1,0 +1,32 @@
+---
+- name: Ensure the base role runs on supported hosts
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.os_family in base_packages_by_family
+    fail_msg: >-
+      base currently supports only these OS families:
+      {{ base_packages_by_family.keys() | join(', ') }}.
+
+- name: Load package plan for this OS family
+  ansible.builtin.set_fact:
+    base_cli_packages: "{{ base_packages_by_family[ansible_facts.os_family].cli }}"
+    base_snap_packages: "{{ base_packages_by_family[ansible_facts.os_family].snaps }}"
+
+- name: Install common CLI packages for all hosts
+  ansible.builtin.package:
+    name: "{{ base_cli_packages }}"
+    state: present
+
+- name: Ensure snapd is enabled and running
+  ansible.builtin.service:
+    name: snapd
+    state: started
+    enabled: true
+  when: base_snap_packages | length > 0
+
+- name: Install common CLI snap packages
+  community.general.snap:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ base_snap_packages }}"
+  when: base_snap_packages | length > 0

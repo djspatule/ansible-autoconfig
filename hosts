@@ -3,11 +3,3 @@ raspberrypi
 serverannah
 # Disposable VM used to validate ansible-pull against a real hostname.
 archlinux
-
-[workstation]
-virtuannah
-savanhome
-savannahome
-savannahwork
-savannarchwork
-savannarchome

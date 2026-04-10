@@ -1,10 +1,10 @@
 ---
 # Keep the server task list explicit and flat so each service can be tested with
 # tags and understood without chasing too much indirection.
-- import_tasks: base.yml
+- import_tasks: docker.yml
   tags:
     - server
-    - server_base
+    - server_docker
 
 - import_tasks: mounts.yml
   when: server_storage_mounts | length > 0
@@ -23,12 +23,6 @@
   tags:
     - server
     - bentopdf
-
-- import_tasks: dotfiles.yml
-  when: server_dotfiles_enabled | default(false)
-  tags:
-    - server
-    - dotfiles
 
 - import_tasks: game_timer.yml
   when: server_game_timer_enabled | default(false)
@@ -59,8 +53,3 @@
   tags:
     - server
     - reverse_proxy
-
-- import_tasks: autopull.yml
-  tags:
-    - server
-    - autopull

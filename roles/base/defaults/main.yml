@@ -1,0 +1,71 @@
+---
+# Keep common package names in one map so the base role stays portable across
+# Debian-family and Arch-family hosts without splitting the whole role.
+base_packages_by_family:
+  Debian:
+    cli:
+      - curl
+      - btop
+      - python3-psutil
+      - micro
+      - fastfetch
+      - pdfgrep
+      - ncdu
+      - mc
+      - bat
+      - clamav
+      - rclone
+      - cmatrix
+      - eza
+      - sl
+      - stow
+      - snapd
+      - tree
+      - ripgrep
+      - rsync
+    snaps:
+      - tldr
+  Archlinux:
+    cli:
+      - curl
+      - btop
+      - python-psutil
+      - micro
+      - fastfetch
+      - pdfgrep
+      - ncdu
+      - mc
+      - bat
+      - clamav
+      - rclone
+      - cmatrix
+      - eza
+      - sl
+      - stow
+      - tree
+      - ripgrep
+      - tldr
+      - rsync
+    snaps: []
+
+base_dotfiles_enabled: false
+# Keep the first Stow slice intentionally small and low-risk: public repo clone,
+# user-scoped checkout, and only packages explicitly listed per host.
+dotfiles_repo_url: https://github.com/djspatule/omarchy-dotfiles.git
+dotfiles_repo_version: main
+dotfiles_user: "{{ desktop_user | default('lion') }}"
+dotfiles_home: "/home/{{ dotfiles_user }}"
+dotfiles_repo_dir: "{{ dotfiles_home }}/.local/share/omarchy-dotfiles"
+dotfiles_stow_packages:
+  - bash
+dotfiles_stow_adopt_existing: true
+
+autoconfig_repo_url: https://github.com/djspatule/ansible-autoconfig.git
+autoconfig_branch: main
+autoconfig_repo_dir: /opt/ansible-pull
+autoconfig_playbook: local.yml
+autoconfig_timer_name: autoconfig-pull
+autoconfig_on_calendar: daily
+autoconfig_randomized_delay: 30m
+autoconfig_persistent: true
+autoconfig_vault_password_file: ""

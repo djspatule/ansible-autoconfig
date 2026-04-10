@@ -2,42 +2,46 @@
 
 ## Big Picture
 
-This repository currently has two layers living side by side:
+This repository still contains some older workstation material, but the active
+architecture is now intentionally close to the LearnLinuxTV pattern:
 
-- the older workstation-oriented structure inherited from the earlier repo shape
-- the newer server-focused path that has been refactored back into `local.yml` + `roles/server`
+- `base` runs on every host
+- `server` runs only on server hosts
+- workstation hosts are parked out of inventory for now while the common base is
+  being cleaned up
 
 The canonical execution entry point is now `local.yml`.
 
 ```mermaid
 flowchart TD
     A[local.yml] --> B[pre_tasks on all hosts]
-    A --> C[base role on workstation group]
-    A --> D[workstation role on workstation group]
+    A --> C[base role on all hosts]
     A --> E[server role on server group]
     A --> F[cleanup tasks on all hosts]
 
-    E --> E1[base.yml]
+    C --> C1[common_packages.yml]
+    C --> C2[dotfiles.yml]
+    C --> C3[autopull.yml]
+
+    E --> E1[docker.yml]
     E --> E2[mounts.yml]
     E --> E3[homepage.yml]
     E --> E4[bentopdf.yml]
-    E --> E5[dotfiles.yml]
-    E --> E6[game_timer.yml]
-    E --> E7[nextcloud.yml]
-    E --> E8[pihole.yml]
-    E --> E9[aumenuilya.yml]
-    E --> E10[reverse_proxy.yml]
-    E --> E11[autopull.yml]
+    E --> E5[game_timer.yml]
+    E --> E6[nextcloud.yml]
+    E --> E7[pihole.yml]
+    E --> E8[aumenuilya.yml]
+    E --> E9[reverse_proxy.yml]
 
-    E10 --> G[Caddy container]
+    E9 --> G[Caddy container]
     E3 --> H[Homepage container]
     E4 --> I[BentoPDF container]
-    E6 --> J[game-timer container]
-    E7 --> K[Nextcloud container]
-    E7 --> L[Nextcloud MariaDB container]
-    E8 --> M[Pi-hole container]
-    E9 --> N[WordPress container]
-    E9 --> O[WordPress MariaDB container]
+    E5 --> J[game-timer container]
+    E6 --> K[Nextcloud container]
+    E6 --> L[Nextcloud MariaDB container]
+    E7 --> M[Pi-hole container]
+    E8 --> N[WordPress container]
+    E8 --> O[WordPress MariaDB container]
 ```
 
 ## Top-Level Files
@@ -46,10 +50,9 @@ flowchart TD
 
 Main playbook.
 
-- `all` pre-task refreshes apt only on Debian-family systems TODO:  adapt to arch systems? <!-- TODO: Adapt to Arch systems ? -->
-- `workstation` hosts run the old `base` role
-- `workstation` hosts then run the old `workstation` role
-- `server` hosts run the newer aggregated `server` role
+- `all` pre-tasks refresh package metadata for both Arch and Debian-family systems
+- `all` hosts run the common `base` role
+- `server` hosts then run the server-specific `server` role
 - `all` cleanup tasks finish the run
 
 This file is the closest match to the LearnLinuxTV-style structure you referenced.
@@ -67,7 +70,9 @@ Compatibility wrapper.
 Static inventory.
 
 - `[server]`: `raspberrypi`, `serverannah`, `archlinux`
-- `[workstation]`: the desktop/laptop hosts
+
+The workstation hosts are intentionally removed from the active inventory for now
+so the architecture work can focus on the common base plus the server path.
 
 `archlinux` is the disposable VM used as the feedback loop host.
 
@@ -121,6 +126,56 @@ Defines:
 
 This file exists to prove portability and idempotency without touching the real server.
 
+## The `roles/base` Role
+
+This is now the common foundation for every active host.
+
+### `roles/base/tasks/main.yml`
+
+Like LearnLinuxTV's repo, `base` is the common entrypoint.
+
+It currently imports:
+
+1. `common_packages.yml`
+2. `dotfiles.yml`
+3. `autopull.yml`
+
+The old desktop-heavy base tasks are still in git history and in the tree, but
+they are no longer part of the active `base` execution path.
+
+### `roles/base/tasks/common_packages.yml`
+
+Installs the common cross-distro CLI baseline.
+
+- distro-specific package mapping for Debian and Arch
+- shared CLI utilities
+- Stow
+- optional CLI snaps on Debian-family hosts
+
+### `roles/base/tasks/dotfiles.yml`
+
+First Stow-based dotfiles slice.
+
+- ensure the target user home exists
+- clone the public `omarchy-dotfiles` repo into a user-scoped checkout
+- back up or hand over a pre-existing `.bashrc`
+- run `stow --restow` for the host-selected package list
+
+Current scope is intentionally conservative:
+
+- enabled on `serverannah` and `archlinux`
+- first package is `bash`
+- risky packages such as `ssh` or Hyprland are not auto-stowed yet
+
+### `roles/base/tasks/autopull.yml`
+
+Installs the recurring `ansible-pull` automation.
+
+- installs `/usr/local/bin/autoconfig-pull`
+- installs a `systemd` service and timer
+- reloads systemd
+- enables the timer
+
 ## The `roles/server` Role
 
 This is now the main server orchestration role.
@@ -131,17 +186,15 @@ Dispatch file.
 
 It imports the server task files in a flat and explicit order:
 
-1. `base.yml`
+1. `docker.yml`
 2. `mounts.yml`
 3. `homepage.yml`
 4. `bentopdf.yml`
-5. `dotfiles.yml`
-6. `game_timer.yml`
-7. `nextcloud.yml`
-8. `pihole.yml`
-9. `aumenuilya.yml`
-10. `reverse_proxy.yml`
-11. `autopull.yml`
+5. `game_timer.yml`
+6. `nextcloud.yml`
+7. `pihole.yml`
+8. `aumenuilya.yml`
+9. `reverse_proxy.yml`
 
 Each optional service is guarded by a host var such as `server_homepage_enabled`.
 
@@ -151,27 +204,24 @@ Server role defaults.
 
 This file is important because it holds:
 
-- distro-specific package maps for Debian and Arch
-- service defaults for Homepage, BentoPDF, game-timer, Pi-hole, AuMenuIlYA, reverse proxy, and autopull
+- server-specific Docker package maps
+- service defaults for Homepage, BentoPDF, game-timer, Nextcloud, Pi-hole, AuMenuIlYA, and reverse proxy
 - secret file locations
 - network names, ports, and container names
 
 This is the main schema of the server role.
 
-### `roles/server/tasks/base.yml`
+### `roles/server/tasks/docker.yml`
 
-Server foundation.
+Server-specific platform setup.
 
 Responsibilities:
 
-- assert supported OS family
-- choose package names from `server_packages_by_family`
-- refresh package metadata without creating noisy idempotency drift
-- install CLI tools
-- install Docker
+- assert supported OS family for Docker packages
+- install Docker from distro packages
 - enable and start Docker
 
-This file intentionally does not include application-specific logic.
+The shared CLI baseline no longer lives here; it moved into `roles/base`.
 
 ### `roles/server/tasks/homepage.yml`
 
@@ -202,27 +252,11 @@ Deploys BentoPDF as a simple Dockerized service on the shared network.
 
 Deploys the second website.
 
-- clones `game-timer` from GitHub
+- deploys a vendored static snapshot from `files/game-timer/site/`
 - serves it through `nginx:alpine`
 - exposes it only through the shared Docker network by default
 
 This is the current pattern for plain static sites.
-
-### `roles/server/tasks/dotfiles.yml`
-
-First Stow-based dotfiles slice.
-
-Current responsibilities:
-
-- ensure the target user home exists
-- clone the public `omarchy-dotfiles` repo into a user-scoped checkout
-- run `stow --restow` for the host-selected package list
-
-Current scope is intentionally conservative:
-
-- enabled on `serverannah` and `archlinux`
-- first package is `bash`
-- risky packages such as `ssh` or Hyprland are not auto-stowed yet
 
 ### `roles/server/tasks/nextcloud.yml`
 
@@ -270,15 +304,6 @@ Deploys Caddy.
 - runs the Caddy container
 - restarts the container when the config changes
 
-### `roles/server/tasks/autopull.yml`
-
-Installs the recurring `ansible-pull` automation.
-
-- installs `/usr/local/bin/autoconfig-pull`
-- installs a `systemd` service and timer
-- reloads systemd
-- enables the timer
-
 ### `roles/server/templates/Caddyfile.j2`
 
 Host-driven reverse proxy config.
@@ -287,18 +312,6 @@ Each site entry in `server_reverse_proxy_sites` can either:
 
 - proxy to an upstream container
 - redirect to a canonical hostname
-
-### `roles/server/templates/autoconfig-pull.*`
-
-These files define the recurring self-management layer.
-
-- shell helper to clone/update repo and run `ansible-pull`
-- systemd service
-- systemd timer
-
-### `roles/server/handlers/main.yml`
-
-Currently contains `Reload systemd`.
 
 ## `files/`
 
@@ -360,11 +373,11 @@ These are kept because the repository is being refactored incrementally, not rew
 The practical flow is:
 
 1. `ansible-pull` runs `local.yml`
-2. inventory groups decide whether the host is `workstation` or `server`
-3. `server` hosts enter `roles/server/tasks/main.yml`
+2. every active host enters `roles/base/tasks/main.yml`
+3. server hosts then enter `roles/server/tasks/main.yml`
 4. host vars decide which server services are active
 5. Caddy fronts whichever services are enabled
-6. `autopull` installs the recurring self-update timer
+6. `autopull` is already installed by the common base role
 
 ## Dotfiles Direction
 
@@ -379,4 +392,4 @@ The safest future path is:
 
 That keeps Ansible as the orchestrator and Stow as the placement mechanism.
 
-The first real implementation of that path now exists in `roles/server/tasks/dotfiles.yml`, but it still points at the external public repo until the packages are migrated into this repository.
+The first real implementation of that path now exists in `roles/base/tasks/dotfiles.yml`, but it still points at the external public repo until the packages are migrated into this repository.

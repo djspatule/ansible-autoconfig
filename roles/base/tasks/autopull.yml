@@ -1,6 +1,6 @@
 ---
-# Keep the recurring pull logic in its own task file so the base server setup
-# can still be reused on machines that should not self-update yet.
+# Keep the recurring pull logic in the common base role so every host can stay
+# self-managing, matching the LearnLinuxTV structure more closely.
 - name: Install autoconfig pull helper script
   ansible.builtin.template:
     src: autoconfig-pull.sh.j2

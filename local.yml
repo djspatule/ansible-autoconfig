@@ -3,6 +3,14 @@
   tags: always
   become: true
   pre_tasks:
+    - name: update repositories (arch)
+      tags: always
+      become: true
+      community.general.pacman:
+        update_cache: true
+      changed_when: false
+      when: ansible_facts['distribution'] == 'Archlinux'
+
     - name: update repositories
       tags: always
       become: true
@@ -13,24 +21,17 @@
       when: ansible_facts['distribution'] in ["Debian", "Pop!_OS", "Ubuntu"]
 
 # run roles
-- hosts: workstation
+- hosts: all
   tags: base
   become: true
   roles:
     - base
 
-- hosts: workstation
-  tags: workstation
-  become: true
-  roles:
-    - workstation
-
 - hosts: server
   tags: server
   become: true
   roles:
-    # The server role now owns its own base/services stack so the older desktop
-    # base role can stay focused on workstation concerns.
+    # The server role now contains only server-specific storage and services.
     - server
 
 # end of run cleanup and reporting

@@ -3,7 +3,7 @@ ansible_connection: local
 ansible_python_interpreter: auto_silent
 autoconfig_branch: server-bootstrap
 autoconfig_playbook: local.yml
-server_dotfiles_enabled: true
+base_dotfiles_enabled: true
 server_homepage_enabled: true
 server_bentopdf_enabled: true
 server_game_timer_enabled: true
