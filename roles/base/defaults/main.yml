@@ -23,6 +23,7 @@ base_packages_by_family:
       - tree
       - ripgrep
       - rsync
+      - sqlite3
     snaps:
       - tldr
   Archlinux:
@@ -46,6 +47,7 @@ base_packages_by_family:
       - ripgrep
       - tldr
       - rsync
+      - sqlite
     snaps: []
 
 base_dotfiles_enabled: false
