@@ -99,6 +99,29 @@ pihole_dns_expand_hosts: true
 pihole_dns_bogus_priv: true
 pihole_dns_query_logging: true
 pihole_dns_edns0_ecs: true
+# Captured raspi files can later be copied into the live Pi-hole config volume.
+# Leave this off until the readable backup set is complete.
+pihole_seed_from_repo: false
+pihole_seed_root: "{{ autoconfig_repo_dir }}/backups/raspi/etc"
+pihole_seed_files:
+  - src: pihole/pihole.toml
+    dest: "{{ pihole_config_dir }}/pihole.toml"
+    mode: "0644"
+  - src: pihole/adlists.list
+    dest: "{{ pihole_config_dir }}/adlists.list"
+    mode: "0640"
+  - src: pihole/local.list
+    dest: "{{ pihole_config_dir }}/local.list"
+    mode: "0640"
+  - src: pihole/dns-servers.conf
+    dest: "{{ pihole_config_dir }}/dns-servers.conf"
+    mode: "0640"
+  - src: pihole/hosts/custom.list
+    dest: "{{ pihole_config_dir }}/hosts/custom.list"
+    mode: "0640"
+  - src: pihole-updatelists.conf
+    dest: /etc/pihole-updatelists.conf
+    mode: "0644"
 # Real hosts will normally bind 53 directly. The VM overrides this to a high
 # port so the feedback loop does not fight the host resolver.
 pihole_published_ports:

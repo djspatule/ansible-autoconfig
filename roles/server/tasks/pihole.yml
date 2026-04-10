@@ -25,6 +25,12 @@
     state: directory
     mode: "0755"
 
+- name: Ensure Pi-hole hosts directory exists
+  ansible.builtin.file:
+    path: "{{ pihole_config_dir }}/hosts"
+    state: directory
+    mode: "0755"
+
 - name: Check whether Pi-hole web password file exists
   ansible.builtin.stat:
     path: "{{ pihole_web_password_file }}"
@@ -63,6 +69,28 @@
   community.docker.docker_network:
     name: "{{ pihole_network_name }}"
     state: present
+
+- name: Check which captured Pi-hole files exist in the repo
+  ansible.builtin.stat:
+    path: "{{ pihole_seed_root }}/{{ item.src }}"
+  loop: "{{ pihole_seed_files }}"
+  register: pihole_seed_repo_files
+  when: pihole_seed_from_repo
+
+# This is intentionally opt-in: once the readable raspi backup set is complete,
+# these copies let us seed serverannah without manually rebuilding each file.
+- name: Seed Pi-hole config from captured raspi files
+  ansible.builtin.copy:
+    src: "{{ pihole_seed_root }}/{{ item.item.src }}"
+    dest: "{{ item.item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.item.mode }}"
+    remote_src: true
+  loop: "{{ pihole_seed_repo_files.results }}"
+  when:
+    - pihole_seed_from_repo
+    - item.stat.exists
 
 # Keep the DNS service on the host, but let the admin UI stay private behind the
 # reverse proxy so websites and Pi-hole do not compete for extra host web ports.
