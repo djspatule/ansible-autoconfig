@@ -104,7 +104,7 @@ pihole_dns_edns0_ecs: true
 pihole_seed_from_repo: false
 pihole_seed_root: "{{ autoconfig_repo_dir }}/backups/raspi/etc"
 pihole_seed_files:
-  - src: pihole/pihole.toml
+  - src: pihole.toml
     dest: "{{ pihole_config_dir }}/pihole.toml"
     mode: "0644"
   - src: pihole/adlists.list

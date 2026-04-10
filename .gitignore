@@ -1,0 +1,5 @@
+backups/raspi/etc/pihole-bak/
+backups/raspi/etc/gravity.db
+backups/raspi/etc/dnsmasq.conf
+backups/raspi/etc/listsCache/
+backups/raspi/etc/versions
