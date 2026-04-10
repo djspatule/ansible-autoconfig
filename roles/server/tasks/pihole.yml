@@ -151,7 +151,7 @@
     while IFS= read -r address; do
       [ -n "$address" ] || continue
       esc_address=${address//\'/\'\'}
-      delta=$(sqlite3 "$db" "INSERT INTO adlist(address, enabled, comment) VALUES('$esc_address', 1, '$marker') ON CONFLICT(address, type) DO UPDATE SET enabled=1, comment='$marker'; SELECT changes();")
+      delta=$(sqlite3 "$db" "INSERT INTO adlist(address, enabled, comment) VALUES('$esc_address', 1, '$marker') ON CONFLICT(address, type) DO UPDATE SET enabled=1, comment='$marker' WHERE enabled != 1 OR IFNULL(comment, '') != '$marker'; SELECT changes();")
       changes=$((changes + delta))
     done < "$file"
     while IFS='|' read -r id address; do
@@ -178,7 +178,7 @@
     while IFS= read -r domain; do
       [ -n "$domain" ] || continue
       esc_domain=${domain//\'/\'\'}
-      delta=$(sqlite3 "$db" "INSERT INTO domainlist(type, domain, enabled, comment) VALUES(0, '$esc_domain', 1, '$marker') ON CONFLICT(domain, type) DO UPDATE SET enabled=1, comment='$marker'; SELECT changes();")
+      delta=$(sqlite3 "$db" "INSERT INTO domainlist(type, domain, enabled, comment) VALUES(0, '$esc_domain', 1, '$marker') ON CONFLICT(domain, type) DO UPDATE SET enabled=1, comment='$marker' WHERE enabled != 1 OR IFNULL(comment, '') != '$marker'; SELECT changes();")
       changes=$((changes + delta))
     done < "$file"
     while IFS='|' read -r id domain; do
