@@ -70,27 +70,25 @@
     name: "{{ pihole_network_name }}"
     state: present
 
-- name: Check which captured Pi-hole files exist in the repo
+- name: Check whether the extracted Pi-hole adlist file exists
   ansible.builtin.stat:
-    path: "{{ pihole_seed_root }}/{{ item.src }}"
-  loop: "{{ pihole_seed_files }}"
-  register: pihole_seed_repo_files
-  when: pihole_seed_from_repo
+    path: "{{ pihole_adlists_file }}"
+  register: pihole_adlists_file_stat
+  when: pihole_policy_import_enabled
 
-# This is intentionally opt-in: once the readable raspi backup set is complete,
-# these copies let us seed serverannah without manually rebuilding each file.
-- name: Seed Pi-hole config from captured raspi files
-  ansible.builtin.copy:
-    src: "{{ pihole_seed_root }}/{{ item.item.src }}"
-    dest: "{{ item.item.dest }}"
-    owner: root
-    group: root
-    mode: "{{ item.item.mode }}"
-    remote_src: true
-  loop: "{{ pihole_seed_repo_files.results }}"
-  when:
-    - pihole_seed_from_repo
-    - item.stat.exists
+- name: Check whether the extracted Pi-hole exact allowlist file exists
+  ansible.builtin.stat:
+    path: "{{ pihole_allowlist_exact_file }}"
+  register: pihole_allowlist_file_stat
+  when: pihole_policy_import_enabled
+
+- name: Require extracted Pi-hole policy files when import is enabled
+  ansible.builtin.assert:
+    that:
+      - pihole_adlists_file_stat.stat.exists
+      - pihole_allowlist_file_stat.stat.exists
+    fail_msg: Pi-hole policy import is enabled but the extracted backup files are missing.
+  when: pihole_policy_import_enabled
 
 # Keep the DNS service on the host, but let the admin UI stay private behind the
 # reverse proxy so websites and Pi-hole do not compete for extra host web ports.
@@ -124,3 +122,86 @@
       FTLCONF_dns_queryLogging: "{{ pihole_dns_query_logging | ternary('true', 'false') }}"
       FTLCONF_dns_EDNS0ECS: "{{ pihole_dns_edns0_ecs | ternary('true', 'false') }}"
   no_log: true
+
+- name: Wait for Pi-hole gravity.db to be present
+  ansible.builtin.stat:
+    path: "{{ pihole_config_dir }}/gravity.db"
+  register: pihole_gravity_db_stat
+  retries: 30
+  delay: 2
+  until: pihole_gravity_db_stat.stat.exists
+  when: pihole_policy_import_enabled
+
+- name: Prepare SQL-safe Pi-hole import comment
+  ansible.builtin.set_fact:
+    pihole_import_comment_sql: >-
+      {{ pihole_import_comment | replace("'", "''") }}
+  when: pihole_policy_import_enabled
+
+# The imported entries are tagged with a dedicated comment so future runs can
+# update or prune only the Ansible-managed subset without disturbing manual UI
+# changes the family may add later.
+- name: Import Pi-hole adlists from the extracted backup
+  ansible.builtin.shell: |
+    set -eu
+    db="{{ pihole_config_dir }}/gravity.db"
+    file="{{ pihole_adlists_file }}"
+    marker="{{ pihole_import_comment_sql }}"
+    changes=0
+    while IFS= read -r address; do
+      [ -n "$address" ] || continue
+      esc_address=${address//\'/\'\'}
+      delta=$(sqlite3 "$db" "INSERT INTO adlist(address, enabled, comment) VALUES('$esc_address', 1, '$marker') ON CONFLICT(address, type) DO UPDATE SET enabled=1, comment='$marker'; SELECT changes();")
+      changes=$((changes + delta))
+    done < "$file"
+    while IFS='|' read -r id address; do
+      [ -n "$id" ] || continue
+      if ! grep -Fxq "$address" "$file"; then
+        delta=$(sqlite3 "$db" "DELETE FROM adlist WHERE id=$id; SELECT changes();")
+        changes=$((changes + delta))
+      fi
+    done < <(sqlite3 -separator '|' "$db" "SELECT id, address FROM adlist WHERE comment='$marker';")
+    printf '%s\n' "$changes"
+  args:
+    executable: /bin/bash
+  register: pihole_adlist_import
+  changed_when: (pihole_adlist_import.stdout | trim | int) > 0
+  when: pihole_policy_import_enabled
+
+- name: Import Pi-hole exact allowlist from the extracted backup
+  ansible.builtin.shell: |
+    set -eu
+    db="{{ pihole_config_dir }}/gravity.db"
+    file="{{ pihole_allowlist_exact_file }}"
+    marker="{{ pihole_import_comment_sql }}"
+    changes=0
+    while IFS= read -r domain; do
+      [ -n "$domain" ] || continue
+      esc_domain=${domain//\'/\'\'}
+      delta=$(sqlite3 "$db" "INSERT INTO domainlist(type, domain, enabled, comment) VALUES(0, '$esc_domain', 1, '$marker') ON CONFLICT(domain, type) DO UPDATE SET enabled=1, comment='$marker'; SELECT changes();")
+      changes=$((changes + delta))
+    done < "$file"
+    while IFS='|' read -r id domain; do
+      [ -n "$id" ] || continue
+      if ! grep -Fxq "$domain" "$file"; then
+        delta=$(sqlite3 "$db" "DELETE FROM domainlist WHERE id=$id; SELECT changes();")
+        changes=$((changes + delta))
+      fi
+    done < <(sqlite3 -separator '|' "$db" "SELECT id, domain FROM domainlist WHERE type=0 AND comment='$marker';")
+    printf '%s\n' "$changes"
+  args:
+    executable: /bin/bash
+  register: pihole_allowlist_import
+  changed_when: (pihole_allowlist_import.stdout | trim | int) > 0
+  when: pihole_policy_import_enabled
+
+- name: Restart Pi-hole after policy import changes
+  ansible.builtin.command:
+    argv:
+      - docker
+      - restart
+      - "{{ pihole_container_name }}"
+  changed_when: true
+  when:
+    - pihole_policy_import_enabled
+    - pihole_adlist_import.changed or pihole_allowlist_import.changed

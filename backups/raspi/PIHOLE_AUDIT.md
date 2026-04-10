@@ -10,6 +10,7 @@ Readable sources used:
 - `/etc/pihole-updatelists.conf`
 - copied raspi backup under `backups/raspi/etc/pihole-bak/pihole/`
 - `gravity.db` extracted from that backup
+- extracted text exports committed under `backups/raspi/etc/pihole/`
 
 The copied backup let us read the files and databases that were previously not
 readable through the live sshfs mount.
@@ -79,13 +80,14 @@ Remaining caution:
 
 ## Recommendation
 
-Do **not** cut over the household DNS from raspi to `serverannah` until the
-Ansible Pi-hole role can import at least these three things:
+The information gap is now closed for Pi-hole specifically.
 
-1. the `pihole.toml` behavior already aligned in the role
-2. the `28` enabled adlists from `gravity.db`
-3. the `197` exact allowlist entries from `gravity.db`
+The intended Ansible source-of-truth is:
 
-At this point, the blocker is no longer discovery. The blocker is implementing
-that import path in the Ansible Pi-hole role and validating it on a non-critical
-host or maintenance window.
+1. Pi-hole behavior encoded as role vars
+2. `backups/raspi/etc/pihole/adlists_enabled.txt`
+3. `backups/raspi/etc/pihole/allowlist_exact.txt`
+4. `backups/raspi/etc/pihole-updatelists.conf`
+
+The next blocker is no longer discovery. The next blocker is validating the
+import path safely before household DNS is moved off the raspi.
