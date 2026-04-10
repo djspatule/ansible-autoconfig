@@ -88,4 +88,11 @@
       FTLCONF_webserver_api_password: "{{ pihole_web_password }}"
       FTLCONF_dns_listeningMode: "{{ pihole_dns_listening_mode }}"
       FTLCONF_dns_upstreams: "{{ pihole_dns_upstreams | join(';') }}"
+      FTLCONF_dns_domain: "{{ pihole_dns_domain }}"
+      FTLCONF_dns_piholePTR: "{{ pihole_dns_ptr_mode }}"
+      FTLCONF_dns_domainNeeded: "{{ pihole_dns_domain_needed | ternary('true', 'false') }}"
+      FTLCONF_dns_expandHosts: "{{ pihole_dns_expand_hosts | ternary('true', 'false') }}"
+      FTLCONF_dns_bogusPriv: "{{ pihole_dns_bogus_priv | ternary('true', 'false') }}"
+      FTLCONF_dns_queryLogging: "{{ pihole_dns_query_logging | ternary('true', 'false') }}"
+      FTLCONF_dns_EDNS0ECS: "{{ pihole_dns_edns0_ecs | ternary('true', 'false') }}"
   no_log: true

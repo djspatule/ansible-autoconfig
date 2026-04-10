@@ -84,10 +84,21 @@ pihole_config_dir: "{{ pihole_root_dir }}/etc-pihole"
 pihole_secret_dir: /etc/ansible/secrets
 pihole_web_password_file: "{{ pihole_secret_dir }}/pihole-web-password"
 pihole_timezone: Europe/Paris
-pihole_dns_listening_mode: ALL
+# Match the current raspi behavior first. A future cutover can deliberately
+# relax this if there is a real need to serve DNS beyond local subnets.
+pihole_dns_listening_mode: LOCAL
 pihole_dns_upstreams:
-  - 1.1.1.1
-  - 1.0.0.1
+  - 8.8.8.8
+  - 8.8.4.4
+  - 2001:4860:4860::8888
+  - 2001:4860:4860::8844
+pihole_dns_domain: lan
+pihole_dns_ptr_mode: PI.HOLE
+pihole_dns_domain_needed: true
+pihole_dns_expand_hosts: true
+pihole_dns_bogus_priv: true
+pihole_dns_query_logging: true
+pihole_dns_edns0_ecs: true
 # Real hosts will normally bind 53 directly. The VM overrides this to a high
 # port so the feedback loop does not fight the host resolver.
 pihole_published_ports:
