@@ -50,12 +50,14 @@ flowchart TD
 
 Main playbook.
 
-- `all` pre-tasks refresh package metadata for both Arch and Debian-family systems
+- `all` pre-tasks refresh package metadata for both Arch and Debian-family
+  systems
 - `all` hosts run the common `base` role
 - `server` hosts then run the server-specific `server` role
 - `all` cleanup tasks finish the run
 
-This file is the closest match to the LearnLinuxTV-style structure you referenced.
+This file is the closest match to the LearnLinuxTV-style structure you
+referenced.
 
 ### `server_core.yml`
 
@@ -71,8 +73,8 @@ Static inventory.
 
 - `[server]`: `raspberrypi`, `serverannah`, `archlinux`
 
-The workstation hosts are intentionally removed from the active inventory for now
-so the architecture work can focus on the common base plus the server path.
+The workstation hosts are intentionally removed from the active inventory for
+now so the architecture work can focus on the common base plus the server path.
 
 `archlinux` is the disposable VM used as the feedback loop host.
 
@@ -84,7 +86,9 @@ Repository-local Ansible defaults.
 - logs go to `/var/log/ansible.log`
 - retry files are disabled
 
-This matters because `scripts/bootstrap-server.sh` and the autopull helper both export `ANSIBLE_CONFIG` so `ansible-pull` uses repo-local inventory and settings.
+This matters because `scripts/bootstrap-server.sh` and the autopull helper both
+export `ANSIBLE_CONFIG` so `ansible-pull` uses repo-local inventory and
+settings.
 
 ### `requirements.yml`
 
@@ -93,7 +97,8 @@ Explicit collection dependencies:
 - `community.general`
 - `community.docker`
 
-These are needed for modules like `community.general.snap`, `community.general.pacman`, and Docker resource modules.
+These are needed for modules like `community.general.snap`,
+`community.general.pacman`, and Docker resource modules.
 
 ## Host-Specific Vars
 
@@ -124,7 +129,8 @@ Defines:
 - non-conflicting ports like `8081` and `5300`
 - enabled services for VM validation
 
-This file exists to prove portability and idempotency without touching the real server.
+This file exists to prove portability and idempotency without touching the real
+server.
 
 ## The `roles/base` Role
 
@@ -196,7 +202,8 @@ It imports the server task files in a flat and explicit order:
 8. `aumenuilya.yml`
 9. `reverse_proxy.yml`
 
-Each optional service is guarded by a host var such as `server_homepage_enabled`.
+Each optional service is guarded by a host var such as
+`server_homepage_enabled`.
 
 ### `roles/server/defaults/main.yml`
 
@@ -205,7 +212,8 @@ Server role defaults.
 This file is important because it holds:
 
 - server-specific Docker package maps
-- service defaults for Homepage, BentoPDF, game-timer, Nextcloud, Pi-hole, AuMenuIlYA, and reverse proxy
+- service defaults for Homepage, BentoPDF, game-timer, Nextcloud, Pi-hole,
+  AuMenuIlYA, and reverse proxy
 - secret file locations
 - network names, ports, and container names
 
@@ -267,7 +275,8 @@ Deploys Nextcloud as a Dockerized app with MariaDB.
 - runs MariaDB and Nextcloud containers
 - configures trusted domains and reverse-proxy settings with `occ`
 
-This service is designed around `serverannah` using `/mnt/SSD_1TO/nextcloud` as the main persistent storage root.
+This service is designed around `serverannah` using `/mnt/SSD_1TO/nextcloud` as
+the main persistent storage root.
 
 ### `roles/server/tasks/pihole.yml`
 
@@ -293,7 +302,8 @@ Responsibilities:
 - run WordPress container
 - rewrite URLs with WP-CLI only when needed
 
-This is not a simple “docker up” file. It is restore automation encoded in Ansible.
+This is not a simple “docker up” file. It is restore automation encoded in
+Ansible.
 
 ### `roles/server/tasks/reverse_proxy.yml`
 
@@ -321,7 +331,8 @@ Most important current subtree:
 
 - `files/homepage/opt/homepage/config/`
 
-This is intentionally close to a stow-like package layout already, which makes future reuse easier.
+This is intentionally close to a stow-like package layout already, which makes
+future reuse easier.
 
 There are also older workstation-oriented payloads still present, such as:
 
@@ -366,7 +377,8 @@ The repo still contains older layers that matter:
 - older `files/` payloads
 - `group_vars/all`
 
-These are kept because the repository is being refactored incrementally, not rewritten from scratch.
+These are kept because the repository is being refactored incrementally, not
+rewritten from scratch.
 
 ## Current Execution Logic
 
@@ -381,7 +393,8 @@ The practical flow is:
 
 ## Dotfiles Direction
 
-This repo is not yet the dotfiles source of truth, but it is now structured so that can happen gradually.
+This repo is not yet the dotfiles source of truth, but it is now structured so
+that can happen gradually.
 
 The safest future path is:
 
@@ -392,4 +405,6 @@ The safest future path is:
 
 That keeps Ansible as the orchestrator and Stow as the placement mechanism.
 
-The first real implementation of that path now exists in `roles/base/tasks/dotfiles.yml`, but it still points at the external public repo until the packages are migrated into this repository.
+The first real implementation of that path now exists in
+`roles/base/tasks/dotfiles.yml`, but it still points at the external public repo
+until the packages are migrated into this repository.

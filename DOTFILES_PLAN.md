@@ -11,7 +11,8 @@ Ansible can:
 - run `stow` for selected packages
 - gate packages per host or host group
 
-That is a good direction if you want one repository to remain the source of truth while still benefiting from Stow's package model.
+That is a good direction if you want one repository to remain the source of
+truth while still benefiting from Stow's package model.
 
 ## Current Status
 
@@ -24,7 +25,8 @@ Current behavior:
 - runs `stow --restow` as the target user
 - only stows the `bash` package by default
 
-This is intentionally small so the Stow path can be proven before riskier packages are added.
+This is intentionally small so the Stow path can be proven before riskier
+packages are added.
 
 ## Recommended Model
 
@@ -44,12 +46,14 @@ Bad model:
 
 Better model:
 
-- keep Ansible in charge of package install, repo sync, prerequisites, user context, and host selection
+- keep Ansible in charge of package install, repo sync, prerequisites, user
+  context, and host selection
 - use Stow only for the dotfile placement step
 
 ## Proposed Repository Shape
 
-When you are ready to merge the dotfiles repo into this project, the cleanest first structure is:
+When you are ready to merge the dotfiles repo into this project, the cleanest
+first structure is:
 
 ```text
 dotfiles/
@@ -71,7 +75,8 @@ Then Ansible can manage:
 
 - where the `dotfiles/` tree lives on disk
 - which packages are stowed on each host
-- which packages are excluded because they are too private or too machine-specific
+- which packages are excluded because they are too private or too
+  machine-specific
 
 ## First Safe Ansible Integration
 
@@ -135,7 +140,8 @@ Examples that should be reviewed before merge:
 - `.ssh/config`
 - personal Espanso snippets
 - server mount scripts
-- anything containing email addresses, private hostnames, local IPs, or key paths
+- anything containing email addresses, private hostnames, local IPs, or key
+  paths
 
 These should either:
 
@@ -157,7 +163,8 @@ These should be host-selected, not globally applied.
 
 ## Recommended Next Step
 
-When you decide to start the actual migration, the first implementation step should be:
+When you decide to start the actual migration, the first implementation step
+should be:
 
 1. add `stow` to the workstation package path
 2. create a dedicated Ansible-managed `dotfiles/` subtree in this repo
