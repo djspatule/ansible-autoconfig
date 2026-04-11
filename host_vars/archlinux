@@ -38,3 +38,4 @@ pihole_published_ports:
   - "5300:53/udp"
 dotfiles_stow_packages:
   - bash
+  - starship

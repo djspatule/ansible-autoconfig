@@ -15,6 +15,7 @@ server_pihole_enabled: true
 pihole_policy_import_enabled: true
 # Stage Pi-hole on high ports first so we can test it without fighting the
 # host's existing local resolver or changing household DNS yet.
+pihole_dns_listening_mode: ALL
 pihole_published_ports:
   - "5300:53/tcp"
   - "5300:53/udp"
@@ -38,6 +39,7 @@ server_reverse_proxy_sites:
     upstream: nextcloud:80
 dotfiles_stow_packages:
   - bash
+  - starship
 # Keep the current persistent data layout visible in host vars so future mount
 # automation can be generated from structured data instead of a copied fstab.
 server_storage_mounts:

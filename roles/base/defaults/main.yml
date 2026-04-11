@@ -18,6 +18,7 @@ base_packages_by_family:
       - cmatrix
       - eza
       - sl
+      - starship
       - stow
       - snapd
       - tree
@@ -42,6 +43,7 @@ base_packages_by_family:
       - cmatrix
       - eza
       - sl
+      - starship
       - stow
       - tree
       - ripgrep
@@ -60,6 +62,7 @@ dotfiles_home: "/home/{{ dotfiles_user }}"
 dotfiles_repo_dir: "{{ dotfiles_home }}/.local/share/omarchy-dotfiles"
 dotfiles_stow_packages:
   - bash
+  - starship
 dotfiles_stow_adopt_existing: true
 
 autoconfig_repo_url: https://github.com/djspatule/ansible-autoconfig.git
