@@ -138,6 +138,30 @@
       {{ pihole_import_comment | replace("'", "''") }}
   when: pihole_policy_import_enabled
 
+- name: Calculate the desired Pi-hole policy hash
+  ansible.builtin.shell: |
+    set -eu
+    cat "{{ pihole_adlists_file }}" "{{ pihole_allowlist_exact_file }}" | sha256sum | cut -d' ' -f1
+  args:
+    executable: /bin/bash
+  register: pihole_policy_hash
+  changed_when: false
+  when: pihole_policy_import_enabled
+
+- name: Check whether a previous Pi-hole policy hash exists
+  ansible.builtin.stat:
+    path: "{{ pihole_policy_hash_file }}"
+  register: pihole_policy_hash_file_stat
+  when: pihole_policy_import_enabled
+
+- name: Read the previous Pi-hole policy hash
+  ansible.builtin.slurp:
+    src: "{{ pihole_policy_hash_file }}"
+  register: pihole_policy_hash_existing
+  when:
+    - pihole_policy_import_enabled
+    - pihole_policy_hash_file_stat.stat.exists
+
 # The imported entries are tagged with a dedicated comment so future runs can
 # update or prune only the Ansible-managed subset without disturbing manual UI
 # changes the family may add later.
@@ -166,7 +190,9 @@
     executable: /bin/bash
   register: pihole_adlist_import
   changed_when: (pihole_adlist_import.stdout | trim | int) > 0
-  when: pihole_policy_import_enabled
+  when:
+    - pihole_policy_import_enabled
+    - not pihole_policy_hash_file_stat.stat.exists or (pihole_policy_hash_existing.content | b64decode | trim) != (pihole_policy_hash.stdout | trim)
 
 - name: Import Pi-hole exact allowlist from the extracted backup
   ansible.builtin.shell: |
@@ -178,22 +204,24 @@
     while IFS= read -r domain; do
       [ -n "$domain" ] || continue
       esc_domain=${domain//\'/\'\'}
-      delta=$(sqlite3 "$db" "INSERT INTO domainlist(type, domain, enabled, comment) VALUES(0, '$esc_domain', 1, '$marker') ON CONFLICT(domain, type) DO UPDATE SET enabled=1, comment='$marker' WHERE enabled != 1 OR IFNULL(comment, '') != '$marker'; SELECT changes();")
+      delta=$(sqlite3 -cmd '.timeout 5000' "$db" "INSERT INTO domainlist(type, domain, enabled, comment) VALUES(0, '$esc_domain', 1, '$marker') ON CONFLICT(domain, type) DO UPDATE SET enabled=1, comment='$marker' WHERE enabled != 1 OR IFNULL(comment, '') != '$marker'; SELECT changes();")
       changes=$((changes + delta))
     done < "$file"
     while IFS='|' read -r id domain; do
       [ -n "$id" ] || continue
       if ! grep -Fxq "$domain" "$file"; then
-        delta=$(sqlite3 "$db" "DELETE FROM domainlist WHERE id=$id; SELECT changes();")
+        delta=$(sqlite3 -cmd '.timeout 5000' "$db" "DELETE FROM domainlist WHERE id=$id; SELECT changes();")
         changes=$((changes + delta))
       fi
-    done < <(sqlite3 -separator '|' "$db" "SELECT id, domain FROM domainlist WHERE type=0 AND comment='$marker';")
+    done < <(sqlite3 -cmd '.timeout 5000' -separator '|' "$db" "SELECT id, domain FROM domainlist WHERE type=0 AND comment='$marker';")
     printf '%s\n' "$changes"
   args:
     executable: /bin/bash
   register: pihole_allowlist_import
   changed_when: (pihole_allowlist_import.stdout | trim | int) > 0
-  when: pihole_policy_import_enabled
+  when:
+    - pihole_policy_import_enabled
+    - not pihole_policy_hash_file_stat.stat.exists or (pihole_policy_hash_existing.content | b64decode | trim) != (pihole_policy_hash.stdout | trim)
 
 - name: Restart Pi-hole after policy import changes
   ansible.builtin.command:
@@ -205,3 +233,14 @@
   when:
     - pihole_policy_import_enabled
     - pihole_adlist_import.changed or pihole_allowlist_import.changed
+
+- name: Record the imported Pi-hole policy hash
+  ansible.builtin.copy:
+    content: "{{ pihole_policy_hash.stdout | trim }}\n"
+    dest: "{{ pihole_policy_hash_file }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when:
+    - pihole_policy_import_enabled
+    - not pihole_policy_hash_file_stat.stat.exists or (pihole_policy_hash_existing.content | b64decode | trim) != (pihole_policy_hash.stdout | trim)

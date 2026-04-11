@@ -124,6 +124,7 @@ pihole_policy_root: "{{ playbook_dir }}/backups/raspi/etc/pihole"
 pihole_adlists_file: "{{ pihole_policy_root }}/adlists_enabled.txt"
 pihole_allowlist_exact_file: "{{ pihole_policy_root }}/allowlist_exact.txt"
 pihole_import_comment: Managed by ansible Pi-hole import
+pihole_policy_hash_file: "{{ pihole_root_dir }}/.ansible-policy-hash"
 # Real hosts will normally bind 53 directly. The VM overrides this to a high
 # port so the feedback loop does not fight the host resolver.
 pihole_published_ports:
