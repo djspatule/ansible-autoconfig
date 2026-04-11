@@ -3,7 +3,7 @@
 ![Ansible Logo](https://www.learnlinux.tv/wp-content/uploads/2020/12/ansible-e1607524003363.png)
 
 This repository contains the code that Jay Lacroix (LearnLinuxTV) worked on from
-the Ansible Desktop tutorial [here on youtube](https://youtu.be/gIDywsGBqf4).
+the Ansible Desktop tutorial [here on Youtube](https://youtu.be/gIDywsGBqf4).
 
 It was improved with the Ansible-pull tutorial and then coding was improved with
 ChatGPT's Codex.
