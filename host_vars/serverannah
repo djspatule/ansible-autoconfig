@@ -4,6 +4,7 @@ ansible_python_interpreter: auto_silent
 autoconfig_branch: server-bootstrap
 autoconfig_playbook: local.yml
 base_dotfiles_enabled: true
+server_fail2ban_enabled: true
 server_homepage_enabled: true
 server_bentopdf_enabled: true
 server_game_timer_enabled: true

@@ -1,0 +1,12 @@
+[DEFAULT]
+# Keep the defaults readable and host-driven so tightening or loosening bans is
+# just a variable change instead of manual edits under /etc.
+bantime = {{ fail2ban_bantime }}
+findtime = {{ fail2ban_findtime }}
+maxretry = {{ fail2ban_maxretry }}
+ignoreip = {{ fail2ban_ignoreips | join(' ') }}
+
+[sshd]
+enabled = {{ fail2ban_sshd_enabled | ternary('true', 'false') }}
+backend = {{ fail2ban_sshd_backend }}
+port = {{ fail2ban_sshd_port }}

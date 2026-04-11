@@ -71,6 +71,23 @@ nextcloud_wait_delay: 5
 
 server_storage_mounts: []
 
+server_fail2ban_enabled: false
+# Start with SSH protection before layering on app-specific jails. This is the
+# highest-value protection step before exposing the host further to the internet.
+fail2ban_packages_by_family:
+  Debian:
+    - fail2ban
+  Archlinux:
+    - fail2ban
+fail2ban_ignoreips:
+  - 127.0.0.1/8
+fail2ban_bantime: 1h
+fail2ban_findtime: 10m
+fail2ban_maxretry: 5
+fail2ban_sshd_enabled: true
+fail2ban_sshd_port: ssh
+fail2ban_sshd_backend: systemd
+
 server_pihole_enabled: false
 # Pi-hole stays on the same shared Docker network so the reverse proxy can front
 # the admin UI without exposing another host HTTP port.

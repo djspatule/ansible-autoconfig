@@ -12,6 +12,12 @@
     - server
     - server_mounts
 
+- import_tasks: fail2ban.yml
+  when: server_fail2ban_enabled | default(false)
+  tags:
+    - server
+    - fail2ban
+
 - import_tasks: homepage.yml
   when: server_homepage_enabled | default(false)
   tags:
