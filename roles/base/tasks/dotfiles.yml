@@ -55,6 +55,31 @@
   register: dotfiles_bashrc_backup_stat
   when: "'bash' in dotfiles_stow_packages"
 
+- name: Check whether the existing starship config is unmanaged
+  ansible.builtin.stat:
+    path: "{{ dotfiles_home }}/.config/starship.toml"
+  register: dotfiles_starship_stat
+  when: "'starship' in dotfiles_stow_packages"
+
+- name: Resolve the existing starship symlink target
+  ansible.builtin.command:
+    argv:
+      - readlink
+      - -f
+      - "{{ dotfiles_home }}/.config/starship.toml"
+  register: dotfiles_starship_link_target
+  changed_when: false
+  failed_when: false
+  when:
+    - "'starship' in dotfiles_stow_packages"
+    - dotfiles_starship_stat.stat.islnk | default(false)
+
+- name: Check whether a starship pre-stow backup already exists
+  ansible.builtin.stat:
+    path: "{{ dotfiles_home }}/.config/starship.toml.pre-stow-backup"
+  register: dotfiles_starship_backup_stat
+  when: "'starship' in dotfiles_stow_packages"
+
 # Preserve the previous file once, then let Stow own the canonical path. This
 # avoids silent data loss while still making the first Stow run deterministic.
 - name: Back up the unmanaged bashrc before Stow takes over
@@ -83,6 +108,35 @@
       or
       (dotfiles_bashrc_stat.stat.islnk | default(false)
        and dotfiles_bashrc_link_target.stdout != dotfiles_repo_dir ~ '/bash/.bashrc')
+
+# Treat Starship the same way as bash: preserve the previous config once, then
+# let Stow own the canonical path from the managed dotfiles checkout.
+- name: Back up the unmanaged starship config before Stow takes over
+  ansible.builtin.copy:
+    src: "{{ dotfiles_home }}/.config/starship.toml"
+    dest: "{{ dotfiles_home }}/.config/starship.toml.pre-stow-backup"
+    remote_src: true
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: preserve
+  when:
+    - "'starship' in dotfiles_stow_packages"
+    - dotfiles_starship_stat.stat.exists
+    - not dotfiles_starship_stat.stat.islnk | default(false)
+    - not dotfiles_starship_backup_stat.stat.exists
+
+- name: Remove the unmanaged starship config so Stow can create its symlink
+  ansible.builtin.file:
+    path: "{{ dotfiles_home }}/.config/starship.toml"
+    state: absent
+  when:
+    - "'starship' in dotfiles_stow_packages"
+    - dotfiles_starship_stat.stat.exists
+    - >-
+      (not dotfiles_starship_stat.stat.islnk | default(false))
+      or
+      (dotfiles_starship_stat.stat.islnk | default(false)
+       and dotfiles_starship_link_target.stdout != dotfiles_repo_dir ~ '/starship/.config/starship.toml')
 
 # Stow remains the symlink engine, while Ansible decides which packages are safe
 # to apply on this host. The first slice defaults to the universal bash package.
