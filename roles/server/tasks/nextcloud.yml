@@ -299,6 +299,25 @@
       - --value={{ nextcloud_public_url }}
   changed_when: false
 
+- name: Query the current Nextcloud app list
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - app:list
+      - --output=json
+  register: nextcloud_app_list
+  changed_when: false
+
+- name: Parse the current Nextcloud app list
+  ansible.builtin.set_fact:
+    nextcloud_app_list_parsed: "{{ nextcloud_app_list.stdout | from_json }}"
+
 - name: Ensure the Nextcloud external storage app is enabled
   ansible.builtin.command:
     argv:
@@ -311,8 +330,7 @@
       - occ
       - app:enable
       - files_external
-  register: nextcloud_files_external_enable
-  changed_when: "'enabled' in nextcloud_files_external_enable.stdout"
+  when: nextcloud_app_list_parsed.enabled.files_external is not defined
 
 # These hosts run ansible-pull locally, so using the password lookup keeps the
 # secret creation logic simple while still persisting generated passwords on the
