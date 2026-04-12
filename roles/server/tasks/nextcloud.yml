@@ -314,43 +314,13 @@
   register: nextcloud_files_external_enable
   changed_when: "'enabled' in nextcloud_files_external_enable.stdout"
 
-- name: Check whether the managed Nextcloud user password files exist
-  ansible.builtin.stat:
-    path: "{{ item.password_file }}"
-  loop: "{{ nextcloud_managed_users }}"
-  register: nextcloud_user_password_files
-  no_log: true
-
-- name: Generate missing Nextcloud user passwords on the target host
-  ansible.builtin.shell: "tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32"
-  loop: "{{ nextcloud_user_password_files.results }}"
-  register: nextcloud_generated_user_passwords
-  changed_when: true
-  when: not item.stat.exists
-  no_log: true
-
-- name: Save generated Nextcloud user passwords
-  ansible.builtin.copy:
-    content: "{{ item.stdout }}\n"
-    dest: "{{ item.item.password_file }}"
-    owner: root
-    group: root
-    mode: "0600"
-  loop: "{{ nextcloud_generated_user_passwords.results }}"
-  when: not item.item.stat.exists
-  no_log: true
-
-- name: Read the managed Nextcloud user password files
-  ansible.builtin.slurp:
-    src: "{{ item.password_file }}"
-  loop: "{{ nextcloud_managed_users }}"
-  register: nextcloud_user_password_slurps
-  no_log: true
-
+# These hosts run ansible-pull locally, so using the password lookup keeps the
+# secret creation logic simple while still persisting generated passwords on the
+# target host.
 - name: Build the managed Nextcloud user password map
   ansible.builtin.set_fact:
-    nextcloud_user_password_map: "{{ nextcloud_user_password_map | default({}) | combine({item.item.uid: (item.content | b64decode | trim)}) }}"
-  loop: "{{ nextcloud_user_password_slurps.results }}"
+    nextcloud_user_password_map: "{{ nextcloud_user_password_map | default({}) | combine({item.uid: lookup('ansible.builtin.password', item.password_file + ' length=32 chars=ascii_letters,digits')}) }}"
+  loop: "{{ nextcloud_managed_users }}"
   no_log: true
 
 - name: Check whether managed Nextcloud users already exist
