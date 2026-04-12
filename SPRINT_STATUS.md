@@ -52,6 +52,7 @@ This sprint focused on:
   - `starship`
 - added handover logic for pre-existing unmanaged files/symlinks so first-run
   adoption is safe
+- added system-wide Bash init so Starship actually renders in interactive shells
 
 ### Common Base CLI
 
@@ -64,10 +65,13 @@ This sprint focused on:
 - Homepage
 - BentoPDF
 - vendored `game-timer`
-- Nextcloud skeleton/service on `/mnt/SSD_1TO/nextcloud`
+- Nextcloud service on `/mnt/SSD_1TO/nextcloud`
+- Nextcloud external storage mount `/SSD_1TO` exposed to users `lion` and `mimi`
 - AuMenuIlYA WordPress restore and deployment
 - Caddy reverse proxy
 - `fail2ban` with an active `sshd` jail
+- Frigate migration skeleton added, but left disabled until the camera device
+  path is confirmed on `serverannah`
 
 ### Pi-hole
 
