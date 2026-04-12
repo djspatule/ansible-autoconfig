@@ -30,6 +30,18 @@
   become: true
   become_user: "{{ dotfiles_user }}"
 
+# The upstream Starship config currently references an invalid `cpp` module,
+# which makes every shell print warnings. Overlay a corrected config into the
+# managed checkout so Stow keeps the nice prompt without the noise.
+- name: Install the corrected Starship config into the managed dotfiles checkout
+  ansible.builtin.copy:
+    src: "{{ role_path }}/../../files/dotfiles/starship/starship.toml"
+    dest: "{{ dotfiles_repo_dir }}/starship/.config/starship.toml"
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "0644"
+  when: "'starship' in dotfiles_stow_packages"
+
 - name: Check whether the existing bashrc is unmanaged
   ansible.builtin.stat:
     path: "{{ dotfiles_home }}/.bashrc"
