@@ -42,6 +42,12 @@
     - server
     - nextcloud
 
+- import_tasks: frigate.yml
+  when: server_frigate_enabled | default(false)
+  tags:
+    - server
+    - frigate
+
 - import_tasks: pihole.yml
   when: server_pihole_enabled | default(false)
   tags:

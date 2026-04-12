@@ -298,3 +298,156 @@
       - overwrite.cli.url
       - --value={{ nextcloud_public_url }}
   changed_when: false
+
+- name: Ensure the Nextcloud external storage app is enabled
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - app:enable
+      - files_external
+  register: nextcloud_files_external_enable
+  changed_when: "'enabled' in nextcloud_files_external_enable.stdout"
+
+- name: Check whether the managed Nextcloud user password files exist
+  ansible.builtin.stat:
+    path: "{{ item.password_file }}"
+  loop: "{{ nextcloud_managed_users }}"
+  register: nextcloud_user_password_files
+  no_log: true
+
+- name: Generate missing Nextcloud user passwords on the target host
+  ansible.builtin.shell: "tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32"
+  loop: "{{ nextcloud_user_password_files.results }}"
+  register: nextcloud_generated_user_passwords
+  changed_when: true
+  when: not item.stat.exists
+  no_log: true
+
+- name: Save generated Nextcloud user passwords
+  ansible.builtin.copy:
+    content: "{{ item.stdout }}\n"
+    dest: "{{ item.item.password_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  loop: "{{ nextcloud_generated_user_passwords.results }}"
+  when: not item.item.stat.exists
+  no_log: true
+
+- name: Read the managed Nextcloud user password files
+  ansible.builtin.slurp:
+    src: "{{ item.password_file }}"
+  loop: "{{ nextcloud_managed_users }}"
+  register: nextcloud_user_password_slurps
+  no_log: true
+
+- name: Build the managed Nextcloud user password map
+  ansible.builtin.set_fact:
+    nextcloud_user_password_map: "{{ nextcloud_user_password_map | default({}) | combine({item.item.uid: (item.content | b64decode | trim)}) }}"
+  loop: "{{ nextcloud_user_password_slurps.results }}"
+  no_log: true
+
+- name: Check whether managed Nextcloud users already exist
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - user:info
+      - "{{ item.uid }}"
+  loop: "{{ nextcloud_managed_users }}"
+  register: nextcloud_user_info
+  changed_when: false
+  failed_when: false
+
+- name: Create missing managed Nextcloud users
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - -e
+      - "OC_PASS={{ nextcloud_user_password_map[item.item.uid] }}"
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - user:add
+      - --password-from-env
+      - --display-name={{ item.item.display_name | default(item.item.uid) }}
+      - "{{ item.item.uid }}"
+  loop: "{{ nextcloud_user_info.results }}"
+  when: item.rc != 0
+  no_log: true
+
+- name: List current Nextcloud external mounts
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - files_external:list
+      - --output=json
+  register: nextcloud_external_mounts_list
+  changed_when: false
+
+- name: Parse current Nextcloud external mounts
+  ansible.builtin.set_fact:
+    nextcloud_external_mounts_current: "{{ nextcloud_external_mounts_list.stdout | default('[]') | from_json }}"
+
+- name: Create missing Nextcloud external mounts
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - files_external:create
+      - "{{ item.mount_point }}"
+      - local
+      - null::null
+      - --config=datadir={{ item.path }}
+  loop: "{{ nextcloud_external_mounts }}"
+  when: (nextcloud_external_mounts_current | selectattr('mount_point', 'equalto', item.mount_point) | list | length) == 0
+
+- name: Refresh Nextcloud external mounts after creation
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - files_external:list
+      - --output=json
+  register: nextcloud_external_mounts_list_refreshed
+  changed_when: false
+
+- name: Parse refreshed Nextcloud external mounts
+  ansible.builtin.set_fact:
+    nextcloud_external_mounts_current: "{{ nextcloud_external_mounts_list_refreshed.stdout | default('[]') | from_json }}"
+
+- name: Ensure Nextcloud external mount is applicable to expected users
+  ansible.builtin.command:
+    argv: "{{ ['docker', 'exec', '-u', 'www-data', nextcloud_container_name, 'php', 'occ', 'files_external:applicable', ((nextcloud_external_mounts_current | selectattr('mount_point', 'equalto', item.0.mount_point) | map(attribute='mount_id') | first) | string)] + ['--add-user=' ~ item.1] }}"
+  loop: "{{ nextcloud_external_mounts | subelements('users') }}"
+  changed_when: false

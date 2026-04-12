@@ -1,0 +1,97 @@
+---
+- name: Ensure Frigate root-managed directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ frigate_root_dir }}"
+    - "{{ frigate_config_dir }}"
+    - "{{ frigate_secret_dir }}"
+
+- name: Ensure Frigate media directory exists
+  ansible.builtin.file:
+    path: "{{ frigate_media_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Check whether the Frigate RTSP password file exists
+  ansible.builtin.stat:
+    path: "{{ frigate_rtsp_password_file }}"
+  register: frigate_rtsp_password_file_stat
+  no_log: true
+
+- name: Generate the Frigate RTSP password on the target host
+  ansible.builtin.shell: "tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32"
+  register: frigate_rtsp_password_generated
+  changed_when: true
+  when: not frigate_rtsp_password_file_stat.stat.exists
+  no_log: true
+
+- name: Save the generated Frigate RTSP password
+  ansible.builtin.copy:
+    content: "{{ frigate_rtsp_password_generated.stdout }}\n"
+    dest: "{{ frigate_rtsp_password_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: not frigate_rtsp_password_file_stat.stat.exists
+  no_log: true
+
+- name: Read the managed Frigate RTSP password file
+  ansible.builtin.slurp:
+    src: "{{ frigate_rtsp_password_file }}"
+  register: frigate_rtsp_password_slurp
+  no_log: true
+
+- name: Load the managed Frigate RTSP password
+  ansible.builtin.set_fact:
+    frigate_rtsp_password: "{{ frigate_rtsp_password_slurp.content | b64decode | trim }}"
+  no_log: true
+
+- name: Check whether the expected Frigate camera path exists
+  ansible.builtin.stat:
+    path: "{{ frigate_camera_path }}"
+  register: frigate_camera_path_stat
+
+# Start the migration by encoding the raspi Frigate shape, but fail explicitly
+# if the target hardware path is not actually present yet.
+- name: Require the Frigate camera path to exist when Frigate is enabled
+  ansible.builtin.assert:
+    that:
+      - frigate_camera_path_stat.stat.exists
+    fail_msg: "Frigate expects camera path {{ frigate_camera_path }}, but it does not exist on this host yet."
+
+- name: Install Frigate configuration
+  ansible.builtin.template:
+    src: frigate/config.yml.j2
+    dest: "{{ frigate_config_dir }}/config.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Pull Frigate image
+  community.docker.docker_image:
+    name: "{{ frigate_image }}"
+    source: pull
+
+- name: Run Frigate container
+  community.docker.docker_container:
+    name: "{{ frigate_container_name }}"
+    image: "{{ frigate_image }}"
+    state: started
+    restart_policy: unless-stopped
+    privileged: true
+    shm_size: "{{ frigate_shm_size }}"
+    stop_timeout: 30
+    published_ports: "{{ frigate_published_ports }}"
+    devices: "{{ frigate_devices }}"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - "{{ frigate_config_dir }}:/config"
+      - "{{ frigate_media_dir }}:/media/frigate"
+    env:
+      FRIGATE_RTSP_PASSWORD: "{{ frigate_rtsp_password }}"
+  no_log: true

@@ -64,6 +64,7 @@ dotfiles_stow_packages:
   - bash
   - starship
 dotfiles_stow_adopt_existing: true
+base_starship_prompt_enabled: true
 
 autoconfig_repo_url: https://github.com/djspatule/ansible-autoconfig.git
 autoconfig_branch: main

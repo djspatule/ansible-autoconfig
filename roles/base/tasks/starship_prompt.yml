@@ -1,0 +1,10 @@
+---
+# The public dotfiles repo only ships the Starship config, not the shell init.
+# Add a system-wide Bash init snippet so login shells actually render the prompt.
+- name: Install system-wide Starship shell init
+  ansible.builtin.template:
+    src: starship/profile.sh.j2
+    dest: /etc/profile.d/ansible-starship.sh
+    owner: root
+    group: root
+    mode: "0644"

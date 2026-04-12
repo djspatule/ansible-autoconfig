@@ -9,6 +9,7 @@ server_homepage_enabled: true
 server_bentopdf_enabled: true
 server_game_timer_enabled: true
 server_nextcloud_enabled: true
+server_frigate_enabled: false
 # Keep Pi-hole off on the real server until the final DNS cutover and admin
 # hostname are chosen deliberately.
 server_pihole_enabled: true
@@ -37,6 +38,19 @@ server_reverse_proxy_sites:
     upstream: game-timer:80
   - hostname: cloud.dinnizer.com
     upstream: nextcloud:80
+nextcloud_managed_users:
+  - uid: lion
+    display_name: lion
+    password_file: /etc/ansible/secrets/nextcloud-admin-password
+  - uid: mimi
+    display_name: mimi
+    password_file: /etc/ansible/secrets/nextcloud-mimi-password
+nextcloud_external_mounts:
+  - mount_point: /SSD_1TO
+    path: /mnt/SSD_1TO
+    users:
+      - lion
+      - mimi
 dotfiles_stow_packages:
   - bash
   - starship
@@ -70,3 +84,7 @@ server_storage_mounts:
 nextcloud_public_url: https://cloud.dinnizer.com
 aumenuilya_backup_root: /mnt/SSD_1TO/BackUp/Mimi/AuMenuIlYA
 aumenuilya_public_url: https://www.aumenuilya.com
+frigate_camera_path: /dev/video0
+frigate_devices:
+  - /dev/video0:/dev/video0
+  - /dev/dri/renderD128:/dev/dri/renderD128

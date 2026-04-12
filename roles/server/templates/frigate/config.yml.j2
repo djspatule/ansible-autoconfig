@@ -1,0 +1,45 @@
+mqtt:
+  enabled: false
+
+cameras:
+  {{ frigate_camera_name }}:
+    ffmpeg:
+      inputs:
+        - path: {{ frigate_camera_path }}
+          roles:
+            - detect
+      input_args:
+        - -f
+        - v4l2
+        - -input_format
+        - mjpeg
+    detect:
+      width: {{ frigate_detect_width }}
+      height: {{ frigate_detect_height }}
+      fps: {{ frigate_detect_fps }}
+    motion:
+      threshold: {{ frigate_motion_threshold }}
+      contour_area: {{ frigate_motion_contour_area }}
+      improve_contrast: {{ frigate_motion_improve_contrast | ternary('true', 'false') }}
+    zones:
+      {{ frigate_zone_name }}:
+        coordinates: {{ frigate_zone_coordinates }}
+        loitering_time: 0
+
+record:
+  enabled: true
+  retain:
+    days: {{ frigate_record_retain_days }}
+  alerts:
+    retain:
+      days: {{ frigate_alerts_retain_days }}
+  detections:
+    retain:
+      days: {{ frigate_detections_retain_days }}
+
+snapshots:
+  enabled: true
+  retain:
+    default: {{ frigate_snapshots_retain_days }}
+
+version: 0.15-1

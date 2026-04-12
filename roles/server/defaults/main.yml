@@ -68,6 +68,40 @@ nextcloud_trusted_proxies:
   - server-reverse-proxy
 nextcloud_wait_retries: 30
 nextcloud_wait_delay: 5
+nextcloud_managed_users: []
+nextcloud_external_mounts: []
+
+server_frigate_enabled: false
+# Frigate is started as a migration skeleton first because the service depends on
+# host hardware details that differ between the raspi and serverannah.
+frigate_root_dir: /mnt/verbatim/frigate
+frigate_config_dir: "{{ frigate_root_dir }}/config"
+frigate_media_dir: "{{ frigate_root_dir }}/media"
+frigate_secret_dir: /etc/ansible/secrets
+frigate_rtsp_password_file: "{{ frigate_secret_dir }}/frigate-rtsp-password"
+frigate_container_name: frigate
+frigate_image: ghcr.io/blakeblackshear/frigate:stable
+frigate_shm_size: 64mb
+frigate_devices: []
+frigate_published_ports:
+  - "8971:8971"
+  - "8554:8554"
+  - "8555:8555/tcp"
+  - "8555:8555/udp"
+frigate_camera_name: usb_cam
+frigate_camera_path: /dev/video0
+frigate_detect_width: 640
+frigate_detect_height: 480
+frigate_detect_fps: 10
+frigate_motion_threshold: 50
+frigate_motion_contour_area: 150
+frigate_motion_improve_contrast: true
+frigate_zone_name: dining_room
+frigate_zone_coordinates: 0.31,0.237,0.309,0.831,0.663,0.821,0.615,0.19
+frigate_record_retain_days: 1
+frigate_alerts_retain_days: 2
+frigate_detections_retain_days: 2
+frigate_snapshots_retain_days: 1
 
 server_storage_mounts: []
 
