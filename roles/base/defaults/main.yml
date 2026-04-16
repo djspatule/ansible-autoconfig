@@ -25,6 +25,7 @@ base_packages_by_family:
       - ripgrep
       - rsync
       - sqlite3
+      - lazydocker
     snaps:
       - tldr
   Archlinux:
@@ -50,6 +51,7 @@ base_packages_by_family:
       - tldr
       - rsync
       - sqlite
+      - lazydocker
     snaps: []
 
 base_dotfiles_enabled: false
