@@ -88,7 +88,7 @@ frigate_managed_users:
 frigate_auth_state_hash_file: "{{ frigate_root_dir }}/.ansible-auth-hash"
 frigate_container_name: frigate
 frigate_image: ghcr.io/blakeblackshear/frigate:stable
-frigate_shm_size: 128M
+frigate_shm_size: 256M
 frigate_devices: []
 frigate_published_ports:
   - "8971:8971"
