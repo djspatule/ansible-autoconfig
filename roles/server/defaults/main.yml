@@ -85,6 +85,7 @@ frigate_managed_users:
   - username: lion
     role: admin
     password_file: "{{ frigate_secret_dir }}/frigate-lion-password"
+frigate_auth_state_hash_file: "{{ frigate_root_dir }}/.ansible-auth-hash"
 frigate_container_name: frigate
 frigate_image: ghcr.io/blakeblackshear/frigate:stable
 frigate_shm_size: 128M
