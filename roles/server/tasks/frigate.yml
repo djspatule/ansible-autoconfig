@@ -9,7 +9,14 @@
   loop:
     - "{{ frigate_root_dir }}"
     - "{{ frigate_config_dir }}"
-    - "{{ frigate_secret_dir }}"
+
+- name: Ensure Frigate secret directory exists
+  ansible.builtin.file:
+    path: "{{ frigate_secret_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
 
 - name: Ensure Frigate media directory exists
   ansible.builtin.file:
@@ -21,6 +28,19 @@
   ansible.builtin.stat:
     path: "{{ frigate_rtsp_password_file }}"
   register: frigate_rtsp_password_file_stat
+  no_log: true
+
+- name: Check whether the Frigate admin password file exists
+  ansible.builtin.stat:
+    path: "{{ frigate_admin_password_file }}"
+  register: frigate_admin_password_file_stat
+  no_log: true
+
+- name: Check whether the Frigate managed user password files exist
+  ansible.builtin.stat:
+    path: "{{ item.password_file }}"
+  loop: "{{ frigate_managed_users }}"
+  register: frigate_managed_user_password_files
   no_log: true
 
 - name: Generate the Frigate RTSP password on the target host
@@ -40,15 +60,71 @@
   when: not frigate_rtsp_password_file_stat.stat.exists
   no_log: true
 
+- name: Generate the Frigate admin password on the target host
+  ansible.builtin.shell: "tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32"
+  register: frigate_admin_password_generated
+  changed_when: true
+  when: not frigate_admin_password_file_stat.stat.exists
+  no_log: true
+
+- name: Save the generated Frigate admin password
+  ansible.builtin.copy:
+    content: "{{ frigate_admin_password_generated.stdout }}\n"
+    dest: "{{ frigate_admin_password_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: not frigate_admin_password_file_stat.stat.exists
+  no_log: true
+
+- name: Generate missing Frigate managed user passwords
+  ansible.builtin.shell: "tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32"
+  loop: "{{ frigate_managed_user_password_files.results }}"
+  register: frigate_generated_user_passwords
+  changed_when: true
+  when: not item.stat.exists
+  no_log: true
+
+- name: Save generated Frigate managed user passwords
+  ansible.builtin.copy:
+    content: "{{ item.stdout }}\n"
+    dest: "{{ item.item.password_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  loop: "{{ frigate_generated_user_passwords.results }}"
+  when: not item.item.stat.exists
+  no_log: true
+
 - name: Read the managed Frigate RTSP password file
   ansible.builtin.slurp:
     src: "{{ frigate_rtsp_password_file }}"
   register: frigate_rtsp_password_slurp
   no_log: true
 
+- name: Read the managed Frigate admin password file
+  ansible.builtin.slurp:
+    src: "{{ frigate_admin_password_file }}"
+  register: frigate_admin_password_slurp
+  no_log: true
+
+- name: Read the managed Frigate user password files
+  ansible.builtin.slurp:
+    src: "{{ item.password_file }}"
+  loop: "{{ frigate_managed_users }}"
+  register: frigate_user_password_slurps
+  no_log: true
+
 - name: Load the managed Frigate RTSP password
   ansible.builtin.set_fact:
     frigate_rtsp_password: "{{ frigate_rtsp_password_slurp.content | b64decode | trim }}"
+    frigate_admin_password: "{{ frigate_admin_password_slurp.content | b64decode | trim }}"
+  no_log: true
+
+- name: Build the managed Frigate user password map
+  ansible.builtin.set_fact:
+    frigate_user_password_map: "{{ frigate_user_password_map | default({}) | combine({item.item.username: (item.content | b64decode | trim)}) }}"
+  loop: "{{ frigate_user_password_slurps.results }}"
   no_log: true
 
 - name: Check whether the expected Frigate camera path exists
@@ -94,4 +170,57 @@
       - "{{ frigate_media_dir }}:/media/frigate"
     env:
       FRIGATE_RTSP_PASSWORD: "{{ frigate_rtsp_password }}"
+  no_log: true
+
+# Frigate creates a one-time bootstrap admin password in the startup logs. Use
+# that once to create the real managed admin user and rotate the default admin
+# password into a stored secret.
+- name: Query current Frigate users from the DB
+  ansible.builtin.command:
+    argv:
+      - sqlite3
+      - "{{ frigate_config_dir }}/frigate.db"
+      - "select username, role from user;"
+  register: frigate_users_db
+  changed_when: false
+
+- name: Parse the bootstrap Frigate admin password from the logs
+  ansible.builtin.shell: |
+    set -eu
+    docker logs {{ frigate_container_name }} 2>&1 | sed -n 's/.*Password: \([A-Za-z0-9]*\).*/\1/p' | tail -1
+  args:
+    executable: /bin/bash
+  register: frigate_bootstrap_admin_password
+  changed_when: false
+  when: "'lion|admin' not in frigate_users_db.stdout"
+  no_log: true
+
+- name: Ensure Frigate bootstrap password is available when creating the managed user
+  ansible.builtin.assert:
+    that:
+      - frigate_bootstrap_admin_password.stdout | trim | length > 0
+    fail_msg: Could not recover the bootstrap Frigate admin password from the logs.
+  when: "'lion|admin' not in frigate_users_db.stdout"
+  no_log: true
+
+- name: Create the managed Frigate lion admin user and rotate the built-in admin password
+  ansible.builtin.shell: |
+    set -eu
+    cookie=$(mktemp)
+    trap 'rm -f "$cookie"' EXIT
+    curl -sk -c "$cookie" \
+      -H 'Content-Type: application/json' \
+      -d '{"user":"{{ frigate_admin_username }}","password":"{{ frigate_bootstrap_admin_password.stdout | trim }}"}' \
+      https://127.0.0.1:8971/api/login >/dev/null
+    curl -sk -b "$cookie" \
+      -H 'Content-Type: application/json' \
+      -d '{"username":"lion","password":"{{ frigate_user_password_map["lion"] }}","role":"admin"}' \
+      https://127.0.0.1:8971/api/users >/dev/null
+    curl -sk -X PUT -b "$cookie" \
+      -H 'Content-Type: application/json' \
+      -d '{"password":"{{ frigate_admin_password }}"}' \
+      https://127.0.0.1:8971/api/users/{{ frigate_admin_username }}/password >/dev/null
+  args:
+    executable: /bin/bash
+  when: "'lion|admin' not in frigate_users_db.stdout"
   no_log: true

@@ -79,9 +79,15 @@ frigate_config_dir: "{{ frigate_root_dir }}/config"
 frigate_media_dir: "{{ frigate_root_dir }}/media"
 frigate_secret_dir: /etc/ansible/secrets
 frigate_rtsp_password_file: "{{ frigate_secret_dir }}/frigate-rtsp-password"
+frigate_admin_username: admin
+frigate_admin_password_file: "{{ frigate_secret_dir }}/frigate-admin-password"
+frigate_managed_users:
+  - username: lion
+    role: admin
+    password_file: "{{ frigate_secret_dir }}/frigate-lion-password"
 frigate_container_name: frigate
 frigate_image: ghcr.io/blakeblackshear/frigate:stable
-frigate_shm_size: 64M
+frigate_shm_size: 128M
 frigate_devices: []
 frigate_published_ports:
   - "8971:8971"
