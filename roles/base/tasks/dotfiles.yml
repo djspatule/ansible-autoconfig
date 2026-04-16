@@ -30,17 +30,22 @@
   become: true
   become_user: "{{ dotfiles_user }}"
 
-# The upstream Starship config currently references an invalid `cpp` module,
-# which makes every shell print warnings. Overlay a corrected config into the
-# managed checkout so Stow keeps the nice prompt without the noise.
-- name: Install the corrected Starship config into the managed dotfiles checkout
-  ansible.builtin.copy:
-    src: "{{ playbook_dir }}/files/dotfiles/starship/starship.toml"
-    dest: "{{ dotfiles_repo_dir }}/starship/.config/starship.toml"
-    owner: "{{ dotfiles_user }}"
-    group: "{{ dotfiles_user }}"
-    mode: "0644"
-    remote_src: true
+# Keep a known-good Starship config inside the managed checkout so shell startup
+# does not depend on when the upstream dotfiles repo removes unsupported keys.
+- name: Synchronize the corrected Starship config into the managed checkout
+  ansible.builtin.shell: |
+    set -eu
+    src="{{ playbook_dir }}/files/dotfiles/starship/starship.toml"
+    dest="{{ dotfiles_repo_dir }}/starship/.config/starship.toml"
+    if cmp -s "$src" "$dest"; then
+      exit 0
+    fi
+    install -m 0644 "$src" "$dest"
+    printf '%s\n' changed
+  args:
+    executable: /bin/bash
+  register: dotfiles_starship_sync
+  changed_when: "'changed' in dotfiles_starship_sync.stdout"
   when: "'starship' in dotfiles_stow_packages"
 
 - name: Check whether the existing bashrc is unmanaged

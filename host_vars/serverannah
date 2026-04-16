@@ -9,7 +9,7 @@ server_homepage_enabled: true
 server_bentopdf_enabled: true
 server_game_timer_enabled: true
 server_nextcloud_enabled: true
-server_frigate_enabled: false
+server_frigate_enabled: true
 # Keep Pi-hole off on the real server until the final DNS cutover and admin
 # hostname are chosen deliberately.
 server_pihole_enabled: true
