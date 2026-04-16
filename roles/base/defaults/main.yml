@@ -26,6 +26,7 @@ base_packages_by_family:
       - rsync
       - sqlite3
       - lazydocker
+      - v4l-utils
     snaps:
       - tldr
   Archlinux:
@@ -52,6 +53,7 @@ base_packages_by_family:
       - rsync
       - sqlite
       - lazydocker
+      - v4l-utils
     snaps: []
 
 base_dotfiles_enabled: false
