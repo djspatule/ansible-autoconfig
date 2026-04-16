@@ -36,13 +36,6 @@
   register: frigate_admin_password_file_stat
   no_log: true
 
-- name: Check whether the Frigate managed user password files exist
-  ansible.builtin.stat:
-    path: "{{ item.password_file }}"
-  loop: "{{ frigate_managed_users }}"
-  register: frigate_managed_user_password_files
-  no_log: true
-
 - name: Generate the Frigate RTSP password on the target host
   ansible.builtin.shell: "tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32"
   register: frigate_rtsp_password_generated
@@ -77,25 +70,6 @@
   when: not frigate_admin_password_file_stat.stat.exists
   no_log: true
 
-- name: Generate missing Frigate managed user passwords
-  ansible.builtin.shell: "tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32"
-  loop: "{{ frigate_managed_user_password_files.results }}"
-  register: frigate_generated_user_passwords
-  changed_when: true
-  when: not item.stat.exists
-  no_log: true
-
-- name: Save generated Frigate managed user passwords
-  ansible.builtin.copy:
-    content: "{{ item.stdout }}\n"
-    dest: "{{ item.item.password_file }}"
-    owner: root
-    group: root
-    mode: "0600"
-  loop: "{{ frigate_generated_user_passwords.results }}"
-  when: not item.item.stat.exists
-  no_log: true
-
 - name: Read the managed Frigate RTSP password file
   ansible.builtin.slurp:
     src: "{{ frigate_rtsp_password_file }}"
@@ -108,23 +82,18 @@
   register: frigate_admin_password_slurp
   no_log: true
 
-- name: Read the managed Frigate user password files
-  ansible.builtin.slurp:
-    src: "{{ item.password_file }}"
-  loop: "{{ frigate_managed_users }}"
-  register: frigate_user_password_slurps
-  no_log: true
-
 - name: Load the managed Frigate RTSP password
   ansible.builtin.set_fact:
     frigate_rtsp_password: "{{ frigate_rtsp_password_slurp.content | b64decode | trim }}"
     frigate_admin_password: "{{ frigate_admin_password_slurp.content | b64decode | trim }}"
   no_log: true
 
+# These hosts run ansible-pull locally, so using the password lookup keeps the
+# managed Frigate user secrets simple while still persisting them on the target.
 - name: Build the managed Frigate user password map
   ansible.builtin.set_fact:
-    frigate_user_password_map: "{{ frigate_user_password_map | default({}) | combine({item.item.username: (item.content | b64decode | trim)}) }}"
-  loop: "{{ frigate_user_password_slurps.results }}"
+    frigate_user_password_map: "{{ frigate_user_password_map | default({}) | combine({item.username: lookup('ansible.builtin.password', item.password_file + ' length=32 chars=ascii_letters,digits')}) }}"
+  loop: "{{ frigate_managed_users }}"
   no_log: true
 
 - name: Check whether the expected Frigate camera path exists
