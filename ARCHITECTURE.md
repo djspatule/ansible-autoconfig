@@ -146,8 +146,8 @@ It currently imports:
 2. `dotfiles.yml`
 3. `autopull.yml`
 
-The old desktop-heavy base tasks are still in git history and in the tree, but
-they are no longer part of the active `base` execution path.
+The old desktop-heavy base tasks are now removed from the active tree. Git
+history remains the recovery path if any of them are ever needed again.
 
 ### `roles/base/tasks/common_packages.yml`
 

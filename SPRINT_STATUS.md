@@ -134,10 +134,9 @@ Remaining step:
 ### Desktop / Workstation Path
 
 - workstation hosts are parked out of inventory
-- old workstation-oriented task files still exist, but they are not the active
-  focus
-- the repo is now structurally cleaner, but the desktop side is intentionally
-  paused
+- inactive desktop-heavy leftovers were removed from the `base` role so the
+  active tree matches the current server-first focus more closely
+- the desktop side is intentionally paused
 
 ### Dinnizer
 

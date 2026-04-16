@@ -35,11 +35,12 @@
 # managed checkout so Stow keeps the nice prompt without the noise.
 - name: Install the corrected Starship config into the managed dotfiles checkout
   ansible.builtin.copy:
-    src: "{{ role_path }}/../../files/dotfiles/starship/starship.toml"
+    src: "{{ playbook_dir }}/files/dotfiles/starship/starship.toml"
     dest: "{{ dotfiles_repo_dir }}/starship/.config/starship.toml"
     owner: "{{ dotfiles_user }}"
     group: "{{ dotfiles_user }}"
     mode: "0644"
+    remote_src: true
   when: "'starship' in dotfiles_stow_packages"
 
 - name: Check whether the existing bashrc is unmanaged

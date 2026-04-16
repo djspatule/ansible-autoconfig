@@ -18,7 +18,7 @@
 
 ## Isolation Strategy
 
-- The old workstation-oriented task files still exist in the tree, but the active path now focuses on `base` plus `server` only.
+- The old workstation-oriented base leftovers were removed so the active path now focuses on `base` plus `server` only.
 - Workstation hosts are removed from the current inventory until the common base is fully cleaned up.
 - The server path is isolated inside `roles/server/tasks/*.yml`, so the architecture now matches the original LearnLinuxTV split more closely.
 
