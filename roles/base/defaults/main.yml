@@ -25,7 +25,6 @@ base_packages_by_family:
       - ripgrep
       - rsync
       - sqlite3
-      - lazydocker
       - v4l-utils
     snaps:
       - tldr
@@ -52,7 +51,6 @@ base_packages_by_family:
       - tldr
       - rsync
       - sqlite
-      - lazydocker
       - v4l-utils
     snaps: []
 
@@ -69,6 +67,18 @@ dotfiles_stow_packages:
   - starship
 dotfiles_stow_adopt_existing: true
 base_starship_prompt_enabled: true
+
+base_lazydocker_enabled: true
+lazydocker_version: 0.25.0
+lazydocker_install_dir: /usr/local/bin
+lazydocker_install_path: "{{ lazydocker_install_dir }}/lazydocker"
+lazydocker_arch_map:
+  x86_64: x86_64
+  amd64: x86_64
+  aarch64: arm64
+  arm64: arm64
+  armv7l: armv7
+  armv6l: armv6
 
 autoconfig_repo_url: https://github.com/djspatule/ansible-autoconfig.git
 autoconfig_branch: main

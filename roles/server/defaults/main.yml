@@ -81,7 +81,7 @@ frigate_secret_dir: /etc/ansible/secrets
 frigate_rtsp_password_file: "{{ frigate_secret_dir }}/frigate-rtsp-password"
 frigate_container_name: frigate
 frigate_image: ghcr.io/blakeblackshear/frigate:stable
-frigate_shm_size: 64mb
+frigate_shm_size: 64M
 frigate_devices: []
 frigate_published_ports:
   - "8971:8971"

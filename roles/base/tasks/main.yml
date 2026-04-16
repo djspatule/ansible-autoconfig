@@ -3,6 +3,8 @@
   # Base is now the common foundation for every host, closer to the
   # LearnLinuxTV layout. Only server-safe tasks belong here.
   - import_tasks: common_packages.yml
+  - import_tasks: lazydocker.yml
+    when: base_lazydocker_enabled | default(false)
   - import_tasks: starship_prompt.yml
     when: base_starship_prompt_enabled | default(false)
   - import_tasks: dotfiles.yml
