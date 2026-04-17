@@ -44,11 +44,11 @@ that should accelerate dev and limit need for protection against downloads.
 
 ### Objectives
 
-- Use ansible-pull (sudo ansible-pull -U
+- Use ansible-pull (sudo ANSIBLE_FORCE_COLOR=true ansible-pull -U
   <https://github.com/djspatule/ansible-autoconfig.git> --vault-password-file
-  ~/secret.txt -C main) to automate the set-up of any of my family’s computer if
-  they ever have to be reinstalled from scratch (on the same or different
-  hardware).
+  /etc/ansible/secret.txt -C main) to automate the set-up of any of my family’s
+  computer if they ever have to be reinstalled from scratch (on the same or
+  different hardware).
 - The set-up must be idem-potent so that it can be set to run automatically once
   a day on each of these machine (via a crontab job or else)
 - I need to be able to “test” on a virtual machine. The dotfiles path is being
