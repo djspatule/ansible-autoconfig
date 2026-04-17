@@ -88,20 +88,6 @@
     frigate_admin_password: "{{ frigate_admin_password_slurp.content | b64decode | trim }}"
   no_log: true
 
-# These hosts run ansible-pull locally, so using the password lookup keeps the
-# managed Frigate user secrets simple while still persisting them on the target.
-- name: Build the managed Frigate user password map
-  ansible.builtin.set_fact:
-    frigate_user_password_map: "{{ frigate_user_password_map | default({}) | combine({item.username: lookup('ansible.builtin.password', item.password_file + ' length=32 chars=ascii_letters,digits')}) }}"
-  loop: "{{ frigate_managed_users }}"
-  no_log: true
-
-- name: Ensure the initial Frigate auth automation has exactly one managed user
-  ansible.builtin.assert:
-    that:
-      - frigate_managed_users | length == 1
-    fail_msg: The current Frigate auth automation expects exactly one managed user.
-
 - name: Check whether the expected Frigate camera path exists
   ansible.builtin.stat:
     path: "{{ frigate_camera_path }}"
@@ -151,7 +137,6 @@
   ansible.builtin.shell: |
     set -eu
     printf '%s\n' '{{ frigate_admin_password }}'
-    printf '%s\n' '{{ frigate_managed_users[0].username }}:{{ frigate_managed_users[0].role }}:{{ frigate_user_password_map[frigate_managed_users[0].username] }}'
   args:
     executable: /bin/bash
   register: frigate_auth_state_material
@@ -183,8 +168,7 @@
     db='{{ frigate_config_dir }}/frigate.db'
     admin_hash=$(docker exec {{ frigate_container_name }} python3 -c "from frigate.api.auth import hash_password; print(hash_password('{{ frigate_admin_password }}', iterations=600000))")
     sqlite3 "$db" "UPDATE user SET password_hash='${admin_hash}', role='admin' WHERE username='{{ frigate_admin_username }}';"
-    lion_hash=$(docker exec {{ frigate_container_name }} python3 -c "from frigate.api.auth import hash_password; print(hash_password('{{ frigate_user_password_map[frigate_managed_users[0].username] }}', iterations=600000))")
-    sqlite3 "$db" "INSERT INTO user(username, password_hash, notification_tokens, role) VALUES('{{ frigate_managed_users[0].username }}', '${lion_hash}', '[]', '{{ frigate_managed_users[0].role }}') ON CONFLICT(username) DO UPDATE SET password_hash='${lion_hash}', role='{{ frigate_managed_users[0].role }}';"
+    sqlite3 "$db" "DELETE FROM user WHERE username != '{{ frigate_admin_username }}';"
   args:
     executable: /bin/bash
   when: >-
