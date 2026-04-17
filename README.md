@@ -51,9 +51,9 @@ that should accelerate dev and limit need for protection against downloads.
   hardware).
 - The set-up must be idem-potent so that it can be set to run automatically once
   a day on each of these machine (via a crontab job or else)
-- I need to be able to “test” on a virtual machine. My dotfiles are currently
-  too specific to Omarchy and managed with stow
-  (<https://github.com/djspatule/omarchy-dotfiles>).
+- I need to be able to “test” on a virtual machine. The dotfiles path is being
+  migrated into this repo under `files/dotfiles/`, with Ansible orchestrating
+  `stow`.
 - Use this for inspiration of structuration, etc.
   <https://github.com/LearnLinuxTV/personal_ansible_desktop_configs/tree/main>
 - I’m writing this code also as an opportunity to learn about ansible,

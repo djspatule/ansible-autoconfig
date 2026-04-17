@@ -16,14 +16,14 @@ truth while still benefiting from Stow's package model.
 
 ## Current Status
 
-The first slice is now implemented in the server role.
+The first slice is now implemented in the common `base` role.
 
 Current behavior:
 
-- installs `stow` through the server base package list
-- clones `https://github.com/djspatule/omarchy-dotfiles.git`
+- installs `stow` through the common base package list
+- uses the repository-managed `files/dotfiles/` tree as the Stow source
 - runs `stow --restow` as the target user
-- only stows the `bash` package by default
+- currently stows `bash` and `starship`
 
 This is intentionally small so the Stow path can be proven before riskier
 packages are added.
@@ -52,11 +52,10 @@ Better model:
 
 ## Proposed Repository Shape
 
-When you are ready to merge the dotfiles repo into this project, the cleanest
-first structure is:
+The repo is now moving toward this structure inside `files/dotfiles/`:
 
 ```text
-dotfiles/
+files/dotfiles/
   bash/
     .bashrc
   espanso/
@@ -69,7 +68,7 @@ dotfiles/
     .config/wireplumber/...
 ```
 
-That mirrors a normal Stow repo.
+That mirrors a normal Stow repo while staying compatible with `ansible-pull`.
 
 Then Ansible can manage:
 
@@ -100,13 +99,13 @@ Do not start with these:
 When you implement it, a good variable model is:
 
 ```yaml
-dotfiles_enabled: true
-dotfiles_repo_root: /opt/ansible-pull/dotfiles
-dotfiles_target_user: lion
-dotfiles_stow_dir: /home/lion
-dotfiles_packages:
+base_dotfiles_enabled: true
+dotfiles_source_dir: "{{ playbook_dir }}/files/dotfiles"
+dotfiles_user: lion
+dotfiles_home: /home/lion
+dotfiles_stow_packages:
   - bash
-  - espanso
+  - starship
 ```
 
 Then the role logic would roughly be:

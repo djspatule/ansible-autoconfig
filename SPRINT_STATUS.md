@@ -45,7 +45,7 @@ This sprint focused on:
 ### Dotfiles / Stow
 
 - implemented the first Stow-based dotfiles path
-- clones public `omarchy-dotfiles`
+- moved the Stow source of truth into repository-managed files under `files/dotfiles/`
 - stows selected packages into the target user's home
 - currently manages:
   - `bash`

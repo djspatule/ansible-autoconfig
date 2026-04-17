@@ -33,9 +33,7 @@ server_reverse_proxy_sites:
     upstream: aumenuilya:80
 aumenuilya_backup_root: /home/lion/aumenuilya-fixture
 aumenuilya_public_url: http://aumenuilya.localtest.me:8081
-pihole_published_ports:
-  - "5300:53/tcp"
-  - "5300:53/udp"
+pihole_mode: staged
 dotfiles_stow_packages:
   - bash
   - starship

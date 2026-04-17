@@ -128,6 +128,21 @@ fail2ban_sshd_port: ssh
 fail2ban_sshd_backend: systemd
 
 server_pihole_enabled: false
+# Keep the production cutover explicit. Switching the host to production mode is
+# a deliberate code change, separate from the router/DHCP cutover outside Ansible.
+pihole_mode: production
+pihole_mode_profiles:
+  production:
+    dns_listening_mode: LOCAL
+    published_ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+  staged:
+    dns_listening_mode: ALL
+    published_ports:
+      - "5300:53/tcp"
+      - "5300:53/udp"
+pihole_extra_published_ports: []
 # Pi-hole stays on the same shared Docker network so the reverse proxy can front
 # the admin UI without exposing another host HTTP port.
 pihole_container_name: pihole
@@ -140,9 +155,7 @@ pihole_config_dir: "{{ pihole_root_dir }}/etc-pihole"
 pihole_secret_dir: /etc/ansible/secrets
 pihole_web_password_file: "{{ pihole_secret_dir }}/pihole-web-password"
 pihole_timezone: Europe/Paris
-# Match the current raspi behavior first. A future cutover can deliberately
-# relax this if there is a real need to serve DNS beyond local subnets.
-pihole_dns_listening_mode: LOCAL
+pihole_dns_listening_mode: "{{ pihole_mode_profiles[pihole_mode].dns_listening_mode }}"
 pihole_dns_upstreams:
   - 8.8.8.8
   - 8.8.4.4
@@ -164,11 +177,7 @@ pihole_adlists_file: "{{ pihole_policy_root }}/adlists_enabled.txt"
 pihole_allowlist_exact_file: "{{ pihole_policy_root }}/allowlist_exact.txt"
 pihole_import_comment: Managed by ansible Pi-hole import
 pihole_policy_hash_file: "{{ pihole_root_dir }}/.ansible-policy-hash"
-# Real hosts will normally bind 53 directly. The VM overrides this to a high
-# port so the feedback loop does not fight the host resolver.
-pihole_published_ports:
-  - "53:53/tcp"
-  - "53:53/udp"
+pihole_published_ports: "{{ pihole_mode_profiles[pihole_mode].published_ports + pihole_extra_published_ports }}"
 # NET_ADMIN is kept explicit because Pi-hole documents it as the practical
 # default for containerized network operations, even when DHCP stays off.
 pihole_capabilities:

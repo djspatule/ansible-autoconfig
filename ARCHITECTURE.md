@@ -163,14 +163,14 @@ Installs the common cross-distro CLI baseline.
 First Stow-based dotfiles slice.
 
 - ensure the target user home exists
-- clone the public `omarchy-dotfiles` repo into a user-scoped checkout
+- use the repository-managed `files/dotfiles/` tree as the Stow source
 - back up or hand over a pre-existing `.bashrc`
 - run `stow --restow` for the host-selected package list
 
 Current scope is intentionally conservative:
 
 - enabled on `serverannah` and `archlinux`
-- first package is `bash`
+- current packages are `bash` and `starship`
 - risky packages such as `ssh` or Hyprland are not auto-stowed yet
 
 ### `roles/base/tasks/autopull.yml`

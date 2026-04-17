@@ -4,49 +4,21 @@
     path: "{{ dotfiles_home }}"
   register: dotfiles_home_stat
 
+- name: Ensure the repository-managed dotfiles tree exists
+  ansible.builtin.stat:
+    path: "{{ dotfiles_source_dir }}"
+  register: dotfiles_source_dir_stat
+
 - name: Fail when the dotfiles target user home is missing
   ansible.builtin.assert:
     that:
       - dotfiles_home_stat.stat.exists
       - dotfiles_home_stat.stat.isdir
-    fail_msg: "The dotfiles target home {{ dotfiles_home }} does not exist."
-
-- name: Ensure the dotfiles checkout parent exists
-  ansible.builtin.file:
-    path: "{{ dotfiles_repo_dir | dirname }}"
-    state: directory
-    owner: "{{ dotfiles_user }}"
-    group: "{{ dotfiles_user }}"
-    mode: "0755"
-
-# Clone the public dotfiles repo locally so Stow works from a normal package
-# tree instead of trying to symlink files directly from a different project.
-- name: Clone the public dotfiles repository
-  ansible.builtin.git:
-    repo: "{{ dotfiles_repo_url }}"
-    dest: "{{ dotfiles_repo_dir }}"
-    version: "{{ dotfiles_repo_version }}"
-    force: true
-  become: true
-  become_user: "{{ dotfiles_user }}"
-
-# Keep a known-good Starship config inside the managed checkout so shell startup
-# does not depend on when the upstream dotfiles repo removes unsupported keys.
-- name: Synchronize the corrected Starship config into the managed checkout
-  ansible.builtin.shell: |
-    set -eu
-    src="{{ playbook_dir }}/files/dotfiles/starship/starship.toml"
-    dest="{{ dotfiles_repo_dir }}/starship/.config/starship.toml"
-    if cmp -s "$src" "$dest"; then
-      exit 0
-    fi
-    install -m 0644 "$src" "$dest"
-    printf '%s\n' changed
-  args:
-    executable: /bin/bash
-  register: dotfiles_starship_sync
-  changed_when: "'changed' in dotfiles_starship_sync.stdout"
-  when: "'starship' in dotfiles_stow_packages"
+      - dotfiles_source_dir_stat.stat.exists
+      - dotfiles_source_dir_stat.stat.isdir
+    fail_msg: >-
+      The dotfiles home {{ dotfiles_home }} or the source tree
+      {{ dotfiles_source_dir }} is missing.
 
 - name: Check whether the existing bashrc is unmanaged
   ansible.builtin.stat:
@@ -125,7 +97,7 @@
       (not dotfiles_bashrc_stat.stat.islnk | default(false))
       or
       (dotfiles_bashrc_stat.stat.islnk | default(false)
-       and dotfiles_bashrc_link_target.stdout != dotfiles_repo_dir ~ '/bash/.bashrc')
+       and dotfiles_bashrc_link_target.stdout != dotfiles_source_dir ~ '/bash/.bashrc')
 
 # Treat Starship the same way as bash: preserve the previous config once, then
 # let Stow own the canonical path from the managed dotfiles checkout.
@@ -154,10 +126,10 @@
       (not dotfiles_starship_stat.stat.islnk | default(false))
       or
       (dotfiles_starship_stat.stat.islnk | default(false)
-       and dotfiles_starship_link_target.stdout != dotfiles_repo_dir ~ '/starship/.config/starship.toml')
+       and dotfiles_starship_link_target.stdout != dotfiles_source_dir ~ '/starship/.config/starship.toml')
 
 # Stow remains the symlink engine, while Ansible decides which packages are safe
-# to apply on this host. The first slice defaults to the universal bash package.
+# to apply on this host.
 - name: Stow the selected dotfiles packages
   ansible.builtin.command:
     argv:
@@ -167,7 +139,7 @@
       - "{{ dotfiles_home }}"
       - "{{ item }}"
   args:
-    chdir: "{{ dotfiles_repo_dir }}"
+    chdir: "{{ dotfiles_source_dir }}"
   loop: "{{ dotfiles_stow_packages }}"
   become: true
   become_user: "{{ dotfiles_user }}"

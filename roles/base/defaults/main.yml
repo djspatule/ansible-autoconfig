@@ -55,17 +55,14 @@ base_packages_by_family:
     snaps: []
 
 base_dotfiles_enabled: false
-# Keep the first Stow slice intentionally small and low-risk: public repo clone,
-# user-scoped checkout, and only packages explicitly listed per host.
-dotfiles_repo_url: https://github.com/djspatule/omarchy-dotfiles.git
-dotfiles_repo_version: main
+# Keep the first Stow slice intentionally small and low-risk: only packages that
+# are versioned directly in this repo get applied per host.
 dotfiles_user: "{{ desktop_user | default('lion') }}"
 dotfiles_home: "/home/{{ dotfiles_user }}"
-dotfiles_repo_dir: "{{ dotfiles_home }}/.local/share/omarchy-dotfiles"
+dotfiles_source_dir: "{{ playbook_dir }}/files/dotfiles"
 dotfiles_stow_packages:
   - bash
   - starship
-dotfiles_stow_adopt_existing: true
 base_starship_prompt_enabled: true
 
 base_lazydocker_enabled: true

@@ -9,6 +9,14 @@
   loop:
     - "{{ pihole_root_dir }}"
 
+- name: Validate the selected Pi-hole deployment mode
+  ansible.builtin.assert:
+    that:
+      - pihole_mode in pihole_mode_profiles
+    fail_msg: >-
+      Unsupported Pi-hole mode {{ pihole_mode }}. Choose one of
+      {{ pihole_mode_profiles.keys() | list | join(', ') }}.
+
 - name: Ensure Pi-hole secret directory exists
   ansible.builtin.file:
     path: "{{ pihole_secret_dir }}"
