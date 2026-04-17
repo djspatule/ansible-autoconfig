@@ -10,6 +10,8 @@ server_docker_packages_by_family:
     docker:
       - docker
       - python-docker
+server_docker_users:
+  - "{{ dotfiles_user | default(desktop_user | default('lion')) }}"
 
 server_homepage_enabled: false
 homepage_container_name: homepage

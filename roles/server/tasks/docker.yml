@@ -23,3 +23,12 @@
     name: docker
     state: started
     enabled: true
+
+# Let the main operator user access Docker without sudo so tools like
+# lazydocker work in normal interactive shells.
+- name: Ensure server Docker users are in the docker group
+  ansible.builtin.user:
+    name: "{{ item }}"
+    groups: docker
+    append: true
+  loop: "{{ server_docker_users }}"
