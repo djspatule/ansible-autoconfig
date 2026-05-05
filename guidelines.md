@@ -75,10 +75,8 @@ sudo docker exec pihole nslookup pi-hole.net 127.0.0.1
 
 ## VM Feedback Loop
 
-- The disposable Arch VM is represented as `archlinux` in `hosts`.
-- `host_vars/archlinux` keeps the VM on the normal inventory path instead of using a fake localhost-only workflow.
-- Use the VM to prove portability and idempotency before applying changes on `serverannah`.
-- Pi-hole binds `5300` on the VM so DNS can be tested without stealing the VM host's normal resolver port.
+- The old disposable Arch VM was retired and removed from the active inventory.
+- Validate changes on `serverannah` deliberately before production cutover.
 
 ## Known Caveats
 

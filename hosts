@@ -1,5 +1,3 @@
 [server]
 raspberrypi
 serverannah
-# Disposable VM used to validate ansible-pull against a real hostname.
-archlinux

@@ -3,3 +3,6 @@ backups/raspi/etc/gravity.db
 backups/raspi/etc/dnsmasq.conf
 backups/raspi/etc/listsCache/
 backups/raspi/etc/versions
+
+# Local tmux plugin clones
+files/dotfiles/tmux/.config/tmux/plugins/
