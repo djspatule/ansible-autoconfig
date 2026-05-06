@@ -6,8 +6,8 @@ branch="{{ autoconfig_branch }}"
 repo_dir="{{ autoconfig_repo_dir }}"
 playbook="{{ autoconfig_playbook }}"
 
-# Sync the repo before calling ansible-pull so the helper can also bootstrap a
-# fresh machine where the checkout directory does not exist yet.
+# Keep a stable checkout path on disk. This makes the managed files easy to find
+# and lets ansible-pull reuse the same repo-local config every day.
 if [ ! -d "$repo_dir/.git" ]; then
   git clone --branch "$branch" "$repo_url" "$repo_dir"
 else
@@ -28,7 +28,7 @@ exec ansible-pull \
   -U "$repo_url" \
   -C "$branch" \
   -d "$repo_dir" \
-{% if autoconfig_vault_password_file %}
-  --vault-password-file "{{ autoconfig_vault_password_file }}" \
-{% endif %}
-  "$playbook"
+  {% if autoconfig_vault_password_file %}
+--vault-password-file "{{ autoconfig_vault_password_file }}" \
+  {% endif %}
+"$playbook"

@@ -108,7 +108,10 @@ frigate_alerts_retain_days: 2
 frigate_detections_retain_days: 2
 frigate_snapshots_retain_days: 1
 
-server_storage_mounts: []
+# Keep storage simple: the repo ships the target host's /etc/fstab, and the
+# server role copies it into place instead of rebuilding mount lines from vars.
+server_manage_fstab: false
+server_fstab_src: ""
 
 server_fail2ban_enabled: false
 # Start with SSH protection before layering on app-specific jails. This is the
@@ -172,7 +175,7 @@ pihole_dns_edns0_ecs: true
 # Importing adlists and exact allowlist domains from extracted text files is a
 # safer source-of-truth than copying the whole live database blindly.
 pihole_policy_import_enabled: false
-pihole_policy_root: "{{ playbook_dir }}/backups/raspi/etc/pihole"
+pihole_policy_root: "{{ playbook_dir }}/files/pihole/policy"
 pihole_adlists_file: "{{ pihole_policy_root }}/adlists_enabled.txt"
 pihole_allowlist_exact_file: "{{ pihole_policy_root }}/allowlist_exact.txt"
 pihole_import_comment: Managed by ansible Pi-hole import

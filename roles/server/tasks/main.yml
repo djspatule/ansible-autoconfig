@@ -7,7 +7,7 @@
     - server_docker
 
 - import_tasks: mounts.yml
-  when: server_storage_mounts | length > 0
+  when: server_manage_fstab | default(false)
   tags:
     - server
     - server_mounts

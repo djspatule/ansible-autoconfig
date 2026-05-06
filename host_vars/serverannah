@@ -1,8 +1,13 @@
 ---
 ansible_connection: local
 ansible_python_interpreter: auto_silent
+
+# serverannah pulls and applies its own config locally.
 autoconfig_branch: server-bootstrap
 autoconfig_playbook: local.yml
+
+# Keep common shell config on the real server, but only from the small safe
+# Stow packages currently versioned in this repo.
 base_dotfiles_enabled: true
 server_fail2ban_enabled: true
 server_homepage_enabled: true
@@ -49,36 +54,18 @@ nextcloud_external_mounts:
     users:
       - lion
       - mimi
+
+# Only Stow packages that are already curated into files/dotfiles are enabled.
 dotfiles_stow_packages:
   - bash
   - starship
-# Keep the current persistent data layout visible in host vars so future mount
-# automation can be generated from structured data instead of a copied fstab.
-server_storage_mounts:
-  - src: UUID=89612d91-62bc-45b5-bc84-04e52994ca03
-    path: /mnt/SSD_512
-    fstype: ext4
-    opts: defaults,nofail
-    dump: 0
-    passno: 2
-  - src: UUID=a52bd55d-c955-4d7e-86b4-0ddf448304af
-    path: /mnt/SSD_1TO
-    fstype: ext4
-    opts: defaults,nofail
-    dump: 0
-    passno: 2
-  - src: UUID=83f9bfa8-56fe-47bd-bbc2-962b707450ec
-    path: /mnt/back-up
-    fstype: ext4
-    opts: defaults,nofail
-    dump: 0
-    passno: 2
-  - src: UUID=d41a355a-a5ba-47b3-8e00-a602131c933a
-    path: /mnt/verbatim
-    fstype: ext4
-    opts: defaults,nofail
-    dump: 0
-    passno: 2
+
+# Storage stays simple: ship the target fstab as a normal file and copy it.
+server_manage_fstab: true
+server_fstab_src: "{{ playbook_dir }}/files/serverannah/etc/fstab"
+
+# Public URLs and hardware details stay in host_vars because they are truly
+# specific to this machine.
 nextcloud_public_url: https://cloud.dinnizer.com
 aumenuilya_backup_root: /mnt/SSD_1TO/BackUp/Mimi/AuMenuIlYA
 aumenuilya_public_url: https://www.aumenuilya.com

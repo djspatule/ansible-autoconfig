@@ -1,24 +1,38 @@
 ---
-# Drive extra storage from structured host vars instead of hand-edited fstab
-# lines so future machines can reuse the same data model.
-- name: Ensure server mount points exist
+- name: Require a versioned fstab source when fstab management is enabled
+  ansible.builtin.assert:
+    that:
+      - server_fstab_src | length > 0
+    fail_msg: server_manage_fstab is enabled but server_fstab_src is empty.
+
+- name: Install the managed fstab
+  ansible.builtin.copy:
+    src: "{{ server_fstab_src }}"
+    dest: /etc/fstab
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+
+# Keep /etc/fstab as the single source of truth. This tiny parse step avoids a
+# second mount-point list in vars just to create the target directories.
+- name: Read mount points from the managed fstab
+  ansible.builtin.shell: |
+    awk '!/^[[:space:]]*#/ && NF >= 2 && $2 ~ /^\// && $2 != "/" { print $2 }' /etc/fstab
+  args:
+    executable: /bin/bash
+  register: server_fstab_mount_points
+  changed_when: false
+
+- name: Ensure mount points from fstab exist
   ansible.builtin.file:
-    path: "{{ item.path }}"
+    path: "{{ item }}"
     state: directory
     owner: root
     group: root
     mode: "0755"
-  loop: "{{ server_storage_mounts }}"
+  loop: "{{ server_fstab_mount_points.stdout_lines }}"
 
-# Use the mount module so Ansible manages both /etc/fstab and the live mount
-# state in one place, instead of shelling out to mount commands manually.
-- name: Ensure server storage mounts are configured and mounted
-  ansible.posix.mount:
-    src: "{{ item.src }}"
-    path: "{{ item.path }}"
-    fstype: "{{ item.fstype }}"
-    opts: "{{ item.opts }}"
-    dump: "{{ item.dump | string }}"
-    passno: "{{ item.passno | string }}"
-    state: mounted
-  loop: "{{ server_storage_mounts }}"
+- name: Mount filesystems declared in fstab
+  ansible.builtin.command: mount -a
+  changed_when: false
