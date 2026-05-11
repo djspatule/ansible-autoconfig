@@ -1,5 +1,112 @@
 # Ansible Autoconfig
 
+![Ansible Logo](https://www.learnlinux.tv/wp-content/uploads/2020/12/ansible-e1607524003363.png)
+
+This repository is based on the code that Jay Lacroix (LearnLinuxTV) worked on
+from his [Ansible Desktop tutorial on Youtube](https://youtu.be/gIDywsGBqf4).
+
+Additionnal inspiration could be taken from
+[Jeef Geerling's work on Ansible](https://ansible.jeffgeerling.com)
+
+It was improved with the Ansible-pull tutorial and then coding was improved with
+ChatGPT's Codex (via opencode and pi.dev).
+
+## Usage
+
+objective is to have something that can be run easily on a new machine or not
+(idempotent) with:
+
+> sudo ansible-pull -U <https://github.com/djspatule/ansible-autoconfig.git>
+> --vault-password-file ~/secret.txt -C main
+
+in test mode, to avoid having to "git push" each modification in order to test
+it locally on a development machine where the repo is present (because i'm
+currently working on it for instance), use:
+
+> sudo ansible-pull -U "~/Documents/ansible-autoconfig/" --check
+
+or
+
+> sudo ansible-playbook -i "localhost," -c local local.yml --check
+
+\_remember that ansible-pull is just a wrapper for ansible-playbook....so both
+cmds are kinda similar ... and the check option allows to test on a system
+without implementing anything ('dry run').
+
+## ToDo
+
+[] automate the execution of a script stating "espanso stop; sleep 1; espanso
+start" whenever a new USB keyboard is connected. [] differentiate a desktop
+use-case on Gnome from a server use case (vars, tasks, etc.) both running a
+"base" set of tasks [] try to "import" the files for the GUI apps (InSync,
+Betterbird, LibreOffice, etc.) [] Adjust locale when needed in the system
+settings (for french numbers and dates)  
+[] find inspiration in jaylacroix's code :
+<https://github.com/LearnLinuxTV/personal_ansible_desktop_configs/tree/main> and
+eventually omakub's code [] use tags to only test/execute parts of the script...
+that should accelerate dev and limit need for protection against downloads.
+
+### Guidelines for coding agents
+
+#### Objectives
+
+- Use ansible-pull (sudo ansible-pull -U
+  <https://github.com/djspatule/ansible-autoconfig.git> --vault-password-file
+  ~/secret.txt -C main) to automate the set-up of any of my family’s computer if
+  they ever have to be reinstalled from scratch (on the same or different
+  hardware).
+- The set-up must be idem-potent so that it can be set to run automatically once
+  a day on each of these machine (via a crontab job or else)
+- I need to be able to “test” on a virtual machine. My dotfiles are currently
+  too specific to Omarchy and managed with stow
+  (<https://github.com/djspatule/omarchy-dotfiles>).
+- Use this for inspiration of structuration, etc.
+  <https://github.com/LearnLinuxTV/personal_ansible_desktop_configs/tree/main>
+- I’m writing this code also as an opportunity to learn about ansible,
+  GNU/linux, neovim, opencode and other coding agents (and vibecoding in
+  general), tmux, git, networking, etc.
+- I would ideally like to lay the foundations of an auto-config script that will
+  be still valid and usable in 20 years….(comment your code profusely)
+- The short term priority is to work on the server
+
+#### Roles
+
+- Server (Serverannah) destined to become a homelab that runs Ubuntu server
+  25.10 (headless Optiplex 3070, accessed via SSH) : It is running both natively
+  (on bare metal) an Nginx server to host 3 websites (including a complex
+  wordpress) and more to come. It's also DNS Filtering with pi-hole (installed
+  on bare metal). last, it's running multiple docker services such as frigate
+  for cameras, N8N, Odoo, bentopdf, Plex, Timeshift (to secure backups on 1
+  master and 3 different external disks copies), Nextcloud (to manage my data
+  and make it accessible to the whole family) and the like. For now, those
+  functions are managed on a raspi 4B (192.168.1.100) that should be retired
+  soon. You don’t have to keep on serverannah things as they were on the raspi.
+  It’s a good opportunity to “improve”.
+- Kids are running Linux Mint (xfce but switch to cinnamon is envisaged) on a
+  very old macbook. Their goal is gaming and learning. Parental control has to
+  be strict
+- “Mac” is my wife’s computer (not much to set-up there, she mostly works in a
+  browser + GDrive and Spotify)
+- Laptop is on Omarchy (hyprland) but could be switched to KDE or Gnome on Arch
+  or even be switched to an Debian/Ubuntu distro
+
+#### Extra instructions
+
+- ask whenever in doubt and ask for feedback (i can run commands for you, etc.)
+- verify your work as much as possible
+- remember as much as you can of these instructions and the other instructions
+  to come
+- Create a “guidelines.md” inside the directory to describe everything the
+  project is about, how it works, terminal commands, etc. Templates on github….
+
+#### Do not do
+
+- do not change code without explaining
+- do not change multiples files at once when not strictly connected to the same
+  taks/objective at hand
+
+## Agent written readme
+
 This repository is the family `ansible-pull` source of truth.
 
 The active goal is simple:
@@ -11,27 +118,32 @@ The active goal is simple:
 - host-specific state stored in obvious places
 - configuration changed in git first, not directly on the machine
 
-## Design Rules
+### Design Rules
 
 - Prefer small Ansible modules over clever shell logic.
 - Keep one source of truth per concern.
-- Do not encode migration hacks for old machines unless they are still truly needed.
+- Do not encode migration hacks for old machines unless they are still truly
+  needed.
 - If a value is host-specific, keep it in `host_vars/serverannah`.
 - If a file is the real source of truth, store it in `files/` and copy it.
 
-## Active Layout
+### Active Layout
 
 - `local.yml`: main playbook
 - `hosts`: active inventory
 - `group_vars/all`: tiny shared defaults only
-- `host_vars/serverannah`: server-specific switches, domains, URLs, and hardware paths
-- `roles/base`: packages, Starship shell init, dotfiles via Stow, ansible-pull automation
-- `roles/server`: Docker services, reverse proxy, Pi-hole, Nextcloud, Frigate, fail2ban, storage bootstrap
+- `host_vars/serverannah`: server-specific switches, domains, URLs, and hardware
+  paths
+- `roles/base`: packages, Starship shell init, dotfiles via Stow, ansible-pull
+  automation
+- `roles/server`: Docker services, reverse proxy, Pi-hole, Nextcloud, Frigate,
+  fail2ban, storage bootstrap
 - `files/dotfiles/`: Stow packages actually managed by this repo
-- `files/serverannah/etc/fstab`: source of truth for `serverannah` storage mounts
+- `files/serverannah/etc/fstab`: source of truth for `serverannah` storage
+  mounts
 - `files/pihole/policy/`: Pi-hole adlists and allowlist imported by Ansible
 
-## Current Entry Points
+### Current Entry Points
 
 Run locally against the active inventory:
 
@@ -57,7 +169,7 @@ Dry-run a local checkout when testing:
 sudo ansible-playbook -i hosts --limit serverannah local.yml --check
 ```
 
-## Why `requirements.yml` Stays
+### Why `requirements.yml` Stays
 
 `requirements.yml` is not just documentation.
 
@@ -70,7 +182,7 @@ managed `autoconfig-pull` helper to install required collections such as:
 
 Keeping that in code is simpler and safer than hoping the README stays in sync.
 
-## What `group_vars/all` Still Does
+### What `group_vars/all` Still Does
 
 Very little, by design.
 
@@ -81,7 +193,7 @@ It now only holds shared defaults that are still useful for the active code:
 
 Anything more specific belongs in host vars or role defaults.
 
-## Storage Model
+### Storage Model
 
 Storage was simplified on purpose.
 
@@ -99,7 +211,7 @@ The server role then:
 
 This is less generic, but easier to read and maintain.
 
-## Dotfiles Model
+### Dotfiles Model
 
 Dotfiles are handled with:
 
@@ -109,7 +221,7 @@ Dotfiles are handled with:
 Only curated packages that already live in `files/dotfiles/` should be enabled.
 Right now the active set is intentionally small.
 
-## Pi-hole Source Of Truth
+### Pi-hole Source Of Truth
 
 Pi-hole policy import now reads from:
 
@@ -118,7 +230,7 @@ Pi-hole policy import now reads from:
 
 Raw backups are not meant to be the long-term source of truth.
 
-## Serverannah Notes
+### Serverannah Notes
 
 `serverannah` is the current production target.
 
@@ -130,15 +242,18 @@ Important host-specific values live in `host_vars/serverannah`, including:
 - hardware-specific device paths
 - backup source paths still needed for migration
 
-## Conventions For Future Changes
+### Conventions For Future Changes
 
 - package lists should stay in role defaults
 - hostnames, domains, and paths should stay in host vars
 - static config files should go under `files/`
 - comments should explain why a choice exists, not narrate every line
 
-## Known Reality
+### Known Reality
 
-- the old raspi still matters as migration knowledge, but should not dictate the final design
-- public DNS and NAT still need deliberate validation before full production cutover
-- `ansible-pull` may print a hostname-pattern warning during its internal git step; the actual playbook result matters more than that warning
+- the old raspi still matters as migration knowledge, but should not dictate the
+  final design
+- public DNS and NAT still need deliberate validation before full production
+  cutover
+- `ansible-pull` may print a hostname-pattern warning during its internal git
+  step; the actual playbook result matters more than that warning
