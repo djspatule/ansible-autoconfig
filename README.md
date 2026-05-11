@@ -29,22 +29,23 @@ or
 
 > sudo ansible-playbook -i "localhost," -c local local.yml --check
 
-\_remember that ansible-pull is just a wrapper for ansible-playbook....so both
+_remember that ansible-pull is just a wrapper for ansible-playbook....so both
 cmds are kinda similar ... and the check option allows to test on a system
-without implementing anything ('dry run').
+without implementing anything ('dry run')._
 
 ## ToDo
 
-[] automate the execution of a script stating "espanso stop; sleep 1; espanso
-start" whenever a new USB keyboard is connected. [] differentiate a desktop
-use-case on Gnome from a server use case (vars, tasks, etc.) both running a
-"base" set of tasks [] try to "import" the files for the GUI apps (InSync,
-Betterbird, LibreOffice, etc.) [] Adjust locale when needed in the system
-settings (for french numbers and dates)  
-[] find inspiration in jaylacroix's code :
-<https://github.com/LearnLinuxTV/personal_ansible_desktop_configs/tree/main> and
-eventually omakub's code [] use tags to only test/execute parts of the script...
-that should accelerate dev and limit need for protection against downloads.
+- [x] initiate base role and server role
+- [ ] finish implementing a base and server roles that work on fresh arch and
+      ubuntu machines
+- [ ] implement workstation role
+- [ ] implement kids role
+- [ ] find inspiration in
+      [jaylacroix's code](https://github.com/LearnLinuxTV/personal_ansible_desktop_configs/tree/main)
+      and eventually omakub's code or Jeff Geerling's code.
+- [ ] use tags to only test/execute parts of the ansible-autoconfig script...
+      that should accelerate dev/debug and limit need for protection against
+      downloads.
 
 ### Guidelines for coding agents
 
