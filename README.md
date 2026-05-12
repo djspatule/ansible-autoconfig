@@ -58,17 +58,19 @@ without implementing anything ('dry run')._
   hardware).
 - The set-up must be idem-potent so that it can be set to run automatically once
   a day on each of these machine (via a crontab job or else)
-- I need to be able to “test” on a virtual machine. My dotfiles are currently
-  too specific to Omarchy and managed with stow
-  (<https://github.com/djspatule/omarchy-dotfiles>).
+- I need to be able to “test” on a virtual machine. 
+
+My dotfiles are currently
+  specific to Omarchy and managed with stow
+  (<https://github.com/djspatule/omarchy-dotfiles>)... I want to transition from the dotfiles specific repo to this repo and have stow managed by ansible as part of the setup. Maintenance of the files need to be feasible and easy.
 - Use this for inspiration of structuration, etc.
   <https://github.com/LearnLinuxTV/personal_ansible_desktop_configs/tree/main>
 - I’m writing this code also as an opportunity to learn about ansible,
   GNU/linux, neovim, opencode and other coding agents (and vibecoding in
-  general), tmux, git, networking, etc.
-- I would ideally like to lay the foundations of an auto-config script that will
-  be still valid and usable in 20 years….(comment your code profusely)
-- The short term priority is to work on the server
+  general), tmux, git, networking, etc. Thus explain all the code, design choices, structure, etc in that perspective... 
+- I would ideally like to lay here the foundations of an auto-config ansible setup that will
+  be still valid and usable in 20 years….(comment your code profusely in that regard)
+- The short term priority is to work on the server but the rest will be addressed as well (kids computer, adult's workstations, etc.).
 
 #### Roles
 
