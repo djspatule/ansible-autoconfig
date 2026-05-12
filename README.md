@@ -45,7 +45,7 @@ without implementing anything ('dry run')._
       and eventually omakub's code or Jeff Geerling's code.
 - [ ] use tags to only test/execute parts of the ansible-autoconfig script...
       that should accelerate dev/debug and limit need for protection against
-      downloads.
+      downloads (to preserve bandwidth).
 
 ### Guidelines for coding agents
 
