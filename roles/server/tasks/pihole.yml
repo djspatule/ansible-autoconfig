@@ -173,6 +173,8 @@
 # The imported entries are tagged with a dedicated comment so future runs can
 # update or prune only the Ansible-managed subset without disturbing manual UI
 # changes the family may add later.
+# Pi-hole/FTL can keep gravity.db locked briefly right after the container starts.
+# Keep SQLite's own wait short, then let Ansible retry the whole idempotent import.
 - name: Import Pi-hole adlists from the extracted backup
   ansible.builtin.shell: |
     set -eu
@@ -183,25 +185,30 @@
     while IFS= read -r address; do
       [ -n "$address" ] || continue
       esc_address=${address//\'/\'\'}
-      delta=$(sqlite3 "$db" "INSERT INTO adlist(address, enabled, comment) VALUES('$esc_address', 1, '$marker') ON CONFLICT(address, type) DO UPDATE SET enabled=1, comment='$marker' WHERE enabled != 1 OR IFNULL(comment, '') != '$marker'; SELECT changes();")
+      delta=$(sqlite3 -cmd '.timeout 1000' "$db" "INSERT INTO adlist(address, enabled, comment) VALUES('$esc_address', 1, '$marker') ON CONFLICT(address, type) DO UPDATE SET enabled=1, comment='$marker' WHERE enabled != 1 OR IFNULL(comment, '') != '$marker'; SELECT changes();")
       changes=$((changes + delta))
     done < "$file"
     while IFS='|' read -r id address; do
       [ -n "$id" ] || continue
       if ! grep -Fxq "$address" "$file"; then
-        delta=$(sqlite3 "$db" "DELETE FROM adlist WHERE id=$id; SELECT changes();")
+        delta=$(sqlite3 -cmd '.timeout 1000' "$db" "DELETE FROM adlist WHERE id=$id; SELECT changes();")
         changes=$((changes + delta))
       fi
-    done < <(sqlite3 -separator '|' "$db" "SELECT id, address FROM adlist WHERE comment='$marker';")
+    done < <(sqlite3 -cmd '.timeout 1000' -separator '|' "$db" "SELECT id, address FROM adlist WHERE comment='$marker';")
     printf '%s\n' "$changes"
   args:
     executable: /bin/bash
   register: pihole_adlist_import
   changed_when: (pihole_adlist_import.stdout | trim | int) > 0
+  retries: 5
+  delay: 1
+  until: pihole_adlist_import.rc == 0
   when:
     - pihole_policy_import_enabled
     - not pihole_policy_hash_file_stat.stat.exists or (pihole_policy_hash_existing.content | b64decode | trim) != (pihole_policy_hash.stdout | trim)
 
+# Pi-hole/FTL can keep gravity.db locked briefly right after the container starts.
+# Keep SQLite's own wait short, then let Ansible retry the whole idempotent import.
 - name: Import Pi-hole exact allowlist from the extracted backup
   ansible.builtin.shell: |
     set -eu
@@ -212,21 +219,24 @@
     while IFS= read -r domain; do
       [ -n "$domain" ] || continue
       esc_domain=${domain//\'/\'\'}
-      delta=$(sqlite3 -cmd '.timeout 5000' "$db" "INSERT INTO domainlist(type, domain, enabled, comment) VALUES(0, '$esc_domain', 1, '$marker') ON CONFLICT(domain, type) DO UPDATE SET enabled=1, comment='$marker' WHERE enabled != 1 OR IFNULL(comment, '') != '$marker'; SELECT changes();")
+      delta=$(sqlite3 -cmd '.timeout 1000' "$db" "INSERT INTO domainlist(type, domain, enabled, comment) VALUES(0, '$esc_domain', 1, '$marker') ON CONFLICT(domain, type) DO UPDATE SET enabled=1, comment='$marker' WHERE enabled != 1 OR IFNULL(comment, '') != '$marker'; SELECT changes();")
       changes=$((changes + delta))
     done < "$file"
     while IFS='|' read -r id domain; do
       [ -n "$id" ] || continue
       if ! grep -Fxq "$domain" "$file"; then
-        delta=$(sqlite3 -cmd '.timeout 5000' "$db" "DELETE FROM domainlist WHERE id=$id; SELECT changes();")
+        delta=$(sqlite3 -cmd '.timeout 1000' "$db" "DELETE FROM domainlist WHERE id=$id; SELECT changes();")
         changes=$((changes + delta))
       fi
-    done < <(sqlite3 -cmd '.timeout 5000' -separator '|' "$db" "SELECT id, domain FROM domainlist WHERE type=0 AND comment='$marker';")
+    done < <(sqlite3 -cmd '.timeout 1000' -separator '|' "$db" "SELECT id, domain FROM domainlist WHERE type=0 AND comment='$marker';")
     printf '%s\n' "$changes"
   args:
     executable: /bin/bash
   register: pihole_allowlist_import
   changed_when: (pihole_allowlist_import.stdout | trim | int) > 0
+  retries: 5
+  delay: 1
+  until: pihole_allowlist_import.rc == 0
   when:
     - pihole_policy_import_enabled
     - not pihole_policy_hash_file_stat.stat.exists or (pihole_policy_hash_existing.content | b64decode | trim) != (pihole_policy_hash.stdout | trim)
