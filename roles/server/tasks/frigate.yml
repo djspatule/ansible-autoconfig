@@ -93,108 +93,111 @@
     path: "{{ frigate_camera_path }}"
   register: frigate_camera_path_stat
 
-# Start the migration by encoding the raspi Frigate shape, but fail explicitly
-# if the target hardware path is not actually present yet.
-- name: Require the Frigate camera path to exist when Frigate is enabled
-  ansible.builtin.assert:
-    that:
-      - frigate_camera_path_stat.stat.exists
-    fail_msg: "Frigate expects camera path {{ frigate_camera_path }}, but it does not exist on this host yet."
+# A missing camera is a normal temporary state during server bootstrap, VM tests,
+# or hardware maintenance. Skip only the camera-dependent part and let the rest
+# of the server converge.
+- name: Explain why Frigate is skipped when the camera path is missing
+  ansible.builtin.debug:
+    msg: "Frigate is enabled, but {{ frigate_camera_path }} is missing. Skipping Frigate setup for this run."
+  when: not frigate_camera_path_stat.stat.exists
 
-- name: Install Frigate configuration
-  ansible.builtin.template:
-    src: frigate/config.yml.j2
-    dest: "{{ frigate_config_dir }}/config.yml"
-    owner: root
-    group: root
-    mode: "0644"
+- name: Configure and run Frigate when the camera path exists
+  when: frigate_camera_path_stat.stat.exists
+  block:
+    - name: Install Frigate configuration
+      ansible.builtin.template:
+        src: frigate/config.yml.j2
+        dest: "{{ frigate_config_dir }}/config.yml"
+        owner: root
+        group: root
+        mode: "0644"
 
-- name: Pull Frigate image
-  community.docker.docker_image:
-    name: "{{ frigate_image }}"
-    source: pull
+    - name: Pull Frigate image
+      community.docker.docker_image:
+        name: "{{ frigate_image }}"
+        source: pull
 
-- name: Run Frigate container
-  community.docker.docker_container:
-    name: "{{ frigate_container_name }}"
-    image: "{{ frigate_image }}"
-    state: started
-    restart_policy: unless-stopped
-    privileged: true
-    shm_size: "{{ frigate_shm_size }}"
-    stop_timeout: 30
-    published_ports: "{{ frigate_published_ports }}"
-    devices: "{{ frigate_devices }}"
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - "{{ frigate_config_dir }}:/config"
-      - "{{ frigate_media_dir }}:/media/frigate"
-    env:
-      FRIGATE_RTSP_PASSWORD: "{{ frigate_rtsp_password }}"
-  no_log: true
+    - name: Run Frigate container
+      community.docker.docker_container:
+        name: "{{ frigate_container_name }}"
+        image: "{{ frigate_image }}"
+        state: started
+        restart_policy: unless-stopped
+        privileged: true
+        shm_size: "{{ frigate_shm_size }}"
+        stop_timeout: 30
+        published_ports: "{{ frigate_published_ports }}"
+        devices: "{{ frigate_devices }}"
+        volumes:
+          - /etc/localtime:/etc/localtime:ro
+          - "{{ frigate_config_dir }}:/config"
+          - "{{ frigate_media_dir }}:/media/frigate"
+        env:
+          FRIGATE_RTSP_PASSWORD: "{{ frigate_rtsp_password }}"
+      no_log: true
 
-- name: Calculate the desired Frigate auth state hash
-  ansible.builtin.shell: |
-    set -eu
-    printf '%s\n' '{{ frigate_admin_password }}'
-  args:
-    executable: /bin/bash
-  register: frigate_auth_state_material
-  changed_when: false
-  no_log: true
+    - name: Calculate the desired Frigate auth state hash
+      ansible.builtin.shell: |
+        set -eu
+        printf '%s\n' '{{ frigate_admin_password }}'
+      args:
+        executable: /bin/bash
+      register: frigate_auth_state_material
+      changed_when: false
+      no_log: true
 
-- name: Derive the desired Frigate auth state hash
-  ansible.builtin.set_fact:
-    frigate_auth_state_hash: "{{ frigate_auth_state_material.stdout | hash('sha256') }}"
-  no_log: true
+    - name: Derive the desired Frigate auth state hash
+      ansible.builtin.set_fact:
+        frigate_auth_state_hash: "{{ frigate_auth_state_material.stdout | hash('sha256') }}"
+      no_log: true
 
-- name: Check whether a previous Frigate auth state hash exists
-  ansible.builtin.stat:
-    path: "{{ frigate_auth_state_hash_file }}"
-  register: frigate_auth_state_hash_file_stat
+    - name: Check whether a previous Frigate auth state hash exists
+      ansible.builtin.stat:
+        path: "{{ frigate_auth_state_hash_file }}"
+      register: frigate_auth_state_hash_file_stat
 
-- name: Read the previous Frigate auth state hash
-  ansible.builtin.slurp:
-    src: "{{ frigate_auth_state_hash_file }}"
-  register: frigate_auth_state_hash_existing
-  when: frigate_auth_state_hash_file_stat.stat.exists
-  no_log: true
+    - name: Read the previous Frigate auth state hash
+      ansible.builtin.slurp:
+        src: "{{ frigate_auth_state_hash_file }}"
+      register: frigate_auth_state_hash_existing
+      when: frigate_auth_state_hash_file_stat.stat.exists
+      no_log: true
 
-# Use Frigate's own hashing function from inside the container so we do not need
-# to guess or reimplement the password format outside the app.
-- name: Apply the managed Frigate auth state directly to the DB
-  ansible.builtin.shell: |
-    set -eu
-    db='{{ frigate_config_dir }}/frigate.db'
-    admin_hash=$(docker exec {{ frigate_container_name }} python3 -c "from frigate.api.auth import hash_password; print(hash_password('{{ frigate_admin_password }}', iterations=600000))")
-    sqlite3 "$db" "UPDATE user SET password_hash='${admin_hash}', role='admin' WHERE username='{{ frigate_admin_username }}';"
-    sqlite3 "$db" "DELETE FROM user WHERE username != '{{ frigate_admin_username }}';"
-  args:
-    executable: /bin/bash
-  when: >-
-    not frigate_auth_state_hash_file_stat.stat.exists or
-    (frigate_auth_state_hash_existing.content | b64decode | trim) != frigate_auth_state_hash
-  no_log: true
+    # Use Frigate's own hashing function from inside the container so we do not need
+    # to guess or reimplement the password format outside the app.
+    - name: Apply the managed Frigate auth state directly to the DB
+      ansible.builtin.shell: |
+        set -eu
+        db='{{ frigate_config_dir }}/frigate.db'
+        admin_hash=$(docker exec {{ frigate_container_name }} python3 -c "from frigate.api.auth import hash_password; print(hash_password('{{ frigate_admin_password }}', iterations=600000))")
+        sqlite3 "$db" "UPDATE user SET password_hash='${admin_hash}', role='admin' WHERE username='{{ frigate_admin_username }}';"
+        sqlite3 "$db" "DELETE FROM user WHERE username != '{{ frigate_admin_username }}';"
+      args:
+        executable: /bin/bash
+      when: >-
+        not frigate_auth_state_hash_file_stat.stat.exists or
+        (frigate_auth_state_hash_existing.content | b64decode | trim) != frigate_auth_state_hash
+      no_log: true
 
-- name: Restart Frigate after auth state changes
-  ansible.builtin.command:
-    argv:
-      - docker
-      - restart
-      - "{{ frigate_container_name }}"
-  changed_when: true
-  when: >-
-    not frigate_auth_state_hash_file_stat.stat.exists or
-    (frigate_auth_state_hash_existing.content | b64decode | trim) != frigate_auth_state_hash
+    - name: Restart Frigate after auth state changes
+      ansible.builtin.command:
+        argv:
+          - docker
+          - restart
+          - "{{ frigate_container_name }}"
+      changed_when: true
+      when: >-
+        not frigate_auth_state_hash_file_stat.stat.exists or
+        (frigate_auth_state_hash_existing.content | b64decode | trim) != frigate_auth_state_hash
 
-- name: Record the applied Frigate auth state hash
-  ansible.builtin.copy:
-    content: "{{ frigate_auth_state_hash }}\n"
-    dest: "{{ frigate_auth_state_hash_file }}"
-    owner: root
-    group: root
-    mode: "0644"
-  when: >-
-    not frigate_auth_state_hash_file_stat.stat.exists or
-    (frigate_auth_state_hash_existing.content | b64decode | trim) != frigate_auth_state_hash
-  no_log: true
+    - name: Record the applied Frigate auth state hash
+      ansible.builtin.copy:
+        content: "{{ frigate_auth_state_hash }}\n"
+        dest: "{{ frigate_auth_state_hash_file }}"
+        owner: root
+        group: root
+        mode: "0644"
+      when: >-
+        not frigate_auth_state_hash_file_stat.stat.exists or
+        (frigate_auth_state_hash_existing.content | b64decode | trim) != frigate_auth_state_hash
+      no_log: true
