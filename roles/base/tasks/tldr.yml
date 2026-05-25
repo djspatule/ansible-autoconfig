@@ -1,9 +1,0 @@
----
-# On Debian-family hosts we intentionally standardize on the snap `tldr` client.
-# If `tealdeer` remains installed, it wins on PATH as /usr/bin/tldr and breaks
-# the behavior we want.
-- name: Remove tealdeer on Debian-family hosts
-  ansible.builtin.package:
-    name: tealdeer
-    state: absent
-  when: ansible_facts.os_family == "Debian"
