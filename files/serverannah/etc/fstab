@@ -1,20 +1,6 @@
-# /etc/fstab: static file system information.
-#
-# This file is the Ansible source of truth for serverannah storage layout.
+# Serverannah data disks only.
+# Root, boot, EFI and swap stay managed by the OS installer.
 
-# <file system> <mount point>   <type>  <options>       <dump>  <pass>
-
-# Root filesystem
-/dev/disk/by-id/dm-uuid-LVM-0un03V5Y3TpL9emyLkcEJrKlqYPvVeSnIbjXIswguSR8TPrGryfLX3nNCPggGAvp / ext4 defaults 0 1
-
-# Boot partitions
-/dev/disk/by-uuid/3ed6867d-3d03-4489-adec-9e11a0260939 /boot ext4 defaults 0 1
-/dev/disk/by-uuid/8736-F541 /boot/efi vfat defaults 0 1
-
-# Swap file
-/swap.img none swap sw 0 0
-
-# Data disks
 UUID=89612d91-62bc-45b5-bc84-04e52994ca03 /mnt/SSD_512 ext4 defaults,nofail 0 2
 UUID=a52bd55d-c955-4d7e-86b4-0ddf448304af /mnt/SSD_1TO ext4 defaults,nofail 0 2
 UUID=83f9bfa8-56fe-47bd-bbc2-962b707450ec /mnt/back-up ext4 defaults,nofail 0 2
