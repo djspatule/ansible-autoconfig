@@ -136,6 +136,31 @@
           FRIGATE_RTSP_PASSWORD: "{{ frigate_rtsp_password }}"
       no_log: true
 
+    # Frigate creates frigate.db during its own startup. The container can be
+    # "started" before the SQLite database and its user table are ready, so wait
+    # before applying the managed admin password below.
+    - name: Wait for Frigate database file to exist
+      ansible.builtin.stat:
+        path: "{{ frigate_config_dir }}/frigate.db"
+      register: frigate_db_stat
+      retries: 30
+      delay: 2
+      until: frigate_db_stat.stat.exists
+
+    - name: Wait for Frigate auth table to become queryable
+      ansible.builtin.command:
+        argv:
+          - sqlite3
+          - -cmd
+          - .timeout 1000
+          - "{{ frigate_config_dir }}/frigate.db"
+          - SELECT COUNT(*) FROM user;
+      register: frigate_auth_table_check
+      changed_when: false
+      retries: 30
+      delay: 2
+      until: frigate_auth_table_check.rc == 0
+
     - name: Calculate the desired Frigate auth state hash
       ansible.builtin.shell: |
         set -eu

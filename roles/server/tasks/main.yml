@@ -36,14 +36,30 @@
     - server
     - game_timer
 
-- import_tasks: nextcloud.yml
+- import_tasks: nextcloud_preflight.yml
   when: server_nextcloud_enabled | default(false)
   tags:
     - server
     - nextcloud
 
-- import_tasks: frigate.yml
+- import_tasks: nextcloud.yml
+  when:
+    - server_nextcloud_enabled | default(false)
+    - nextcloud_storage_mount_available | default(false)
+  tags:
+    - server
+    - nextcloud
+
+- import_tasks: frigate_preflight.yml
   when: server_frigate_enabled | default(false)
+  tags:
+    - server
+    - frigate
+
+- import_tasks: frigate.yml
+  when:
+    - server_frigate_enabled | default(false)
+    - frigate_runtime_available | default(false)
   tags:
     - server
     - frigate

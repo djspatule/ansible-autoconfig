@@ -160,6 +160,18 @@ Run with `ansible-pull` on the target machine:
 sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git -C server-bootstrap -d /opt/ansible-pull local.yml
 ```
 
+When testing on a VM or before public DNS/port forwarding is ready, do not ask
+Caddy to obtain public HTTPS certificates yet. Keep the real `serverannah` vars
+as the production target, and override only the staging network edge explicitly:
+
+```bash
+sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git -C server-bootstrap -d /opt/ansible-pull local.yml \
+  -e 'server_reverse_proxy_auto_https=false server_reverse_proxy_published_ports=["8081:80"] server_reverse_proxy_sites=[{"hostname":"homepage.localtest.me","upstream":"homepage:3000"},{"hostname":"bentopdf.localtest.me","upstream":"bentopdf:8080"},{"hostname":"game-timer.localtest.me","upstream":"game-timer:80"},{"hostname":"pihole.localtest.me","upstream":"pihole:80"}]'
+```
+
+This keeps VM testing local and avoids confusing Let's Encrypt failures while the
+server is not publicly reachable.
+
 Bootstrap a fresh server that does not have Ansible yet:
 
 ```bash
@@ -198,21 +210,23 @@ Anything more specific belongs in host vars or role defaults.
 
 ### Storage Model
 
-Storage was simplified on purpose.
+Storage was simplified on purpose, but Ansible does not replace the whole system
+`/etc/fstab` anymore. The OS installer should keep owning `/`, `/boot`, EFI and
+swap because their UUIDs are created during installation.
 
-Instead of rebuilding mount lines from structured YAML, the repo now ships the
-target host's `fstab` directly:
+The repo ships only the data-disk entries:
 
 - source: `files/serverannah/etc/fstab`
-- deployed to: `/etc/fstab`
+- deployed into: a marked Ansible block inside `/etc/fstab`
 
 The server role then:
 
-1. copies the file
-2. creates the mount points declared in it
+1. inserts or updates the marked data-mount block
+2. creates the mount points declared in that source file
 3. runs `mount -a`
 
-This is less generic, but easier to read and maintain.
+This keeps data mounts versioned without hard-coding boot/root UUIDs that belong
+to one specific installation.
 
 ### Dotfiles Model
 
