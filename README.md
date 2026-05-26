@@ -44,7 +44,11 @@ without implementing anything ('dry run')._
         old back-up)
   - [ ] include running pi-hole update as part of the ansible playbook?
   - [ ] other services : implement Odoo, plex timeshift or borg?
-
+  - [ ] correct minimally and deploy the dinnizer app at app.dinnizer.com. I'll
+        later use the dinnizer.com landing page for a corporate website.
+  - [ ] re-establish whern possible the conf file for Homepage as on raspi (with
+        the same "widgets" when relevant). Update also the links there.
+  - [ ] develop a very simple dinnizer landing page for a CFO part time service.
 - [ ] secure server
   - [ ] implement tailscale
   - [ ] implement caddy auth for homepage and bentopdf? is there a fail2ban-like
