@@ -15,13 +15,14 @@ server_bentopdf_enabled: true
 server_game_timer_enabled: true
 server_nextcloud_enabled: true
 server_frigate_enabled: true
-# Keep Pi-hole cutover deliberate on the real server until the final DNS switch
-# and admin hostname choice are made.
+# Keep Pi-hole on the LAN address so systemd-resolved can continue to own the
+# host loopback resolver while household clients use serverannah directly.
 server_pihole_enabled: true
 pihole_policy_import_enabled: true
-# Keep household DNS cutover explicit. Staged mode keeps DNS on high ports while
-# systemd-resolved continues to own the host resolver during validation.
-pihole_mode: staged
+pihole_mode: production
+pihole_published_ports:
+  - "192.168.1.100:53:53/tcp"
+  - "192.168.1.100:53:53/udp"
 pihole_extra_published_ports:
   - "8089:80"
 server_reverse_proxy_enabled: true
