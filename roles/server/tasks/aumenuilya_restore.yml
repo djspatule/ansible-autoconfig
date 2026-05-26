@@ -228,16 +228,47 @@
   changed_when: false
   no_log: true
 
-# Use the database itself as the source of truth here. File markers can lie if
-# the database volume is replaced while the import directory survives.
+- name: Check whether the last AuMenuIlYA DB import hash exists
+  ansible.builtin.stat:
+    path: "{{ aumenuilya_db_import_hash_file }}"
+  register: aumenuilya_db_import_hash_file_stat
+
+- name: Read the last AuMenuIlYA DB import hash
+  ansible.builtin.slurp:
+    src: "{{ aumenuilya_db_import_hash_file }}"
+  register: aumenuilya_db_import_hash_existing
+  when: aumenuilya_db_import_hash_file_stat.stat.exists
+
+- name: Determine whether AuMenuIlYA database import is needed
+  ansible.builtin.set_fact:
+    aumenuilya_db_import_needed: >-
+      {{
+        aumenuilya_db_seed_state.stdout | trim != "1"
+        or not aumenuilya_db_import_hash_file_stat.stat.exists
+        or (aumenuilya_db_import_hash_existing.content | default('') | b64decode | trim) != aumenuilya_sql_dump_stat.stat.checksum
+      }}
+
+# Use both the database and the dump checksum as source of truth. The checksum
+# lets a fresh Pi backup replace the already-seeded database without manually
+# deleting the MariaDB volume.
 - name: Import AuMenuIlYA database dump
-  ansible.builtin.shell: >-
-    docker exec -i {{ aumenuilya_db_container_name }} mariadb
-    -h127.0.0.1 -uroot -p{{ aumenuilya_db_root_password }} < {{ aumenuilya_import_dir }}/site.sql
+  ansible.builtin.shell: |
+    set -eu
+    docker exec {{ aumenuilya_db_container_name }} mariadb -h127.0.0.1 -uroot -p{{ aumenuilya_db_root_password }} -e "DROP DATABASE IF EXISTS {{ aumenuilya_db_name }}; CREATE DATABASE {{ aumenuilya_db_name }} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+    docker exec -i {{ aumenuilya_db_container_name }} mariadb -h127.0.0.1 -uroot -p{{ aumenuilya_db_root_password }} {{ aumenuilya_db_name }} < {{ aumenuilya_import_dir }}/site.sql
   args:
     executable: /bin/bash
-  when: aumenuilya_db_seed_state.stdout | trim != "1"
+  when: aumenuilya_db_import_needed
   no_log: true
+
+- name: Record the imported AuMenuIlYA DB dump hash
+  ansible.builtin.copy:
+    content: "{{ aumenuilya_sql_dump_stat.stat.checksum }}\n"
+    dest: "{{ aumenuilya_db_import_hash_file }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when: aumenuilya_db_import_needed
 
 # The official WordPress image bootstraps core files and wp-config.php, while
 # the restored wp-content keeps the site's theme, plugins, and uploads.

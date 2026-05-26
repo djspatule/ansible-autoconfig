@@ -210,11 +210,10 @@ aumenuilya_secret_dir: /etc/ansible/secrets
 aumenuilya_db_container_name: aumenuilya-db
 aumenuilya_app_container_name: aumenuilya
 aumenuilya_db_image: mariadb:11.4
-# This backup comes from a 2022 WordPress install with legacy theme code.
-# Pinning an older WordPress/PHP image is more realistic than pretending that
-# unmaintained theme code will run cleanly on the newest PHP release.
-aumenuilya_wordpress_image: wordpress:5.9.3-php7.4-apache
-aumenuilya_wpcli_image: wordpress:cli-php7.4
+# The live Pi site has been updated beyond the old 2022 backup. Track the modern
+# PHP line explicitly instead of pinning the restored container to old WP/PHP.
+aumenuilya_wordpress_image: wordpress:php8.2-apache
+aumenuilya_wpcli_image: wordpress:cli-php8.2
 aumenuilya_db_name: aumenuilkomyriam
 aumenuilya_db_user: aumenuilkomyriam
 aumenuilya_db_password_file: "{{ aumenuilya_secret_dir }}/aumenuilya-db-password"
@@ -228,6 +227,7 @@ aumenuilya_source_wp_content: "{{ aumenuilya_source_tree }}/wp-content/"
 aumenuilya_source_htaccess: "{{ aumenuilya_source_tree }}/.htaccess"
 aumenuilya_source_ads_txt: "{{ aumenuilya_backup_root }}/ads.txt"
 aumenuilya_source_sql_dump: "{{ aumenuilya_backup_root }}/aumenuilkomyriam_mysql_db_NoComments_20220515.sql"
+aumenuilya_db_import_hash_file: "{{ aumenuilya_root_dir }}/.ansible-db-import-hash"
 aumenuilya_published_ports: []
 aumenuilya_wait_retries: 30
 aumenuilya_wait_delay: 5

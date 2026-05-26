@@ -378,6 +378,28 @@
   when: item.rc != 0
   no_log: true
 
+# Keep managed account recovery simple during migration: the password files in
+# /etc/ansible/secrets are the source of truth even if the account already
+# existed with an unknown password from an older Nextcloud install.
+- name: Ensure managed Nextcloud users use their managed passwords
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - -e
+      - "OC_PASS={{ nextcloud_user_password_map[item.uid] }}"
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - user:resetpassword
+      - --password-from-env
+      - "{{ item.uid }}"
+  loop: "{{ nextcloud_managed_users }}"
+  changed_when: false
+  no_log: true
+
 - name: List current Nextcloud external mounts
   ansible.builtin.command:
     argv:

@@ -13,6 +13,12 @@ cameras:
         - v4l2
         - -input_format
         - mjpeg
+        # Pin the USB camera mode so ffmpeg does not decode a larger/default
+        # MJPEG stream into Frigate's smaller detection frame and corrupt rows.
+        - -video_size
+        - "{{ frigate_detect_width }}x{{ frigate_detect_height }}"
+        - -framerate
+        - "{{ frigate_detect_fps }}"
     detect:
       width: {{ frigate_detect_width }}
       height: {{ frigate_detect_height }}
