@@ -38,6 +38,18 @@ without implementing anything ('dry run')._
 - [x] initiate base role and server role
 - [ ] finish implementing a base and server roles that work on fresh arch and
       ubuntu machines
+  - [ ] nextcloud: implement "old" users ?
+  - [ ] aumenuilya: why is it an old version and not the one "running" on the pi
+        ? use SSH to create the latest back-up and replace in SSD_1TO (keep the
+        old back-up)
+  - [ ] include running pi-hole update as part of the ansible playbook?
+  - [ ] other services : implement Odoo, plex timeshift or borg?
+
+- [ ] secure server
+  - [ ] implement tailscale
+  - [ ] implement caddy auth for homepage and bentopdf? is there a fail2ban-like
+        system of authentication to these services that would ban after 10
+        failed attemps for instance ?
 - [ ] implement workstation role
 - [ ] implement kids role
 - [ ] find inspiration in
