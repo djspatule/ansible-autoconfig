@@ -111,6 +111,7 @@
         owner: root
         group: root
         mode: "0644"
+      register: frigate_config_template
 
     - name: Pull Frigate image
       community.docker.docker_image:
@@ -135,6 +136,15 @@
         env:
           FRIGATE_RTSP_PASSWORD: "{{ frigate_rtsp_password }}"
       no_log: true
+
+    - name: Restart Frigate after configuration changes
+      ansible.builtin.command:
+        argv:
+          - docker
+          - restart
+          - "{{ frigate_container_name }}"
+      changed_when: true
+      when: frigate_config_template.changed
 
     # Frigate creates frigate.db during its own startup. The container can be
     # "started" before the SQLite database and its user table are ready, so wait
