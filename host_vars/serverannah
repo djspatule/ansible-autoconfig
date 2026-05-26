@@ -28,17 +28,23 @@ server_reverse_proxy_enabled: true
 server_aumenuilya_enabled: true
 homepage_extra_allowed_hosts:
   - 192.168.1.7:3000
+  - 192.168.1.100:3000
+  - homepage.dinnizer.com
 server_reverse_proxy_auto_https: true
 server_reverse_proxy_published_ports:
   - 80:80
   - 443:443
 server_reverse_proxy_sites:
-  - hostname: aumenuilya.com
-    redirect_to: https://www.aumenuilya.com
-  - hostname: www.aumenuilya.com
+  - hostname: aumenuilya.fr
+    redirect_to: https://www.aumenuilya.fr
+  - hostname: www.aumenuilya.fr
     upstream: aumenuilya:80
   - hostname: tabletop-timer.com
     upstream: game-timer:80
+  - hostname: www.tabletop-timer.com
+    redirect_to: https://tabletop-timer.com
+  - hostname: homepage.dinnizer.com
+    upstream: homepage:3000
   - hostname: cloud.dinnizer.com
     upstream: nextcloud:80
 nextcloud_managed_users:
@@ -68,7 +74,8 @@ server_fstab_src: "{{ playbook_dir }}/files/serverannah/etc/fstab"
 # specific to this machine.
 nextcloud_public_url: https://cloud.dinnizer.com
 aumenuilya_backup_root: /mnt/SSD_1TO/BackUp/Mimi/AuMenuIlYA
-aumenuilya_public_url: https://www.aumenuilya.com
+aumenuilya_old_url: http://www.aumenuilya.fr
+aumenuilya_public_url: https://www.aumenuilya.fr
 frigate_camera_path: /dev/video0
 frigate_devices:
   - /dev/video0:/dev/video0
