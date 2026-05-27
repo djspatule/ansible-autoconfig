@@ -227,7 +227,6 @@ aumenuilya_source_wp_content: "{{ aumenuilya_source_tree }}/wp-content/"
 aumenuilya_source_htaccess: "{{ aumenuilya_source_tree }}/.htaccess"
 aumenuilya_source_ads_txt: "{{ aumenuilya_backup_root }}/ads.txt"
 aumenuilya_source_sql_dump: "{{ aumenuilya_backup_root }}/aumenuilkomyriam_mysql_db_NoComments_20220515.sql"
-aumenuilya_db_import_hash_file: "{{ aumenuilya_root_dir }}/.ansible-db-import-hash"
 aumenuilya_published_ports: []
 aumenuilya_wait_retries: 30
 aumenuilya_wait_delay: 5
