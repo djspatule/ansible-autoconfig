@@ -1,5 +1,27 @@
 # Ansible Autoconfig
 
+<!--toc:start-->
+
+- [Ansible Autoconfig](#ansible-autoconfig)
+  - [Usage](#usage)
+  - [ToDo](#todo)
+    - [Guidelines for coding agents](#guidelines-for-coding-agents)
+      - [Objectives](#objectives)
+      - [Roles](#roles)
+      - [Extra instructions](#extra-instructions)
+      - [Do not do](#do-not-do)
+  - [Agent written readme](#agent-written-readme) -
+  [Design Rules](#design-rules) - [Active Layout](#active-layout) -
+  [Current Entry Points](#current-entry-points) -
+  [Why `requirements.yml` Stays](#why-requirementsyml-stays) -
+  [What `group_vars/all` Still Does](#what-groupvarsall-still-does) -
+  [Storage Model](#storage-model) - [Dotfiles Model](#dotfiles-model) -
+  [Pi-hole Source Of Truth](#pi-hole-source-of-truth) -
+  [Serverannah Notes](#serverannah-notes) -
+  [Conventions For Future Changes](#conventions-for-future-changes) -
+  [Known Reality](#known-reality)
+  <!--toc:end-->
+
 ![Ansible Logo](https://www.learnlinux.tv/wp-content/uploads/2020/12/ansible-e1607524003363.png)
 
 This repository is based on the code that Jay Lacroix (LearnLinuxTV) worked on
@@ -39,9 +61,11 @@ without implementing anything ('dry run')._
 - [ ] finish implementing a base and server roles that work on fresh arch and
       ubuntu machines
   - [ ] nextcloud: implement "old" users ?
-  - [ ] aumenuilya: why is it an old version and not the one "running" on the pi
-        ? use SSH to create the latest back-up and replace in SSD_1TO (keep the
-        old back-up)
+  - [ ] aumenuilya:
+    - [ ] why is it an old version and not the one "running" on the pi ? use SSH
+          to create the latest back-up and replace in SSD_1TO (keep the old
+          back-up).
+    - [ ] updating wordpress to its latest version doesn't work....Debug.
   - [ ] include running pi-hole update as part of the ansible playbook? Include
         also homepage update, etc. (since they are dockers, pull the latest
         image?)
