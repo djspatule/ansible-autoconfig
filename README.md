@@ -42,11 +42,13 @@ without implementing anything ('dry run')._
   - [ ] aumenuilya: why is it an old version and not the one "running" on the pi
         ? use SSH to create the latest back-up and replace in SSD_1TO (keep the
         old back-up)
-  - [ ] include running pi-hole update as part of the ansible playbook?
+  - [ ] include running pi-hole update as part of the ansible playbook? Include
+        also homepage update, etc. (since they are dockers, pull the latest
+        image?)
   - [ ] other services : implement Odoo, plex timeshift or borg?
   - [ ] correct minimally and deploy the dinnizer app at app.dinnizer.com. I'll
         later use the dinnizer.com landing page for a corporate website.
-  - [ ] re-establish whern possible the conf file for Homepage as on raspi (with
+  - [ ] re-establish when possible the conf file for Homepage as on raspi (with
         the same "widgets" when relevant). Update also the links there.
   - [ ] develop a very simple dinnizer landing page for a CFO part time service.
 - [ ] secure server
