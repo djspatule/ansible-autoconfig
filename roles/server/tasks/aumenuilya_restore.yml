@@ -101,76 +101,6 @@
     name: "{{ aumenuilya_network_name }}"
     state: present
 
-- name: Copy AuMenuIlYA SQL dump into managed import directory
-  ansible.builtin.copy:
-    src: "{{ aumenuilya_source_sql_dump }}"
-    dest: "{{ aumenuilya_import_dir }}/site.sql"
-    remote_src: true
-    owner: root
-    group: root
-    mode: "0644"
-
-# Rsync is used here on purpose because the uploads tree is large. For this kind
-# of host-local backup restore, rsync is clearer and cheaper than a recursive
-# Ansible copy of a multi-gigabyte media directory.
-- name: Sync AuMenuIlYA wp-content from backup
-  ansible.builtin.command:
-    argv:
-      - rsync
-      - -rltD
-      - --delete
-      - --itemize-changes
-      - --no-owner
-      - --no-group
-      - --exclude
-      - languages/
-      - "{{ aumenuilya_source_wp_content }}"
-      - "{{ aumenuilya_app_dir }}/wp-content/"
-  register: aumenuilya_rsync_wp_content
-  changed_when: aumenuilya_rsync_wp_content.stdout | trim != ""
-
-- name: Check whether AuMenuIlYA .htaccess exists in backup
-  ansible.builtin.stat:
-    path: "{{ aumenuilya_source_htaccess }}"
-  register: aumenuilya_htaccess_stat
-
-- name: Restore AuMenuIlYA .htaccess
-  ansible.builtin.copy:
-    src: "{{ aumenuilya_source_htaccess }}"
-    dest: "{{ aumenuilya_app_dir }}/.htaccess"
-    remote_src: true
-    owner: root
-    group: root
-    mode: "0644"
-  when: aumenuilya_htaccess_stat.stat.exists
-
-- name: Remove stale AuMenuIlYA .htaccess when backup has none
-  ansible.builtin.file:
-    path: "{{ aumenuilya_app_dir }}/.htaccess"
-    state: absent
-  when: not aumenuilya_htaccess_stat.stat.exists
-
-- name: Check whether AuMenuIlYA ads.txt exists in backup
-  ansible.builtin.stat:
-    path: "{{ aumenuilya_source_ads_txt }}"
-  register: aumenuilya_ads_txt_stat
-
-- name: Restore AuMenuIlYA ads.txt
-  ansible.builtin.copy:
-    src: "{{ aumenuilya_source_ads_txt }}"
-    dest: "{{ aumenuilya_app_dir }}/ads.txt"
-    remote_src: true
-    owner: root
-    group: root
-    mode: "0644"
-  when: aumenuilya_ads_txt_stat.stat.exists
-
-- name: Remove stale AuMenuIlYA ads.txt when backup has none
-  ansible.builtin.file:
-    path: "{{ aumenuilya_app_dir }}/ads.txt"
-    state: absent
-  when: not aumenuilya_ads_txt_stat.stat.exists
-
 - name: Run AuMenuIlYA database container
   community.docker.docker_container:
     name: "{{ aumenuilya_db_container_name }}"
@@ -228,6 +158,75 @@
   changed_when: false
   no_log: true
 
+- name: Determine whether AuMenuIlYA needs initial backup seeding
+  ansible.builtin.set_fact:
+    aumenuilya_seed_needed: "{{ aumenuilya_db_seed_state.stdout | trim != '1' }}"
+
+- name: Copy AuMenuIlYA SQL dump into managed import directory
+  ansible.builtin.copy:
+    src: "{{ aumenuilya_source_sql_dump }}"
+    dest: "{{ aumenuilya_import_dir }}/site.sql"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0644"
+  when: aumenuilya_seed_needed | bool
+
+# Rsync is used here on purpose because the uploads tree is large. The backup is
+# a seed for a fresh service only; once WordPress is live, Ansible must not replay
+# old backup files over new posts, plugin updates, or uploads.
+- name: Seed AuMenuIlYA wp-content from backup
+  ansible.builtin.command:
+    argv:
+      - rsync
+      - -rltD
+      - --delete
+      - --itemize-changes
+      - --chown=33:33
+      - --exclude
+      - languages/
+      - "{{ aumenuilya_source_wp_content }}"
+      - "{{ aumenuilya_app_dir }}/wp-content/"
+  register: aumenuilya_rsync_wp_content
+  changed_when: aumenuilya_rsync_wp_content.stdout | trim != ""
+  when: aumenuilya_seed_needed | bool
+
+- name: Check whether AuMenuIlYA .htaccess exists in backup
+  ansible.builtin.stat:
+    path: "{{ aumenuilya_source_htaccess }}"
+  register: aumenuilya_htaccess_stat
+  when: aumenuilya_seed_needed | bool
+
+- name: Seed AuMenuIlYA .htaccess
+  ansible.builtin.copy:
+    src: "{{ aumenuilya_source_htaccess }}"
+    dest: "{{ aumenuilya_app_dir }}/.htaccess"
+    remote_src: true
+    owner: "33"
+    group: "33"
+    mode: "0644"
+  when:
+    - aumenuilya_seed_needed | bool
+    - aumenuilya_htaccess_stat.stat.exists
+
+- name: Check whether AuMenuIlYA ads.txt exists in backup
+  ansible.builtin.stat:
+    path: "{{ aumenuilya_source_ads_txt }}"
+  register: aumenuilya_ads_txt_stat
+  when: aumenuilya_seed_needed | bool
+
+- name: Seed AuMenuIlYA ads.txt
+  ansible.builtin.copy:
+    src: "{{ aumenuilya_source_ads_txt }}"
+    dest: "{{ aumenuilya_app_dir }}/ads.txt"
+    remote_src: true
+    owner: "33"
+    group: "33"
+    mode: "0644"
+  when:
+    - aumenuilya_seed_needed | bool
+    - aumenuilya_ads_txt_stat.stat.exists
+
 - name: Import AuMenuIlYA database dump
   ansible.builtin.shell: |
     set -eu
@@ -235,7 +234,7 @@
     docker exec -i {{ aumenuilya_db_container_name }} mariadb -h127.0.0.1 -uroot -p{{ aumenuilya_db_root_password }} {{ aumenuilya_db_name }} < {{ aumenuilya_import_dir }}/site.sql
   args:
     executable: /bin/bash
-  when: aumenuilya_db_seed_state.stdout | trim != "1"
+  when: aumenuilya_seed_needed | bool
   no_log: true
 
 # The official WordPress image bootstraps core files and wp-config.php, while
@@ -267,6 +266,34 @@
           $_SERVER['HTTP_HOST'] = $_SERVER['HTTP_X_FORWARDED_HOST'];
         }
   no_log: true
+
+# The bind-mounted files are owned by host UIDs. UID/GID 33 is www-data in the
+# official WordPress image, and WordPress needs these paths writable for updates.
+- name: Ensure AuMenuIlYA WordPress update directories are writable
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "33"
+    group: "33"
+    mode: "0755"
+  loop:
+    - "{{ aumenuilya_app_dir }}/wp-content"
+    - "{{ aumenuilya_app_dir }}/wp-content/plugins"
+    - "{{ aumenuilya_app_dir }}/wp-content/themes"
+    - "{{ aumenuilya_app_dir }}/wp-content/uploads"
+    - "{{ aumenuilya_app_dir }}/wp-content/upgrade"
+    - "{{ aumenuilya_app_dir }}/wp-content/languages"
+    - "{{ aumenuilya_app_dir }}/wp-content/languages/plugins"
+    - "{{ aumenuilya_app_dir }}/wp-content/languages/themes"
+
+- name: Ensure existing AuMenuIlYA translation files are writable
+  ansible.builtin.file:
+    path: "{{ aumenuilya_app_dir }}/wp-content/languages"
+    state: directory
+    owner: "33"
+    group: "33"
+    recurse: true
+  when: not (aumenuilya_seed_needed | bool)
 
 - name: Wait for generated AuMenuIlYA wp-config.php
   ansible.builtin.stat:

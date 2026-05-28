@@ -27,12 +27,15 @@
   community.docker.docker_image:
     name: "{{ homepage_image }}"
     source: pull
+    force_source: true
+  register: homepage_image_pull
 
 - name: Run Homepage container
   community.docker.docker_container:
     name: "{{ homepage_container_name }}"
     image: "{{ homepage_image }}"
     state: started
+    recreate: "{{ homepage_image_pull.changed }}"
     restart_policy: unless-stopped
     published_ports:
       - "{{ homepage_port }}:3000"

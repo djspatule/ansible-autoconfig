@@ -23,7 +23,7 @@ homepage_network_name: autoconfig-services
 homepage_port: 3000
 homepage_allowed_hosts:
   - "{{ inventory_hostname }}:{{ homepage_port }}"
-  - "{{ ansible_facts.hostname }}:{{ homepage_port }}"
+  - "{{ ansible_hostname | default(inventory_hostname) }}:{{ homepage_port }}"
 homepage_extra_allowed_hosts: []
 
 server_bentopdf_enabled: false
@@ -149,9 +149,9 @@ pihole_extra_published_ports: []
 # Pi-hole stays on the same shared Docker network so the reverse proxy can front
 # the admin UI without exposing another host HTTP port.
 pihole_container_name: pihole
-# Pin the image so daily ansible-pull runs do not silently jump to a newer
-# Pi-hole release without an explicit code change.
-pihole_image: pihole/pihole:2026.04.0
+# Track the upstream Pi-hole container. The role recreates the container only
+# when Docker actually pulls a newer image digest.
+pihole_image: pihole/pihole:latest
 pihole_network_name: autoconfig-services
 pihole_root_dir: /opt/pihole
 pihole_config_dir: "{{ pihole_root_dir }}/etc-pihole"

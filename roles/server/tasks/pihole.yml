@@ -82,13 +82,13 @@
   ansible.builtin.stat:
     path: "{{ pihole_adlists_file }}"
   register: pihole_adlists_file_stat
-  when: pihole_policy_import_enabled
+  when: pihole_policy_import_enabled | bool
 
 - name: Check whether the extracted Pi-hole exact allowlist file exists
   ansible.builtin.stat:
     path: "{{ pihole_allowlist_exact_file }}"
   register: pihole_allowlist_file_stat
-  when: pihole_policy_import_enabled
+  when: pihole_policy_import_enabled | bool
 
 - name: Require extracted Pi-hole policy files when import is enabled
   ansible.builtin.assert:
@@ -96,7 +96,7 @@
       - pihole_adlists_file_stat.stat.exists
       - pihole_allowlist_file_stat.stat.exists
     fail_msg: Pi-hole policy import is enabled but the extracted backup files are missing.
-  when: pihole_policy_import_enabled
+  when: pihole_policy_import_enabled | bool
 
 # Keep the DNS service on the host, but let the admin UI stay private behind the
 # reverse proxy so websites and Pi-hole do not compete for extra host web ports.
@@ -104,12 +104,15 @@
   community.docker.docker_image:
     name: "{{ pihole_image }}"
     source: pull
+    force_source: true
+  register: pihole_image_pull
 
 - name: Run Pi-hole container
   community.docker.docker_container:
     name: "{{ pihole_container_name }}"
     image: "{{ pihole_image }}"
     state: started
+    recreate: "{{ pihole_image_pull.changed }}"
     restart_policy: unless-stopped
     published_ports: "{{ pihole_published_ports }}"
     networks:
@@ -138,13 +141,13 @@
   retries: 30
   delay: 2
   until: pihole_gravity_db_stat.stat.exists
-  when: pihole_policy_import_enabled
+  when: pihole_policy_import_enabled | bool
 
 - name: Prepare SQL-safe Pi-hole import comment
   ansible.builtin.set_fact:
     pihole_import_comment_sql: >-
       {{ pihole_import_comment | replace("'", "''") }}
-  when: pihole_policy_import_enabled
+  when: pihole_policy_import_enabled | bool
 
 - name: Calculate the desired Pi-hole policy hash
   ansible.builtin.shell: |
@@ -154,20 +157,20 @@
     executable: /bin/bash
   register: pihole_policy_hash
   changed_when: false
-  when: pihole_policy_import_enabled
+  when: pihole_policy_import_enabled | bool
 
 - name: Check whether a previous Pi-hole policy hash exists
   ansible.builtin.stat:
     path: "{{ pihole_policy_hash_file }}"
   register: pihole_policy_hash_file_stat
-  when: pihole_policy_import_enabled
+  when: pihole_policy_import_enabled | bool
 
 - name: Read the previous Pi-hole policy hash
   ansible.builtin.slurp:
     src: "{{ pihole_policy_hash_file }}"
   register: pihole_policy_hash_existing
   when:
-    - pihole_policy_import_enabled
+    - pihole_policy_import_enabled | bool
     - pihole_policy_hash_file_stat.stat.exists
 
 # The imported entries are tagged with a dedicated comment so future runs can
@@ -204,7 +207,7 @@
   delay: 1
   until: pihole_adlist_import.rc == 0
   when:
-    - pihole_policy_import_enabled
+    - pihole_policy_import_enabled | bool
     - not pihole_policy_hash_file_stat.stat.exists or (pihole_policy_hash_existing.content | b64decode | trim) != (pihole_policy_hash.stdout | trim)
 
 # Pi-hole/FTL can keep gravity.db locked briefly right after the container starts.
@@ -238,7 +241,7 @@
   delay: 1
   until: pihole_allowlist_import.rc == 0
   when:
-    - pihole_policy_import_enabled
+    - pihole_policy_import_enabled | bool
     - not pihole_policy_hash_file_stat.stat.exists or (pihole_policy_hash_existing.content | b64decode | trim) != (pihole_policy_hash.stdout | trim)
 
 - name: Restart Pi-hole after policy import changes
@@ -249,7 +252,7 @@
       - "{{ pihole_container_name }}"
   changed_when: true
   when:
-    - pihole_policy_import_enabled
+    - pihole_policy_import_enabled | bool
     - pihole_adlist_import.changed or pihole_allowlist_import.changed
 
 - name: Record the imported Pi-hole policy hash
@@ -260,5 +263,5 @@
     group: root
     mode: "0644"
   when:
-    - pihole_policy_import_enabled
+    - pihole_policy_import_enabled | bool
     - not pihole_policy_hash_file_stat.stat.exists or (pihole_policy_hash_existing.content | b64decode | trim) != (pihole_policy_hash.stdout | trim)
