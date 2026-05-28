@@ -61,7 +61,7 @@
   ansible.builtin.systemd:
     name: autoconfig-docker-lan-guard.service
     enabled: true
-    state: started
+    state: restarted
     daemon_reload: "{{ server_lan_guard_unit.changed }}"
   when: server_lan_only_published_ports | length > 0
   tags:

@@ -29,6 +29,9 @@ pihole_published_ports:
 server_lan_only_published_ports:
   - 8089
   - 8080
+  - 8971
+  - 8554
+  - 8555
 server_reverse_proxy_enabled: true
 server_aumenuilya_enabled: true
 homepage_extra_allowed_hosts:
