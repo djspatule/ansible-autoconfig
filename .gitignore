@@ -1,0 +1,10 @@
+# Raw backup material may still be parked here locally during migration work,
+# but it is not part of the Ansible source of truth anymore.
+backups/raspi/etc/pihole-bak/
+backups/raspi/etc/gravity.db
+backups/raspi/etc/dnsmasq.conf
+backups/raspi/etc/listsCache/
+backups/raspi/etc/versions
+
+# Local tmux plugin clones
+files/dotfiles/tmux/.config/tmux/plugins/

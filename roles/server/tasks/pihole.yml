@@ -1,0 +1,308 @@
+---
+- name: Ensure Pi-hole root-managed directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ pihole_root_dir }}"
+
+- name: Validate the selected Pi-hole deployment mode
+  ansible.builtin.assert:
+    that:
+      - pihole_mode in pihole_mode_profiles
+    fail_msg: >-
+      Unsupported Pi-hole mode {{ pihole_mode }}. Choose one of
+      {{ pihole_mode_profiles.keys() | list | join(', ') }}.
+
+- name: Ensure Pi-hole secret directory exists
+  ansible.builtin.file:
+    path: "{{ pihole_secret_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+# Pi-hole updates files under /etc/pihole itself, so Ansible should avoid
+# resetting ownership there on every run.
+- name: Ensure Pi-hole runtime configuration directory exists
+  ansible.builtin.file:
+    path: "{{ pihole_config_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Ensure Pi-hole hosts directory exists
+  ansible.builtin.file:
+    path: "{{ pihole_config_dir }}/hosts"
+    state: directory
+    mode: "0755"
+
+- name: Check whether Pi-hole web password file exists
+  ansible.builtin.stat:
+    path: "{{ pihole_web_password_file }}"
+  register: pihole_web_password_file_stat
+  no_log: true
+
+- name: Generate Pi-hole web password on the target host
+  ansible.builtin.shell: "tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32"
+  register: pihole_web_password_generated
+  changed_when: true
+  when: not pihole_web_password_file_stat.stat.exists
+  no_log: true
+
+- name: Save generated Pi-hole web password
+  ansible.builtin.copy:
+    content: "{{ pihole_web_password_generated.stdout }}\n"
+    dest: "{{ pihole_web_password_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: not pihole_web_password_file_stat.stat.exists
+  no_log: true
+
+- name: Read Pi-hole web password from the managed secret file
+  ansible.builtin.slurp:
+    src: "{{ pihole_web_password_file }}"
+  register: pihole_web_password_slurp
+  no_log: true
+
+- name: Load Pi-hole web password
+  ansible.builtin.set_fact:
+    pihole_web_password: "{{ pihole_web_password_slurp.content | b64decode | trim }}"
+  no_log: true
+
+- name: Ensure Pi-hole container network exists
+  community.docker.docker_network:
+    name: "{{ pihole_network_name }}"
+    state: present
+
+- name: Check whether the extracted Pi-hole adlist file exists
+  ansible.builtin.stat:
+    path: "{{ pihole_adlists_file }}"
+  register: pihole_adlists_file_stat
+  when: pihole_policy_import_enabled | bool
+
+- name: Check whether the extracted Pi-hole exact allowlist file exists
+  ansible.builtin.stat:
+    path: "{{ pihole_allowlist_exact_file }}"
+  register: pihole_allowlist_file_stat
+  when: pihole_policy_import_enabled | bool
+
+- name: Require extracted Pi-hole policy files when import is enabled
+  ansible.builtin.assert:
+    that:
+      - pihole_adlists_file_stat.stat.exists
+      - pihole_allowlist_file_stat.stat.exists
+    fail_msg: Pi-hole policy import is enabled but the extracted backup files are missing.
+  when: pihole_policy_import_enabled | bool
+
+# Keep the DNS service on the host, but let the admin UI stay private behind the
+# reverse proxy so websites and Pi-hole do not compete for extra host web ports.
+- name: Pull Pi-hole image
+  community.docker.docker_image:
+    name: "{{ pihole_image }}"
+    source: pull
+    force_source: true
+  register: pihole_image_pull
+
+- name: Run Pi-hole container
+  community.docker.docker_container:
+    name: "{{ pihole_container_name }}"
+    image: "{{ pihole_image }}"
+    state: started
+    recreate: "{{ pihole_image_pull.changed }}"
+    restart_policy: unless-stopped
+    published_ports: "{{ pihole_published_ports }}"
+    networks:
+      - name: "{{ pihole_network_name }}"
+    volumes:
+      - "{{ pihole_config_dir }}:/etc/pihole"
+    capabilities: "{{ pihole_capabilities }}"
+    env:
+      TZ: "{{ pihole_timezone }}"
+      FTLCONF_webserver_api_password: "{{ pihole_web_password }}"
+      FTLCONF_dns_listeningMode: "{{ pihole_dns_listening_mode }}"
+      FTLCONF_dns_upstreams: "{{ pihole_dns_upstreams | join(';') }}"
+      FTLCONF_dns_domain: "{{ pihole_dns_domain }}"
+      FTLCONF_dns_piholePTR: "{{ pihole_dns_ptr_mode }}"
+      FTLCONF_dns_domainNeeded: "{{ pihole_dns_domain_needed | ternary('true', 'false') }}"
+      FTLCONF_dns_expandHosts: "{{ pihole_dns_expand_hosts | ternary('true', 'false') }}"
+      FTLCONF_dns_bogusPriv: "{{ pihole_dns_bogus_priv | ternary('true', 'false') }}"
+      FTLCONF_dns_queryLogging: "{{ pihole_dns_query_logging | ternary('true', 'false') }}"
+      FTLCONF_dns_EDNS0ECS: "{{ pihole_dns_edns0_ecs | ternary('true', 'false') }}"
+  no_log: true
+
+- name: Collect LAN-bound Pi-hole published IPs
+  ansible.builtin.set_fact:
+    pihole_bind_ips: "{{ (pihole_bind_ips | default([])) + [item.split(':')[0]] }}"
+  loop: "{{ pihole_published_ports }}"
+  when: item is match('^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:')
+
+# Docker can try to restart LAN-IP-bound containers before DHCP has restored the
+# address. This small systemd helper gives Pi-hole another start attempt after
+# network-online.target and waits for any explicit bind IP first.
+- name: Install Pi-hole network-online starter service
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/autoconfig-pihole-start.service
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Start the autoconfig Pi-hole container after the LAN address exists
+      Requires=docker.service
+      After=network-online.target docker.service
+      Wants=network-online.target
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      {% for bind_ip in pihole_bind_ips | default([]) | unique %}
+      ExecStartPre=/bin/sh -c 'for i in $(seq 1 60); do ip -4 addr show | grep -q "{{ bind_ip }}/" && exit 0; sleep 2; done; exit 1'
+      {% endfor %}
+      ExecStart=/usr/bin/docker start {{ pihole_container_name }}
+
+      [Install]
+      WantedBy=multi-user.target
+  register: pihole_starter_unit
+
+- name: Enable and run Pi-hole network-online starter service
+  ansible.builtin.systemd:
+    name: autoconfig-pihole-start.service
+    enabled: true
+    state: started
+    daemon_reload: "{{ pihole_starter_unit.changed }}"
+
+- name: Wait for Pi-hole gravity.db to be present
+  ansible.builtin.stat:
+    path: "{{ pihole_config_dir }}/gravity.db"
+  register: pihole_gravity_db_stat
+  retries: 30
+  delay: 2
+  until: pihole_gravity_db_stat.stat.exists
+  when: pihole_policy_import_enabled | bool
+
+- name: Prepare SQL-safe Pi-hole import comment
+  ansible.builtin.set_fact:
+    pihole_import_comment_sql: >-
+      {{ pihole_import_comment | replace("'", "''") }}
+  when: pihole_policy_import_enabled | bool
+
+- name: Calculate the desired Pi-hole policy hash
+  ansible.builtin.shell: |
+    set -eu
+    cat "{{ pihole_adlists_file }}" "{{ pihole_allowlist_exact_file }}" | sha256sum | cut -d' ' -f1
+  args:
+    executable: /bin/bash
+  register: pihole_policy_hash
+  changed_when: false
+  when: pihole_policy_import_enabled | bool
+
+- name: Check whether a previous Pi-hole policy hash exists
+  ansible.builtin.stat:
+    path: "{{ pihole_policy_hash_file }}"
+  register: pihole_policy_hash_file_stat
+  when: pihole_policy_import_enabled | bool
+
+- name: Read the previous Pi-hole policy hash
+  ansible.builtin.slurp:
+    src: "{{ pihole_policy_hash_file }}"
+  register: pihole_policy_hash_existing
+  when:
+    - pihole_policy_import_enabled | bool
+    - pihole_policy_hash_file_stat.stat.exists
+
+# The imported entries are tagged with a dedicated comment so future runs can
+# update or prune only the Ansible-managed subset without disturbing manual UI
+# changes the family may add later.
+# Pi-hole/FTL can keep gravity.db locked briefly right after the container starts.
+# Keep SQLite's own wait short, then let Ansible retry the whole idempotent import.
+- name: Import Pi-hole adlists from the extracted backup
+  ansible.builtin.shell: |
+    set -eu
+    db="{{ pihole_config_dir }}/gravity.db"
+    file="{{ pihole_adlists_file }}"
+    marker="{{ pihole_import_comment_sql }}"
+    changes=0
+    while IFS= read -r address; do
+      [ -n "$address" ] || continue
+      esc_address=${address//\'/\'\'}
+      delta=$(sqlite3 -cmd '.timeout 1000' "$db" "INSERT INTO adlist(address, enabled, comment) VALUES('$esc_address', 1, '$marker') ON CONFLICT(address, type) DO UPDATE SET enabled=1, comment='$marker' WHERE enabled != 1 OR IFNULL(comment, '') != '$marker'; SELECT changes();")
+      changes=$((changes + delta))
+    done < "$file"
+    while IFS='|' read -r id address; do
+      [ -n "$id" ] || continue
+      if ! grep -Fxq "$address" "$file"; then
+        delta=$(sqlite3 -cmd '.timeout 1000' "$db" "DELETE FROM adlist WHERE id=$id; SELECT changes();")
+        changes=$((changes + delta))
+      fi
+    done < <(sqlite3 -cmd '.timeout 1000' -separator '|' "$db" "SELECT id, address FROM adlist WHERE comment='$marker';")
+    printf '%s\n' "$changes"
+  args:
+    executable: /bin/bash
+  register: pihole_adlist_import
+  changed_when: (pihole_adlist_import.stdout | trim | int) > 0
+  retries: 5
+  delay: 1
+  until: pihole_adlist_import.rc == 0
+  when:
+    - pihole_policy_import_enabled | bool
+    - not pihole_policy_hash_file_stat.stat.exists or (pihole_policy_hash_existing.content | b64decode | trim) != (pihole_policy_hash.stdout | trim)
+
+# Pi-hole/FTL can keep gravity.db locked briefly right after the container starts.
+# Keep SQLite's own wait short, then let Ansible retry the whole idempotent import.
+- name: Import Pi-hole exact allowlist from the extracted backup
+  ansible.builtin.shell: |
+    set -eu
+    db="{{ pihole_config_dir }}/gravity.db"
+    file="{{ pihole_allowlist_exact_file }}"
+    marker="{{ pihole_import_comment_sql }}"
+    changes=0
+    while IFS= read -r domain; do
+      [ -n "$domain" ] || continue
+      esc_domain=${domain//\'/\'\'}
+      delta=$(sqlite3 -cmd '.timeout 1000' "$db" "INSERT INTO domainlist(type, domain, enabled, comment) VALUES(0, '$esc_domain', 1, '$marker') ON CONFLICT(domain, type) DO UPDATE SET enabled=1, comment='$marker' WHERE enabled != 1 OR IFNULL(comment, '') != '$marker'; SELECT changes();")
+      changes=$((changes + delta))
+    done < "$file"
+    while IFS='|' read -r id domain; do
+      [ -n "$id" ] || continue
+      if ! grep -Fxq "$domain" "$file"; then
+        delta=$(sqlite3 -cmd '.timeout 1000' "$db" "DELETE FROM domainlist WHERE id=$id; SELECT changes();")
+        changes=$((changes + delta))
+      fi
+    done < <(sqlite3 -cmd '.timeout 1000' -separator '|' "$db" "SELECT id, domain FROM domainlist WHERE type=0 AND comment='$marker';")
+    printf '%s\n' "$changes"
+  args:
+    executable: /bin/bash
+  register: pihole_allowlist_import
+  changed_when: (pihole_allowlist_import.stdout | trim | int) > 0
+  retries: 5
+  delay: 1
+  until: pihole_allowlist_import.rc == 0
+  when:
+    - pihole_policy_import_enabled | bool
+    - not pihole_policy_hash_file_stat.stat.exists or (pihole_policy_hash_existing.content | b64decode | trim) != (pihole_policy_hash.stdout | trim)
+
+- name: Restart Pi-hole after policy import changes
+  ansible.builtin.command:
+    argv:
+      - docker
+      - restart
+      - "{{ pihole_container_name }}"
+  changed_when: true
+  when:
+    - pihole_policy_import_enabled | bool
+    - pihole_adlist_import.changed or pihole_allowlist_import.changed
+
+- name: Record the imported Pi-hole policy hash
+  ansible.builtin.copy:
+    content: "{{ pihole_policy_hash.stdout | trim }}\n"
+    dest: "{{ pihole_policy_hash_file }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when:
+    - pihole_policy_import_enabled | bool
+    - not pihole_policy_hash_file_stat.stat.exists or (pihole_policy_hash_existing.content | b64decode | trim) != (pihole_policy_hash.stdout | trim)

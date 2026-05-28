@@ -1,0 +1,48 @@
+{
+    # Keep admin disabled in this learning setup so the proxy has one obvious
+    # configuration source: the Caddyfile managed by Ansible.
+    admin off
+{% if not server_reverse_proxy_auto_https %}
+    # Stay on plain HTTP for VM and LAN tests. Real public domains can switch
+    # this off and let Caddy manage certificates automatically.
+    auto_https off
+{% endif %}
+}
+
+{% for site in server_reverse_proxy_sites %}
+{% if server_reverse_proxy_auto_https %}
+{{ site.hostname }} {
+{% else %}
+# Use explicit http:// listeners when testing on a high port, otherwise Caddy
+# may treat the hostname as an HTTPS site and reset plain HTTP requests.
+http://{{ site.hostname }} {
+{% endif %}
+{% if site.redirect_to is defined %}
+    # Redirect non-canonical hosts in the proxy itself so applications can keep
+    # a single public URL and avoid duplicate host handling.
+    redir {{ site.redirect_to }}{{ '{uri}' }} {{ site.redirect_status | default(308) }}
+{% else %}
+{% if site.basic_auth | default(false) %}
+    log {
+        output file {{ server_reverse_proxy_access_log }}
+        format json
+    }
+
+    # Protect admin-style dashboards exposed through public DNS.
+    basic_auth {
+        {{ server_reverse_proxy_basic_auth_hashes[site.hostname].user }} {{ server_reverse_proxy_basic_auth_hashes[site.hostname].hash }}
+    }
+{% endif %}
+{% if site.upstream_tls_insecure_skip_verify | default(false) %}
+    reverse_proxy {{ site.upstream }} {
+        transport http {
+            tls_insecure_skip_verify
+        }
+    }
+{% else %}
+    reverse_proxy {{ site.upstream }}
+{% endif %}
+{% endif %}
+}
+
+{% endfor %}

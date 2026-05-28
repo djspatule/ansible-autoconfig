@@ -1,0 +1,93 @@
+---
+- name: Ensure reverse proxy directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ server_reverse_proxy_root_dir }}"
+    - "{{ server_reverse_proxy_config_dir }}"
+    - "{{ server_reverse_proxy_data_dir }}"
+    - "{{ server_reverse_proxy_secret_dir }}"
+
+- name: Ensure reverse proxy container network exists
+  community.docker.docker_network:
+    name: "{{ server_reverse_proxy_network_name }}"
+    state: present
+
+- name: Pull reverse proxy image
+  community.docker.docker_image:
+    name: "{{ server_reverse_proxy_image }}"
+    source: pull
+
+- name: Remember reverse proxy sites protected with basic auth
+  ansible.builtin.set_fact:
+    server_reverse_proxy_basic_auth_sites: "{{ server_reverse_proxy_sites | selectattr('basic_auth', 'defined') | selectattr('basic_auth') | list }}"
+
+- name: Check reverse proxy basic auth password files
+  ansible.builtin.stat:
+    path: "{{ item.basic_auth_password_file | default(server_reverse_proxy_secret_dir + '/caddy-' + item.hostname + '-password') }}"
+  loop: "{{ server_reverse_proxy_basic_auth_sites }}"
+  register: server_reverse_proxy_basic_auth_password_stats
+  no_log: true
+
+- name: Generate missing reverse proxy basic auth passwords
+  ansible.builtin.shell: |
+    set -eu
+    umask 077
+    tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32 > "{{ item.item.basic_auth_password_file | default(server_reverse_proxy_secret_dir + '/caddy-' + item.item.hostname + '-password') }}"
+  args:
+    executable: /bin/bash
+    creates: "{{ item.item.basic_auth_password_file | default(server_reverse_proxy_secret_dir + '/caddy-' + item.item.hostname + '-password') }}"
+  loop: "{{ server_reverse_proxy_basic_auth_password_stats.results }}"
+  when: not item.stat.exists
+  no_log: true
+
+- name: Hash reverse proxy basic auth passwords with Caddy
+  ansible.builtin.shell: |
+    set -eu
+    docker run --rm "{{ server_reverse_proxy_image }}" caddy hash-password --plaintext "$(cat '{{ item.basic_auth_password_file | default(server_reverse_proxy_secret_dir + '/caddy-' + item.hostname + '-password') }}')"
+  args:
+    executable: /bin/bash
+  loop: "{{ server_reverse_proxy_basic_auth_sites }}"
+  register: server_reverse_proxy_basic_auth_hash_results
+  changed_when: false
+  no_log: true
+
+- name: Build reverse proxy basic auth hash map
+  ansible.builtin.set_fact:
+    server_reverse_proxy_basic_auth_hashes: >-
+      {{ server_reverse_proxy_basic_auth_hashes | default({}) | combine({item.item.hostname: {
+        'user': item.item.basic_auth_user | default(server_reverse_proxy_basic_auth_default_user),
+        'hash': item.stdout | trim
+      }}) }}
+  loop: "{{ server_reverse_proxy_basic_auth_hash_results.results }}"
+  no_log: true
+
+# The proxy config is generated from host vars so one role can front different
+# services on the VM and on real servers without forking the role.
+- name: Install reverse proxy configuration
+  ansible.builtin.template:
+    src: Caddyfile.j2
+    dest: "{{ server_reverse_proxy_config_dir }}/Caddyfile"
+    owner: root
+    group: root
+    mode: "0644"
+  register: server_reverse_proxy_config
+
+- name: Run reverse proxy container
+  community.docker.docker_container:
+    name: "{{ server_reverse_proxy_container_name }}"
+    image: "{{ server_reverse_proxy_image }}"
+    state: started
+    # Restart when the Caddyfile changes so the new routes actually get loaded.
+    restart: "{{ server_reverse_proxy_config.changed }}"
+    restart_policy: unless-stopped
+    published_ports: "{{ server_reverse_proxy_published_ports }}"
+    networks:
+      - name: "{{ server_reverse_proxy_network_name }}"
+    volumes:
+      - "{{ server_reverse_proxy_config_dir }}/Caddyfile:/etc/caddy/Caddyfile:ro"
+      - "{{ server_reverse_proxy_data_dir }}:/data"

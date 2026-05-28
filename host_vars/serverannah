@@ -1,0 +1,99 @@
+---
+ansible_connection: local
+ansible_python_interpreter: auto_silent
+
+# serverannah pulls and applies its own config locally.
+autoconfig_branch: server-bootstrap
+autoconfig_playbook: local.yml
+
+# Keep common shell config on the real server, but only from the small safe
+# Stow packages currently versioned in this repo.
+base_dotfiles_enabled: true
+server_fail2ban_enabled: true
+fail2ban_caddy_basic_auth_enabled: true
+server_backup_enabled: true
+server_homepage_enabled: true
+server_bentopdf_enabled: true
+server_game_timer_enabled: true
+server_nextcloud_enabled: true
+server_frigate_enabled: true
+# Keep Pi-hole on the LAN address so systemd-resolved can continue to own the
+# host loopback resolver while household clients use serverannah directly.
+server_pihole_enabled: true
+pihole_policy_import_enabled: true
+pihole_mode: production
+pihole_dns_listening_mode: ALL
+pihole_published_ports:
+  - "192.168.1.100:53:53/tcp"
+  - "192.168.1.100:53:53/udp"
+  - "192.168.1.100:8089:80"
+server_lan_only_published_ports:
+  - 8089
+  - 8080
+  - 8971
+  - 8554
+  - 8555
+server_reverse_proxy_enabled: true
+server_aumenuilya_enabled: true
+homepage_extra_allowed_hosts:
+  - 192.168.1.7:3000
+  - 192.168.1.100:3000
+  - homepage.dinnizer.com
+server_reverse_proxy_auto_https: true
+server_reverse_proxy_published_ports:
+  - 80:80
+  - 443:443
+server_reverse_proxy_sites:
+  - hostname: aumenuilya.fr
+    redirect_to: https://www.aumenuilya.fr
+  - hostname: www.aumenuilya.fr
+    upstream: aumenuilya:80
+  - hostname: tabletop-timer.com
+    upstream: game-timer:80
+  - hostname: www.tabletop-timer.com
+    redirect_to: https://tabletop-timer.com
+  - hostname: homepage.dinnizer.com
+    upstream: homepage:3000
+    basic_auth: true
+  - hostname: pdf.dinnizer.com
+    upstream: bentopdf:8080
+    basic_auth: true
+  - hostname: frigate.dinnizer.com
+    upstream: https://frigate:8971
+    upstream_tls_insecure_skip_verify: true
+    basic_auth: true
+  - hostname: cloud.dinnizer.com
+    upstream: nextcloud:80
+nextcloud_managed_users:
+  - uid: lion
+    display_name: lion
+    password_file: /etc/ansible/secrets/nextcloud-admin-password
+  - uid: mimi
+    display_name: mimi
+    password_file: /etc/ansible/secrets/nextcloud-mimi-password
+nextcloud_external_mounts:
+  - mount_point: /SSD_1TO
+    path: /mnt/SSD_1TO
+    users:
+      - lion
+      - mimi
+
+# Only Stow packages that are already curated into files/dotfiles are enabled.
+dotfiles_stow_packages:
+  - bash
+  - starship
+
+# Storage stays simple: ship the target fstab as a normal file and copy it.
+server_manage_fstab: true
+server_fstab_src: "{{ playbook_dir }}/files/serverannah/etc/fstab"
+
+# Public URLs and hardware details stay in host_vars because they are truly
+# specific to this machine.
+nextcloud_public_url: https://cloud.dinnizer.com
+aumenuilya_backup_root: /mnt/SSD_1TO/BackUp/Mimi/AuMenuIlYA
+aumenuilya_old_url: http://www.aumenuilya.fr
+aumenuilya_public_url: https://www.aumenuilya.fr
+frigate_camera_path: /dev/video0
+frigate_devices:
+  - /dev/video0:/dev/video0
+  - /dev/dri/renderD128:/dev/dri/renderD128

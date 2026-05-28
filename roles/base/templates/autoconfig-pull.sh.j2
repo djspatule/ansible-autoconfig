@@ -1,0 +1,34 @@
+#!/bin/sh
+set -eu
+
+repo_url="{{ autoconfig_repo_url }}"
+branch="{{ autoconfig_branch }}"
+repo_dir="{{ autoconfig_repo_dir }}"
+playbook="{{ autoconfig_playbook }}"
+
+# Keep a stable checkout path on disk. This makes the managed files easy to find
+# and lets ansible-pull reuse the same repo-local config every day.
+if [ ! -d "$repo_dir/.git" ]; then
+  git clone --branch "$branch" "$repo_url" "$repo_dir"
+else
+  git -C "$repo_dir" fetch --prune origin
+  git -C "$repo_dir" checkout "$branch"
+  git -C "$repo_dir" pull --ff-only origin "$branch"
+fi
+
+if [ -f "$repo_dir/requirements.yml" ]; then
+  ansible-galaxy collection install -r "$repo_dir/requirements.yml"
+fi
+
+# Point Ansible at the repo-local config so inventory and defaults stay aligned
+# no matter where the helper is launched from.
+export ANSIBLE_CONFIG="$repo_dir/ansible.cfg"
+
+exec ansible-pull \
+  -U "$repo_url" \
+  -C "$branch" \
+  -d "$repo_dir" \
+  {% if autoconfig_vault_password_file %}
+--vault-password-file "{{ autoconfig_vault_password_file }}" \
+  {% endif %}
+"$playbook"

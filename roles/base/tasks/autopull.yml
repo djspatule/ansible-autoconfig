@@ -1,0 +1,37 @@
+---
+# Keep the recurring pull logic in the common base role so every host can stay
+# self-managing, matching the LearnLinuxTV structure more closely.
+- name: Install autoconfig pull helper script
+  ansible.builtin.template:
+    src: autoconfig-pull.sh.j2
+    dest: /usr/local/bin/autoconfig-pull
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install autoconfig systemd service
+  ansible.builtin.template:
+    src: autoconfig-pull.service.j2
+    dest: "/etc/systemd/system/{{ autoconfig_timer_name }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Install autoconfig systemd timer
+  ansible.builtin.template:
+    src: autoconfig-pull.timer.j2
+    dest: "/etc/systemd/system/{{ autoconfig_timer_name }}.timer"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Reload systemd before enabling the autoconfig timer
+  ansible.builtin.meta: flush_handlers
+
+- name: Ensure autoconfig timer is enabled and running
+  ansible.builtin.systemd_service:
+    name: "{{ autoconfig_timer_name }}.timer"
+    state: started
+    enabled: true

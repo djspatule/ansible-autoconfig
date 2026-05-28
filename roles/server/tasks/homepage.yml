@@ -1,0 +1,48 @@
+---
+- name: Ensure Homepage root directory exists
+  ansible.builtin.file:
+    path: "{{ homepage_root_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Ensure Homepage container network exists
+  community.docker.docker_network:
+    name: "{{ homepage_network_name }}"
+    state: present
+
+# Homepage and the reverse proxy share a named Docker network so the proxy can
+# route to service names instead of host-specific bridge addresses.
+- name: Deploy Homepage config tree
+  ansible.builtin.copy:
+    src: "{{ homepage_source_dir }}"
+    dest: "{{ homepage_root_dir }}/"
+    owner: root
+    group: root
+    mode: preserve
+    directory_mode: "0755"
+
+- name: Pull Homepage image
+  community.docker.docker_image:
+    name: "{{ homepage_image }}"
+    source: pull
+    force_source: true
+  register: homepage_image_pull
+
+- name: Run Homepage container
+  community.docker.docker_container:
+    name: "{{ homepage_container_name }}"
+    image: "{{ homepage_image }}"
+    state: started
+    recreate: "{{ homepage_image_pull.changed }}"
+    restart_policy: unless-stopped
+    published_ports:
+      - "{{ homepage_port }}:3000"
+    networks:
+      - name: "{{ homepage_network_name }}"
+    volumes:
+      - "{{ homepage_config_dir }}:/app/config"
+      - /var/run/docker.sock:/var/run/docker.sock
+    env:
+      HOMEPAGE_ALLOWED_HOSTS: "{{ (homepage_allowed_hosts + homepage_extra_allowed_hosts) | unique | join(',') }}"

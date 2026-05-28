@@ -1,0 +1,7 @@
+# Serverannah data disks only.
+# Root, boot, EFI and swap stay managed by the OS installer.
+
+UUID=89612d91-62bc-45b5-bc84-04e52994ca03 /mnt/SSD_512 ext4 defaults,nofail 0 2
+UUID=a52bd55d-c955-4d7e-86b4-0ddf448304af /mnt/SSD_1TO ext4 defaults,nofail 0 2
+UUID=83f9bfa8-56fe-47bd-bbc2-962b707450ec /mnt/back-up ext4 defaults,nofail 0 2
+UUID=d41a355a-a5ba-47b3-8e00-a602131c933a /mnt/verbatim ext4 defaults,nofail 0 2

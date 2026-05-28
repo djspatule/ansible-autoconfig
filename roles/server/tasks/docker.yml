@@ -1,0 +1,34 @@
+---
+- name: Ensure the server role runs on supported hosts
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.os_family in server_docker_packages_by_family
+    fail_msg: >-
+      server currently supports only these OS families:
+      {{ server_docker_packages_by_family.keys() | join(', ') }}.
+
+- name: Load server docker package plan for this OS family
+  ansible.builtin.set_fact:
+    server_docker_packages: "{{ server_docker_packages_by_family[ansible_facts.os_family].docker }}"
+
+# Docker stays in the server role because it is a server platform concern, not a
+# universal baseline like the common CLI packages in roles/base.
+- name: Install Docker from distro packages
+  ansible.builtin.package:
+    name: "{{ server_docker_packages }}"
+    state: present
+
+- name: Ensure Docker service is enabled and running
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+# Let the main operator user access Docker without sudo so tools like
+# lazydocker work in normal interactive shells.
+- name: Ensure server Docker users are in the docker group
+  ansible.builtin.user:
+    name: "{{ item }}"
+    groups: docker
+    append: true
+  loop: "{{ server_docker_users }}"

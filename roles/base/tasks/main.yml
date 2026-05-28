@@ -1,18 +1,14 @@
 ---
 - block:
-  - import_tasks: espanso.yml
-  - import_tasks: packages.yml
-  - import_tasks: gnome.yml
-  - import_tasks: fonts.yml
-  - import_tasks: bashrc.yml
-  - import_tasks: automation_user.yml
-  - import_tasks: micro_config.yml
-  - import_tasks: rclone.yml
-
-  - name: add ansible-pull cron job
-    ansible.builtin.cron:
-      name: ansible auto-provision
-      user: "{{ automation_user }}"
-      minute: "*/10"
-      job: >-
-        ansible-pull -o -U https://github.com/djspatule/ansible-autoconfig.git --vault-password-file "/home/{{ desktop_user }}/secret.txt"
+    # Base is now the common foundation for every host, closer to the
+    # LearnLinuxTV layout. Only server-safe tasks belong here.
+    - import_tasks: common_packages.yml
+    - import_tasks: lazydocker.yml
+      when: base_lazydocker_enabled | default(false)
+    - import_tasks: starship_prompt.yml
+      when: base_starship_prompt_enabled | default(false)
+    - import_tasks: dotfiles.yml
+      when: base_dotfiles_enabled | default(false)
+    - import_tasks: autopull.yml
+  rescue:
+    - set_fact: task_failed=true

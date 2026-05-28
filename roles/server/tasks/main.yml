@@ -1,2 +1,152 @@
 ---
-- import_tasks: stirling_pdf.yml
+# Keep the server task list explicit and flat so each service can be tested with
+# tags and understood without chasing too much indirection.
+- import_tasks: docker.yml
+  tags:
+    - server
+    - server_docker
+
+- name: Install Docker LAN-only published port guard
+  ansible.builtin.copy:
+    dest: /usr/local/sbin/autoconfig-docker-lan-guard
+    owner: root
+    group: root
+    mode: "0700"
+    content: |
+      #!/bin/sh
+      set -eu
+      iptables -N AUTOCONFIG-LAN-ONLY 2>/dev/null || true
+      iptables -F AUTOCONFIG-LAN-ONLY
+      {% for cidr in server_lan_cidrs %}
+      iptables -A AUTOCONFIG-LAN-ONLY -s {{ cidr }} -j RETURN
+      {% endfor %}
+      iptables -A AUTOCONFIG-LAN-ONLY -j DROP
+      {% for port in server_lan_only_published_ports %}
+      iptables -C DOCKER-USER -p tcp -m conntrack --ctorigdstport {{ port }} -j AUTOCONFIG-LAN-ONLY 2>/dev/null || iptables -I DOCKER-USER 1 -p tcp -m conntrack --ctorigdstport {{ port }} -j AUTOCONFIG-LAN-ONLY
+      {% endfor %}
+      iptables -C DOCKER-USER -j RETURN 2>/dev/null || iptables -A DOCKER-USER -j RETURN
+  when: server_lan_only_published_ports | length > 0
+  tags:
+    - server
+    - server_docker
+    - firewall
+
+- name: Install Docker LAN-only published port guard service
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/autoconfig-docker-lan-guard.service
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Restrict selected Docker published ports to LAN clients
+      Requires=docker.service
+      After=docker.service
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=/usr/local/sbin/autoconfig-docker-lan-guard
+
+      [Install]
+      WantedBy=multi-user.target
+  register: server_lan_guard_unit
+  when: server_lan_only_published_ports | length > 0
+  tags:
+    - server
+    - server_docker
+    - firewall
+
+- name: Enable and run Docker LAN-only published port guard service
+  ansible.builtin.systemd:
+    name: autoconfig-docker-lan-guard.service
+    enabled: true
+    state: restarted
+    daemon_reload: "{{ server_lan_guard_unit.changed }}"
+  when: server_lan_only_published_ports | length > 0
+  tags:
+    - server
+    - server_docker
+    - firewall
+
+- import_tasks: mounts.yml
+  when: server_manage_fstab | default(false)
+  tags:
+    - server
+    - server_mounts
+
+- import_tasks: fail2ban.yml
+  when: server_fail2ban_enabled | default(false)
+  tags:
+    - server
+    - fail2ban
+
+- import_tasks: backup.yml
+  when: server_backup_enabled | default(false)
+  tags:
+    - server
+    - backup
+
+- import_tasks: homepage.yml
+  when: server_homepage_enabled | default(false)
+  tags:
+    - server
+    - homepage
+
+- import_tasks: bentopdf.yml
+  when: server_bentopdf_enabled | default(false)
+  tags:
+    - server
+    - bentopdf
+
+- import_tasks: game_timer.yml
+  when: server_game_timer_enabled | default(false)
+  tags:
+    - server
+    - game_timer
+
+- import_tasks: nextcloud_preflight.yml
+  when: server_nextcloud_enabled | default(false)
+  tags:
+    - server
+    - nextcloud
+
+- import_tasks: nextcloud.yml
+  when:
+    - server_nextcloud_enabled | default(false)
+    - nextcloud_storage_mount_available | default(false)
+  tags:
+    - server
+    - nextcloud
+
+- import_tasks: frigate_preflight.yml
+  when: server_frigate_enabled | default(false)
+  tags:
+    - server
+    - frigate
+
+- import_tasks: frigate.yml
+  when:
+    - server_frigate_enabled | default(false)
+    - frigate_runtime_available | default(false)
+  tags:
+    - server
+    - frigate
+
+- import_tasks: pihole.yml
+  when: server_pihole_enabled | default(false)
+  tags:
+    - server
+    - pihole
+
+- import_tasks: aumenuilya.yml
+  when: server_aumenuilya_enabled | default(false)
+  tags:
+    - server
+    - aumenuilya
+
+- import_tasks: reverse_proxy.yml
+  when: server_reverse_proxy_enabled | default(false)
+  tags:
+    - server
+    - reverse_proxy

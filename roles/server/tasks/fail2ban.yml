@@ -1,0 +1,63 @@
+---
+- name: Gather minimal facts for fail2ban
+  ansible.builtin.setup:
+    gather_subset:
+      - min
+
+- name: Ensure the fail2ban task runs on supported hosts
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.os_family in fail2ban_packages_by_family
+    fail_msg: >-
+      fail2ban currently supports only these OS families:
+      {{ fail2ban_packages_by_family.keys() | join(', ') }}.
+
+- name: Install fail2ban packages
+  ansible.builtin.package:
+    name: "{{ fail2ban_packages_by_family[ansible_facts.os_family] }}"
+    state: present
+
+- name: Ensure fail2ban jail.d exists
+  ansible.builtin.file:
+    path: /etc/fail2ban/jail.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Ensure fail2ban filter.d exists
+  ansible.builtin.file:
+    path: /etc/fail2ban/filter.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install Caddy basic auth fail2ban filter
+  ansible.builtin.copy:
+    dest: /etc/fail2ban/filter.d/caddy-basic-auth.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Definition]
+      failregex = ^.*"remote_ip":"<HOST>".*"status":401.*$
+      ignoreregex =
+  register: fail2ban_caddy_basic_auth_filter
+
+# Keep the first internet-facing protection slice small and explicit: protect
+# SSH now, then add more jails later only after they are validated.
+- name: Install fail2ban jail configuration
+  ansible.builtin.template:
+    src: fail2ban/jail.local.j2
+    dest: /etc/fail2ban/jail.d/ansible.local
+    owner: root
+    group: root
+    mode: "0644"
+  register: fail2ban_jail_config
+
+- name: Ensure fail2ban is enabled and running
+  ansible.builtin.systemd_service:
+    name: fail2ban
+    state: "{{ (fail2ban_caddy_basic_auth_filter.changed or fail2ban_jail_config.changed) | ternary('restarted', 'started') }}"
+    enabled: true

@@ -1,0 +1,245 @@
+---
+- name: Ensure Frigate root-managed directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ frigate_root_dir }}"
+    - "{{ frigate_config_dir }}"
+
+- name: Ensure Frigate secret directory exists
+  ansible.builtin.file:
+    path: "{{ frigate_secret_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Ensure Frigate media directory exists
+  ansible.builtin.file:
+    path: "{{ frigate_media_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Check whether the Frigate RTSP password file exists
+  ansible.builtin.stat:
+    path: "{{ frigate_rtsp_password_file }}"
+  register: frigate_rtsp_password_file_stat
+  no_log: true
+
+- name: Check whether the Frigate admin password file exists
+  ansible.builtin.stat:
+    path: "{{ frigate_admin_password_file }}"
+  register: frigate_admin_password_file_stat
+  no_log: true
+
+- name: Generate the Frigate RTSP password on the target host
+  ansible.builtin.shell: "tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32"
+  register: frigate_rtsp_password_generated
+  changed_when: true
+  when: not frigate_rtsp_password_file_stat.stat.exists
+  no_log: true
+
+- name: Save the generated Frigate RTSP password
+  ansible.builtin.copy:
+    content: "{{ frigate_rtsp_password_generated.stdout }}\n"
+    dest: "{{ frigate_rtsp_password_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: not frigate_rtsp_password_file_stat.stat.exists
+  no_log: true
+
+- name: Generate the Frigate admin password on the target host
+  ansible.builtin.shell: "tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32"
+  register: frigate_admin_password_generated
+  changed_when: true
+  when: not frigate_admin_password_file_stat.stat.exists
+  no_log: true
+
+- name: Save the generated Frigate admin password
+  ansible.builtin.copy:
+    content: "{{ frigate_admin_password_generated.stdout }}\n"
+    dest: "{{ frigate_admin_password_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: not frigate_admin_password_file_stat.stat.exists
+  no_log: true
+
+- name: Read the managed Frigate RTSP password file
+  ansible.builtin.slurp:
+    src: "{{ frigate_rtsp_password_file }}"
+  register: frigate_rtsp_password_slurp
+  no_log: true
+
+- name: Read the managed Frigate admin password file
+  ansible.builtin.slurp:
+    src: "{{ frigate_admin_password_file }}"
+  register: frigate_admin_password_slurp
+  no_log: true
+
+- name: Load the managed Frigate RTSP password
+  ansible.builtin.set_fact:
+    frigate_rtsp_password: "{{ frigate_rtsp_password_slurp.content | b64decode | trim }}"
+    frigate_admin_password: "{{ frigate_admin_password_slurp.content | b64decode | trim }}"
+  no_log: true
+
+- name: Check whether the expected Frigate camera path exists
+  ansible.builtin.stat:
+    path: "{{ frigate_camera_path }}"
+  register: frigate_camera_path_stat
+
+# A missing camera is a normal temporary state during server bootstrap, VM tests,
+# or hardware maintenance. Skip only the camera-dependent part and let the rest
+# of the server converge.
+- name: Explain why Frigate is skipped when the camera path is missing
+  ansible.builtin.debug:
+    msg: "Frigate is enabled, but {{ frigate_camera_path }} is missing. Skipping Frigate setup for this run."
+  when: not frigate_camera_path_stat.stat.exists
+
+- name: Configure and run Frigate when the camera path exists
+  when: frigate_camera_path_stat.stat.exists
+  block:
+    - name: Install Frigate configuration
+      ansible.builtin.template:
+        src: frigate/config.yml.j2
+        dest: "{{ frigate_config_dir }}/config.yml"
+        owner: root
+        group: root
+        mode: "0644"
+      register: frigate_config_template
+
+    - name: Pull Frigate image
+      community.docker.docker_image:
+        name: "{{ frigate_image }}"
+        source: pull
+
+    - name: Ensure Frigate container network exists
+      community.docker.docker_network:
+        name: "{{ frigate_network_name }}"
+        state: present
+
+    - name: Run Frigate container
+      community.docker.docker_container:
+        name: "{{ frigate_container_name }}"
+        image: "{{ frigate_image }}"
+        state: started
+        restart_policy: unless-stopped
+        privileged: true
+        shm_size: "{{ frigate_shm_size }}"
+        stop_timeout: 30
+        published_ports: "{{ frigate_published_ports }}"
+        networks:
+          - name: "{{ frigate_network_name }}"
+        devices: "{{ frigate_devices }}"
+        volumes:
+          - /etc/localtime:/etc/localtime:ro
+          - "{{ frigate_config_dir }}:/config"
+          - "{{ frigate_media_dir }}:/media/frigate"
+        env:
+          FRIGATE_RTSP_PASSWORD: "{{ frigate_rtsp_password }}"
+      no_log: true
+
+    - name: Restart Frigate after configuration changes
+      ansible.builtin.command:
+        argv:
+          - docker
+          - restart
+          - "{{ frigate_container_name }}"
+      changed_when: true
+      when: frigate_config_template.changed
+
+    # Frigate creates frigate.db during its own startup. The container can be
+    # "started" before the SQLite database and its user table are ready, so wait
+    # before applying the managed admin password below.
+    - name: Wait for Frigate database file to exist
+      ansible.builtin.stat:
+        path: "{{ frigate_config_dir }}/frigate.db"
+      register: frigate_db_stat
+      retries: 30
+      delay: 2
+      until: frigate_db_stat.stat.exists
+
+    - name: Wait for Frigate auth table to become queryable
+      ansible.builtin.command:
+        argv:
+          - sqlite3
+          - -cmd
+          - .timeout 1000
+          - "{{ frigate_config_dir }}/frigate.db"
+          - SELECT COUNT(*) FROM user;
+      register: frigate_auth_table_check
+      changed_when: false
+      retries: 30
+      delay: 2
+      until: frigate_auth_table_check.rc == 0
+
+    - name: Calculate the desired Frigate auth state hash
+      ansible.builtin.shell: |
+        set -eu
+        printf '%s\n' '{{ frigate_admin_password }}'
+      args:
+        executable: /bin/bash
+      register: frigate_auth_state_material
+      changed_when: false
+      no_log: true
+
+    - name: Derive the desired Frigate auth state hash
+      ansible.builtin.set_fact:
+        frigate_auth_state_hash: "{{ frigate_auth_state_material.stdout | hash('sha256') }}"
+      no_log: true
+
+    - name: Check whether a previous Frigate auth state hash exists
+      ansible.builtin.stat:
+        path: "{{ frigate_auth_state_hash_file }}"
+      register: frigate_auth_state_hash_file_stat
+
+    - name: Read the previous Frigate auth state hash
+      ansible.builtin.slurp:
+        src: "{{ frigate_auth_state_hash_file }}"
+      register: frigate_auth_state_hash_existing
+      when: frigate_auth_state_hash_file_stat.stat.exists
+      no_log: true
+
+    # Use Frigate's own hashing function from inside the container so we do not need
+    # to guess or reimplement the password format outside the app.
+    - name: Apply the managed Frigate auth state directly to the DB
+      ansible.builtin.shell: |
+        set -eu
+        db='{{ frigate_config_dir }}/frigate.db'
+        admin_hash=$(docker exec {{ frigate_container_name }} python3 -c "from frigate.api.auth import hash_password; print(hash_password('{{ frigate_admin_password }}', iterations=600000))")
+        sqlite3 "$db" "UPDATE user SET password_hash='${admin_hash}', role='admin' WHERE username='{{ frigate_admin_username }}';"
+        sqlite3 "$db" "DELETE FROM user WHERE username != '{{ frigate_admin_username }}';"
+      args:
+        executable: /bin/bash
+      when: >-
+        not frigate_auth_state_hash_file_stat.stat.exists or
+        (frigate_auth_state_hash_existing.content | b64decode | trim) != frigate_auth_state_hash
+      no_log: true
+
+    - name: Restart Frigate after auth state changes
+      ansible.builtin.command:
+        argv:
+          - docker
+          - restart
+          - "{{ frigate_container_name }}"
+      changed_when: true
+      when: >-
+        not frigate_auth_state_hash_file_stat.stat.exists or
+        (frigate_auth_state_hash_existing.content | b64decode | trim) != frigate_auth_state_hash
+
+    - name: Record the applied Frigate auth state hash
+      ansible.builtin.copy:
+        content: "{{ frigate_auth_state_hash }}\n"
+        dest: "{{ frigate_auth_state_hash_file }}"
+        owner: root
+        group: root
+        mode: "0644"
+      when: >-
+        not frigate_auth_state_hash_file_stat.stat.exists or
+        (frigate_auth_state_hash_existing.content | b64decode | trim) != frigate_auth_state_hash
+      no_log: true

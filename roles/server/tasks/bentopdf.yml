@@ -1,0 +1,23 @@
+---
+# Create the shared application network before starting the container so the
+# reverse proxy can reach BentoPDF by container name.
+- name: Ensure BentoPDF container network exists
+  community.docker.docker_network:
+    name: "{{ bentopdf_network_name }}"
+    state: present
+
+- name: Pull BentoPDF image
+  community.docker.docker_image:
+    name: "{{ bentopdf_image }}"
+    source: pull
+
+- name: Run BentoPDF container
+  community.docker.docker_container:
+    name: "{{ bentopdf_container_name }}"
+    image: "{{ bentopdf_image }}"
+    state: started
+    restart_policy: unless-stopped
+    published_ports:
+      - "{{ bentopdf_port }}:8080"
+    networks:
+      - name: "{{ bentopdf_network_name }}"

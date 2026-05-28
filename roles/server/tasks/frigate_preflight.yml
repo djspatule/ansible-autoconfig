@@ -1,0 +1,68 @@
+---
+# Frigate records video continuously, so its media directory must live on the
+# intended data disk. If /mnt/verbatim is missing, Ansible would otherwise create
+# a normal directory there and Frigate would fill the system disk instead.
+- name: Derive the required Frigate storage mount point
+  ansible.builtin.set_fact:
+    frigate_required_mount_point: "{{ frigate_root_dir | dirname }}"
+
+- name: Check whether the required Frigate storage mount is active
+  ansible.builtin.command:
+    argv:
+      - findmnt
+      - --mountpoint
+      - "{{ frigate_required_mount_point }}"
+  register: frigate_required_mount_check
+  changed_when: false
+  failed_when: false
+
+# Docker device mappings use the form /host/path:/container/path. The host-side
+# path must exist before Docker can start the container. Checking all of them up
+# front gives one clear skip message instead of a later Docker error.
+- name: Build the list of required Frigate host devices
+  ansible.builtin.set_fact:
+    frigate_required_device_paths: >-
+      {{
+        ([frigate_camera_path] + (frigate_devices | map('regex_replace', ':.*$', '') | list))
+        | unique
+        | list
+      }}
+
+- name: Check whether required Frigate host devices exist
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop: "{{ frigate_required_device_paths }}"
+  register: frigate_required_device_stats
+
+- name: Remember missing Frigate host devices
+  ansible.builtin.set_fact:
+    frigate_missing_device_paths: >-
+      {{
+        frigate_required_device_stats.results
+        | selectattr('stat.exists', 'equalto', false)
+        | map(attribute='item')
+        | list
+      }}
+
+- name: Remember whether Frigate can safely run on this host
+  ansible.builtin.set_fact:
+    frigate_runtime_available: >-
+      {{
+        frigate_required_mount_check.rc == 0
+        and (frigate_missing_device_paths | length == 0)
+      }}
+
+- name: Explain why Frigate is skipped when storage is not mounted
+  ansible.builtin.debug:
+    msg: >-
+      Frigate is enabled, but {{ frigate_required_mount_point }} is not an active
+      mount. Skipping Frigate so camera recordings are not written to the root
+      filesystem.
+  when: frigate_required_mount_check.rc != 0
+
+- name: Explain why Frigate is skipped when devices are missing
+  ansible.builtin.debug:
+    msg: >-
+      Frigate is enabled, but these required host devices are missing:
+      {{ frigate_missing_device_paths | join(', ') }}. Skipping Frigate for this run.
+  when: frigate_missing_device_paths | length > 0

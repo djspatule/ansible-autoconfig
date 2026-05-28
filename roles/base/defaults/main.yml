@@ -1,0 +1,90 @@
+---
+# Keep common package names in one map so the base role stays portable across
+# Debian-family and Arch-family hosts without splitting the whole role.
+base_packages_by_family:
+  Debian:
+    cli:
+      - curl
+      - btop
+      - python3-psutil
+      - micro
+      - fastfetch
+      - pdfgrep
+      - ncdu
+      - mc
+      - bat
+      - clamav
+      - rclone
+      - cmatrix
+      - eza
+      - sl
+      - starship
+      - stow
+      - snapd
+      - tree
+      - ripgrep
+      - rsync
+      - sqlite3
+      - v4l-utils
+      - ffmpeg
+    snaps: [] # keep the [] for as long as this list is empty. Delete [] when you at at least one line.
+      # - tldr
+  Archlinux:
+    cli:
+      - curl
+      - btop
+      - python-psutil
+      - micro
+      - fastfetch
+      - pdfgrep
+      - ncdu
+      - mc
+      - bat
+      - clamav
+      - rclone
+      - cmatrix
+      - eza
+      - sl
+      - starship
+      - stow
+      - tree
+      - ripgrep
+      - tldr
+      - rsync
+      - sqlite
+      - v4l-utils
+      - ffmpeg
+    snaps: []
+
+base_dotfiles_enabled: false
+# Keep the first Stow slice intentionally small and low-risk: only packages that
+# are versioned directly in this repo get applied per host.
+dotfiles_user: "{{ desktop_user | default('lion') }}"
+dotfiles_home: "/home/{{ dotfiles_user }}"
+dotfiles_source_dir: "{{ playbook_dir }}/files/dotfiles"
+dotfiles_stow_packages:
+  - bash
+  - starship
+base_starship_prompt_enabled: true
+
+base_lazydocker_enabled: true
+lazydocker_version: 0.25.0
+lazydocker_install_dir: /usr/local/bin
+lazydocker_install_path: "{{ lazydocker_install_dir }}/lazydocker"
+lazydocker_arch_map:
+  x86_64: x86_64
+  amd64: x86_64
+  aarch64: arm64
+  arm64: arm64
+  armv7l: armv7
+  armv6l: armv6
+
+autoconfig_repo_url: https://github.com/djspatule/ansible-autoconfig.git
+autoconfig_branch: main
+autoconfig_repo_dir: /opt/ansible-pull
+autoconfig_playbook: local.yml
+autoconfig_timer_name: autoconfig-pull
+autoconfig_on_calendar: daily
+autoconfig_randomized_delay: 30m
+autoconfig_persistent: true
+autoconfig_vault_password_file: ""

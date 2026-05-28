@@ -1,6 +1,10 @@
-# vars:
-espanso_src: "{{ desktop_home }}/.local/src/espanso"
+---
+# Keep this file intentionally small. Only cross-host defaults that are still
+# used by the active code path belong here.
+
+# The common operator account used by the active base/server roles.
 desktop_user: lion
-desktop_home: "/home/{{ desktop_user }}"
-automation_user: velociraptor
+
+# Most hosts can use the normal system Python. Hosts that need something else
+# should override this in their own host_vars.
 ansible_python_interpreter: /usr/bin/python3

@@ -3,6 +3,14 @@
   tags: always
   become: true
   pre_tasks:
+    - name: update repositories (arch)
+      tags: always
+      become: true
+      community.general.pacman:
+        update_cache: true
+      changed_when: false
+      when: ansible_facts['distribution'] == 'Archlinux'
+
     - name: update repositories
       tags: always
       become: true
@@ -10,7 +18,7 @@
         update_cache: true
         upgrade: dist
       changed_when: false
-      when: ansible_distribution in ["Debian", "Pop!_OS", "Ubuntu"]
+      when: ansible_facts['distribution'] in ["Debian", "Pop!_OS", "Ubuntu"]
 
 # run roles
 - hosts: all
@@ -19,16 +27,11 @@
   roles:
     - base
 
-- hosts: workstation
-  tags: workstation
-  become: true
-  roles:
-    - workstation
-
 - hosts: server
   tags: server
   become: true
   roles:
+    # The server role now contains only server-specific storage and services.
     - server
 
 # end of run cleanup and reporting
@@ -40,14 +43,14 @@
       apt:
         autoclean: true
       changed_when: false
-      when: ansible_distribution in ["Debian", "Pop!_OS", "Ubuntu"]
+      when: ansible_facts['distribution'] in ["Debian", "Pop!_OS", "Ubuntu"]
 
     - name: autoremove orphan packages (debian and ubuntu)
       tags: always
       apt:
         autoremove: true
         purge: true
-      when: ansible_distribution in ["Debian", "Pop!_OS", "Ubuntu"]
+      when: ansible_facts['distribution'] in ["Debian", "Pop!_OS", "Ubuntu"]
 
   # - name: send completion alert
   #   include_tasks: playbooks/send_completion_alert.yml

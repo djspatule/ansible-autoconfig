@@ -1,8 +1,0 @@
----
-- name: copy .bashrc file
-  ansible.builtin.copy:
-    src: files/bashrc
-    dest: "{{ desktop_home }}/.bashrc"
-    owner: "{{ desktop_user }}"
-    group: "{{ desktop_user }}"
-    mode: "0644"

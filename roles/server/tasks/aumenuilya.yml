@@ -1,0 +1,43 @@
+---
+- name: Ensure AuMenuIlYA backup tree is available
+  ansible.builtin.assert:
+    that:
+      - aumenuilya_backup_root | length > 0
+    fail_msg: Define aumenuilya_backup_root for hosts that restore the site.
+
+- name: Check AuMenuIlYA source tree
+  ansible.builtin.stat:
+    path: "{{ aumenuilya_source_tree }}"
+  register: aumenuilya_source_tree_stat
+
+- name: Check AuMenuIlYA wp-content tree
+  ansible.builtin.stat:
+    path: "{{ aumenuilya_source_wp_content }}"
+  register: aumenuilya_source_wp_content_stat
+
+- name: Check AuMenuIlYA SQL dump
+  ansible.builtin.stat:
+    path: "{{ aumenuilya_source_sql_dump }}"
+    checksum_algorithm: sha256
+  register: aumenuilya_sql_dump_stat
+
+- name: Determine whether AuMenuIlYA backup sources are available
+  ansible.builtin.set_fact:
+    aumenuilya_backup_sources_available: >-
+      {{
+        aumenuilya_source_tree_stat.stat.exists
+        and aumenuilya_source_wp_content_stat.stat.exists
+        and aumenuilya_sql_dump_stat.stat.exists
+      }}
+
+# A missing backup tree is expected on VM tests or before the data disk is
+# mounted. Skip this restore-only service without hiding real errors once the
+# required backup sources are present.
+- name: Explain why AuMenuIlYA is skipped when backup files are missing
+  ansible.builtin.debug:
+    msg: "AuMenuIlYA is enabled, but required backup files are missing. Skipping AuMenuIlYA setup for this run."
+  when: not aumenuilya_backup_sources_available
+
+- name: Restore and run AuMenuIlYA when backup files are available
+  ansible.builtin.include_tasks: aumenuilya_restore.yml
+  when: aumenuilya_backup_sources_available

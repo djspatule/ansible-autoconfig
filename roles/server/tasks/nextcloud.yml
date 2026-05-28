@@ -1,0 +1,494 @@
+---
+- name: Ensure Nextcloud root-managed directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ nextcloud_root_dir }}"
+
+- name: Ensure Nextcloud secret directory exists
+  ansible.builtin.file:
+    path: "{{ nextcloud_secret_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+# Let the containers manage runtime ownership inside their mounted paths.
+- name: Ensure Nextcloud runtime directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - "{{ nextcloud_app_dir }}"
+    - "{{ nextcloud_db_data_dir }}"
+    - "{{ nextcloud_data_dir }}"
+
+- name: Check whether the Nextcloud DB password file exists
+  ansible.builtin.stat:
+    path: "{{ nextcloud_db_password_file }}"
+  register: nextcloud_db_password_file_stat
+  no_log: true
+
+- name: Generate the Nextcloud DB password on the target host
+  ansible.builtin.shell: "tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32"
+  register: nextcloud_db_password_generated
+  changed_when: true
+  when: not nextcloud_db_password_file_stat.stat.exists
+  no_log: true
+
+- name: Save the generated Nextcloud DB password
+  ansible.builtin.copy:
+    content: "{{ nextcloud_db_password_generated.stdout }}\n"
+    dest: "{{ nextcloud_db_password_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: not nextcloud_db_password_file_stat.stat.exists
+  no_log: true
+
+- name: Check whether the Nextcloud DB root password file exists
+  ansible.builtin.stat:
+    path: "{{ nextcloud_db_root_password_file }}"
+  register: nextcloud_db_root_password_file_stat
+  no_log: true
+
+- name: Generate the Nextcloud DB root password on the target host
+  ansible.builtin.shell: "tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32"
+  register: nextcloud_db_root_password_generated
+  changed_when: true
+  when: not nextcloud_db_root_password_file_stat.stat.exists
+  no_log: true
+
+- name: Save the generated Nextcloud DB root password
+  ansible.builtin.copy:
+    content: "{{ nextcloud_db_root_password_generated.stdout }}\n"
+    dest: "{{ nextcloud_db_root_password_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: not nextcloud_db_root_password_file_stat.stat.exists
+  no_log: true
+
+- name: Check whether the Nextcloud admin password file exists
+  ansible.builtin.stat:
+    path: "{{ nextcloud_admin_password_file }}"
+  register: nextcloud_admin_password_file_stat
+  no_log: true
+
+- name: Generate the Nextcloud admin password on the target host
+  ansible.builtin.shell: "tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32"
+  register: nextcloud_admin_password_generated
+  changed_when: true
+  when: not nextcloud_admin_password_file_stat.stat.exists
+  no_log: true
+
+- name: Save the generated Nextcloud admin password
+  ansible.builtin.copy:
+    content: "{{ nextcloud_admin_password_generated.stdout }}\n"
+    dest: "{{ nextcloud_admin_password_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: not nextcloud_admin_password_file_stat.stat.exists
+  no_log: true
+
+- name: Read the managed Nextcloud DB password file
+  ansible.builtin.slurp:
+    src: "{{ nextcloud_db_password_file }}"
+  register: nextcloud_db_password_slurp
+  no_log: true
+
+- name: Read the managed Nextcloud DB root password file
+  ansible.builtin.slurp:
+    src: "{{ nextcloud_db_root_password_file }}"
+  register: nextcloud_db_root_password_slurp
+  no_log: true
+
+- name: Read the managed Nextcloud admin password file
+  ansible.builtin.slurp:
+    src: "{{ nextcloud_admin_password_file }}"
+  register: nextcloud_admin_password_slurp
+  no_log: true
+
+- name: Load the managed Nextcloud secrets
+  ansible.builtin.set_fact:
+    nextcloud_db_password: "{{ nextcloud_db_password_slurp.content | b64decode | trim }}"
+    nextcloud_db_root_password: "{{ nextcloud_db_root_password_slurp.content | b64decode | trim }}"
+    nextcloud_admin_password: "{{ nextcloud_admin_password_slurp.content | b64decode | trim }}"
+  no_log: true
+
+- name: Ensure the Nextcloud container network exists
+  community.docker.docker_network:
+    name: "{{ nextcloud_network_name }}"
+    state: present
+
+- name: Pull the Nextcloud application image
+  community.docker.docker_image:
+    name: "{{ nextcloud_image }}"
+    source: pull
+    force_source: true
+  register: nextcloud_image_pull
+
+- name: Run the Nextcloud database container
+  community.docker.docker_container:
+    name: "{{ nextcloud_db_container_name }}"
+    image: "{{ nextcloud_db_image }}"
+    state: started
+    restart_policy: unless-stopped
+    networks:
+      - name: "{{ nextcloud_network_name }}"
+    volumes:
+      - "{{ nextcloud_db_data_dir }}:/var/lib/mysql"
+    env:
+      MYSQL_ROOT_PASSWORD: "{{ nextcloud_db_root_password }}"
+      MYSQL_DATABASE: "{{ nextcloud_db_name }}"
+      MYSQL_USER: "{{ nextcloud_db_user }}"
+      MYSQL_PASSWORD: "{{ nextcloud_db_password }}"
+  no_log: true
+
+- name: Wait for the Nextcloud database to become ready
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - "{{ nextcloud_db_container_name }}"
+      - mariadb
+      - -h127.0.0.1
+      - -uroot
+      - "-p{{ nextcloud_db_root_password }}"
+      - -e
+      - SELECT 1;
+  register: nextcloud_db_ping
+  changed_when: false
+  retries: "{{ nextcloud_wait_retries }}"
+  delay: "{{ nextcloud_wait_delay }}"
+  until: nextcloud_db_ping.rc == 0
+  no_log: true
+
+# The official image bootstraps the app and data layout for us, while Ansible
+# keeps the persistent paths and secret material under control.
+- name: Run the Nextcloud application container
+  community.docker.docker_container:
+    name: "{{ nextcloud_container_name }}"
+    image: "{{ nextcloud_image }}"
+    state: started
+    recreate: "{{ nextcloud_image_pull.changed }}"
+    restart_policy: unless-stopped
+    published_ports: "{{ nextcloud_published_ports }}"
+    networks:
+      - name: "{{ nextcloud_network_name }}"
+    volumes:
+      - "{{ nextcloud_app_dir }}:/var/www/html"
+      - "{{ nextcloud_data_dir }}:/var/www/html/data"
+    env:
+      MYSQL_HOST: "{{ nextcloud_db_container_name }}"
+      MYSQL_DATABASE: "{{ nextcloud_db_name }}"
+      MYSQL_USER: "{{ nextcloud_db_user }}"
+      MYSQL_PASSWORD: "{{ nextcloud_db_password }}"
+      NEXTCLOUD_ADMIN_USER: "{{ nextcloud_admin_user }}"
+      NEXTCLOUD_ADMIN_PASSWORD: "{{ nextcloud_admin_password }}"
+      NEXTCLOUD_TRUSTED_DOMAINS: "{{ nextcloud_trusted_domains | join(' ') }}"
+  no_log: true
+
+- name: Wait for Nextcloud config.php to be created
+  ansible.builtin.stat:
+    path: "{{ nextcloud_app_dir }}/config/config.php"
+  register: nextcloud_config_stat
+  retries: "{{ nextcloud_wait_retries }}"
+  delay: 2
+  until: nextcloud_config_stat.stat.exists
+
+# The container writes config.php before the installer fully finishes. Wait for
+# Nextcloud to report itself as installed before calling broader occ commands.
+- name: Wait for Nextcloud to report itself as installed
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - status
+      - --output=json
+  register: nextcloud_occ_status
+  changed_when: false
+  retries: "{{ nextcloud_wait_retries }}"
+  delay: 2
+  until: nextcloud_occ_status.stdout is search('"installed":true')
+
+# Keep the reverse-proxy-specific system config idempotent with occ instead of
+# editing PHP arrays by hand.
+- name: Set Nextcloud trusted domains
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - config:system:set
+      - trusted_domains
+      - "{{ index | string }}"
+      - --value={{ item }}
+  loop: "{{ nextcloud_trusted_domains }}"
+  loop_control:
+    index_var: index
+  changed_when: false
+
+- name: Set Nextcloud trusted proxies
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - config:system:set
+      - trusted_proxies
+      - "{{ index | string }}"
+      - --value={{ item }}
+  loop: "{{ nextcloud_trusted_proxies }}"
+  loop_control:
+    index_var: index
+  changed_when: false
+
+- name: Set Nextcloud overwrite host
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - config:system:set
+      - overwritehost
+      - --value={{ nextcloud_public_url | regex_replace('^https?://', '') }}
+  changed_when: false
+
+- name: Set Nextcloud overwrite protocol
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - config:system:set
+      - overwriteprotocol
+      - --value={{ nextcloud_public_url | regex_search('^https?') }}
+  changed_when: false
+
+- name: Set Nextcloud overwrite CLI URL
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - config:system:set
+      - overwrite.cli.url
+      - --value={{ nextcloud_public_url }}
+  changed_when: false
+
+- name: Query the current Nextcloud app list
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - app:list
+      - --output=json
+  register: nextcloud_app_list
+  changed_when: false
+
+- name: Parse the current Nextcloud app list
+  ansible.builtin.set_fact:
+    nextcloud_app_list_parsed: "{{ nextcloud_app_list.stdout | from_json }}"
+
+- name: Ensure the Nextcloud external storage app is enabled
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - app:enable
+      - files_external
+  when: nextcloud_app_list_parsed.enabled.files_external is not defined
+
+- name: Check whether managed Nextcloud user password files exist
+  ansible.builtin.stat:
+    path: "{{ item.password_file }}"
+  loop: "{{ nextcloud_managed_users }}"
+  register: nextcloud_managed_user_password_file_stats
+  no_log: true
+
+- name: Generate missing managed Nextcloud user passwords on the target host
+  ansible.builtin.shell: |
+    set -eu
+    umask 077
+    tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32 > "{{ item.item.password_file }}"
+  args:
+    executable: /bin/bash
+    creates: "{{ item.item.password_file }}"
+  loop: "{{ nextcloud_managed_user_password_file_stats.results }}"
+  when: not item.stat.exists
+  no_log: true
+
+- name: Read managed Nextcloud user password files
+  ansible.builtin.slurp:
+    src: "{{ item.password_file }}"
+  loop: "{{ nextcloud_managed_users }}"
+  register: nextcloud_managed_user_password_slurps
+  no_log: true
+
+- name: Build the managed Nextcloud user password map
+  ansible.builtin.set_fact:
+    nextcloud_user_password_map: "{{ nextcloud_user_password_map | default({}) | combine({item.item.uid: item.content | b64decode | trim}) }}"
+  loop: "{{ nextcloud_managed_user_password_slurps.results }}"
+  no_log: true
+
+- name: Check whether managed Nextcloud users already exist
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - user:info
+      - "{{ item.uid }}"
+  loop: "{{ nextcloud_managed_users }}"
+  register: nextcloud_user_info
+  changed_when: false
+  failed_when: false
+
+- name: Create missing managed Nextcloud users
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - -e
+      - "OC_PASS={{ nextcloud_user_password_map[item.item.uid] }}"
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - user:add
+      - --password-from-env
+      - --display-name={{ item.item.display_name | default(item.item.uid) }}
+      - "{{ item.item.uid }}"
+  loop: "{{ nextcloud_user_info.results }}"
+  when: item.rc != 0
+  no_log: true
+
+# Keep managed account recovery simple during migration: the password files in
+# /etc/ansible/secrets are the source of truth even if the account already
+# existed with an unknown password from an older Nextcloud install.
+- name: Ensure managed Nextcloud users use their managed passwords
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - -e
+      - "OC_PASS={{ nextcloud_user_password_map[item.uid] }}"
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - user:resetpassword
+      - --password-from-env
+      - "{{ item.uid }}"
+  loop: "{{ nextcloud_managed_users }}"
+  changed_when: false
+  no_log: true
+
+- name: List current Nextcloud external mounts
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - files_external:list
+      - --output=json
+  register: nextcloud_external_mounts_list
+  changed_when: false
+
+- name: Parse current Nextcloud external mounts
+  ansible.builtin.set_fact:
+    nextcloud_external_mounts_current: "{{ nextcloud_external_mounts_list.stdout | default('[]') | from_json }}"
+
+- name: Create missing Nextcloud external mounts
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - files_external:create
+      - "{{ item.mount_point }}"
+      - local
+      - null::null
+      - --config=datadir={{ item.path }}
+  loop: "{{ nextcloud_external_mounts }}"
+  when: (nextcloud_external_mounts_current | selectattr('mount_point', 'equalto', item.mount_point) | list | length) == 0
+
+- name: Refresh Nextcloud external mounts after creation
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - files_external:list
+      - --output=json
+  register: nextcloud_external_mounts_list_refreshed
+  changed_when: false
+
+- name: Parse refreshed Nextcloud external mounts
+  ansible.builtin.set_fact:
+    nextcloud_external_mounts_current: "{{ nextcloud_external_mounts_list_refreshed.stdout | default('[]') | from_json }}"
+
+- name: Ensure Nextcloud external mount is applicable to expected users
+  ansible.builtin.command:
+    argv: "{{ ['docker', 'exec', '-u', 'www-data', nextcloud_container_name, 'php', 'occ', 'files_external:applicable', ((nextcloud_external_mounts_current | selectattr('mount_point', 'equalto', item.0.mount_point) | map(attribute='mount_id') | first) | string)] + ['--add-user=' ~ item.1] }}"
+  loop: "{{ nextcloud_external_mounts | subelements('users') }}"
+  changed_when: false

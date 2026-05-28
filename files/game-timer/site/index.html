@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-uWxY/CJNBR+1zjPWmfnSnVxwRheevXITnMqoEIeG1LJrdI0GlVs/9cVSyPYXdcSF" crossorigin="anonymous" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" />
+  <link href="styles.css" rel="stylesheet" />
+
+  <title>TableTop-Timer</title>
+</head>
+
+<body>
+  <div class="text-center container">
+    <h1>
+      TableTop-Timer
+      <small class="test-muted"><a href="html/about.html" class="bi bi-info-circle"></a></small>
+    </h1>
+    <button class="btn btn-outline-secondary bi bi-gear-fill" type="button" data-toggle="collapse"
+      data-target="#settingsDiv" aria-expanded="false" aria-controls="collapseExample" id="settingsButton"></button>
+    <button class="btn btn-secondary bi bi-volume-mute-fill" id="muteButton"></button>
+    <button class="btn btn-outline-secondary bi bi-moon-fill" id="darkButton"></button>
+    <button class="btn btn-outline-secondary bi bi-pause-circle-fill" id="pauseButton"></button>
+    <br />
+    <div class="collapse" id="settingsDiv">
+      <div class="card card-body col-6 offset-3">
+        <br />
+        <div class="dropdown">
+          <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-toggle="dropdown"
+            id="playerSettingsButton" aria-haspopup="true" aria-expanded="false">
+            Player settings
+          </button>
+          <form class="dropdown-menu p-4" id="dropDownForm" name="playerSettingsForm">
+            <div id="dropDownFormGroup"></div>
+            <button type="button" class="btn btn-primary" id="playersSettingsSubmissionButton">
+              Confirm
+            </button>
+          </form>
+        </div>
+        <br />
+        <button class="btn btn-outline-secondary" id="setNumberOfPlayersButton">
+          Number of players
+        </button>
+        <br />
+        <button class="btn btn-outline-secondary" id="setTurnLengthButton">
+          Turn duration
+        </button>
+      </div>
+    </div>
+    <br />
+    <div id="newPlayerNode"></div>
+    <br />
+    <button class="btn btn-secondary" id="totalPlayTimeButton">
+      <div class="less-big">Total play time:</div>
+      (click to reset)
+      <div class="less-big" id="totalPlayTimeDisplayDiv">00:00:00</div>
+    </button>
+  </div>
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+    integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
+    crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-kQtW33rZJAHjgefvhyyzcGF3C5TFyBQBA13V1RKPf4uH+bwyzQxZ6CmMZHmNBEfJ"
+    crossorigin="anonymous"></script>
+  <script src="script.js"></script>
+</body>
+
+</html>

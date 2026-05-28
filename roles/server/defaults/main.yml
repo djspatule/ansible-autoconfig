@@ -1,0 +1,279 @@
+---
+# The server role now owns only server-specific packages; common packages moved
+# to roles/base so base can safely run on all hosts.
+server_docker_packages_by_family:
+  Debian:
+    docker:
+      - docker.io
+      - python3-docker
+  Archlinux:
+    docker:
+      - docker
+      - python-docker
+server_docker_users:
+  - "{{ dotfiles_user | default(desktop_user | default('lion')) }}"
+server_lan_cidrs:
+  - 192.168.1.0/24
+server_lan_only_published_ports: []
+
+server_homepage_enabled: false
+homepage_container_name: homepage
+homepage_image: ghcr.io/gethomepage/homepage:latest
+homepage_root_dir: /opt/homepage
+homepage_config_dir: /opt/homepage/config
+homepage_source_dir: "{{ role_path }}/../../files/homepage/opt/homepage/"
+homepage_network_name: autoconfig-services
+homepage_port: 3000
+homepage_allowed_hosts:
+  - "{{ inventory_hostname }}:{{ homepage_port }}"
+  - "{{ ansible_hostname | default(inventory_hostname) }}:{{ homepage_port }}"
+homepage_extra_allowed_hosts: []
+
+server_bentopdf_enabled: false
+bentopdf_container_name: bentopdf
+bentopdf_image: ghcr.io/alam00000/bentopdf-simple:latest
+bentopdf_network_name: autoconfig-services
+bentopdf_port: 8080
+
+server_game_timer_enabled: false
+# game-timer is a plain static site, so keeping a vendored snapshot here makes
+# ansible-pull deployment simpler than depending on authenticated Git access.
+game_timer_root_dir: /opt/game-timer
+game_timer_site_dir: "{{ game_timer_root_dir }}/site"
+game_timer_source_dir: "{{ role_path }}/../../files/game-timer/site/"
+game_timer_container_name: game-timer
+game_timer_image: nginx:alpine
+game_timer_network_name: autoconfig-services
+game_timer_published_ports: []
+
+server_nextcloud_enabled: false
+# Nextcloud keeps both app state and user files on persistent storage. The real
+# server uses SSD_1TO so the service does not silently fall back to the root LV.
+nextcloud_network_name: autoconfig-services
+nextcloud_root_dir: /mnt/SSD_1TO/nextcloud
+nextcloud_app_dir: "{{ nextcloud_root_dir }}/app"
+nextcloud_db_data_dir: "{{ nextcloud_root_dir }}/db"
+nextcloud_data_dir: "{{ nextcloud_root_dir }}/data"
+nextcloud_secret_dir: /etc/ansible/secrets
+nextcloud_db_container_name: nextcloud-db
+nextcloud_db_image: mariadb:11
+nextcloud_container_name: nextcloud
+nextcloud_image: nextcloud:latest
+nextcloud_db_name: nextcloud
+nextcloud_db_user: nextclouduser
+nextcloud_db_password_file: "{{ nextcloud_secret_dir }}/nextcloud-db-password"
+nextcloud_db_root_password_file: "{{ nextcloud_secret_dir }}/nextcloud-db-root-password"
+nextcloud_admin_user: lion
+nextcloud_admin_password_file: "{{ nextcloud_secret_dir }}/nextcloud-admin-password"
+nextcloud_published_ports: []
+nextcloud_public_url: https://cloud.dinnizer.com
+nextcloud_trusted_domains:
+  - cloud.dinnizer.com
+nextcloud_trusted_proxies:
+  - server-reverse-proxy
+nextcloud_wait_retries: 30
+nextcloud_wait_delay: 5
+nextcloud_managed_users: []
+nextcloud_external_mounts: []
+
+server_frigate_enabled: false
+# Frigate is started as a migration skeleton first because the service depends on
+# host hardware details that differ between the raspi and serverannah.
+frigate_root_dir: /mnt/verbatim/frigate
+frigate_config_dir: "{{ frigate_root_dir }}/config"
+frigate_media_dir: "{{ frigate_root_dir }}/media"
+frigate_secret_dir: /etc/ansible/secrets
+frigate_rtsp_password_file: "{{ frigate_secret_dir }}/frigate-rtsp-password"
+frigate_admin_username: admin
+frigate_admin_password_file: "{{ frigate_secret_dir }}/frigate-admin-password"
+frigate_auth_state_hash_file: "{{ frigate_root_dir }}/.ansible-auth-hash"
+frigate_container_name: frigate
+frigate_image: ghcr.io/blakeblackshear/frigate:stable
+frigate_network_name: autoconfig-services
+frigate_shm_size: 256M
+frigate_devices: []
+frigate_published_ports:
+  - "8971:8971"
+  - "8554:8554"
+  - "8555:8555/tcp"
+  - "8555:8555/udp"
+frigate_camera_name: usb_cam
+frigate_camera_path: /dev/video0
+frigate_detect_width: 640
+frigate_detect_height: 480
+frigate_detect_fps: 10
+frigate_motion_threshold: 50
+frigate_motion_contour_area: 150
+frigate_motion_improve_contrast: true
+frigate_zone_name: dining_room
+frigate_zone_coordinates: 0.31,0.237,0.309,0.831,0.663,0.821,0.615,0.19
+frigate_record_retain_days: 1
+frigate_alerts_retain_days: 2
+frigate_detections_retain_days: 2
+frigate_snapshots_retain_days: 1
+
+# Keep storage simple: the repo ships the target host's /etc/fstab, and the
+# server role copies it into place instead of rebuilding mount lines from vars.
+server_manage_fstab: false
+server_fstab_src: ""
+
+server_fail2ban_enabled: false
+# Start with SSH protection before layering on app-specific jails. This is the
+# highest-value protection step before exposing the host further to the internet.
+fail2ban_packages_by_family:
+  Debian:
+    - fail2ban
+  Archlinux:
+    - fail2ban
+fail2ban_ignoreips:
+  - 127.0.0.1/8
+fail2ban_bantime: 1h
+fail2ban_findtime: 10m
+fail2ban_maxretry: 5
+fail2ban_sshd_enabled: true
+fail2ban_sshd_port: ssh
+fail2ban_sshd_backend: systemd
+fail2ban_caddy_basic_auth_enabled: false
+fail2ban_caddy_basic_auth_logpath: /opt/reverse-proxy/data/access.log
+fail2ban_caddy_basic_auth_maxretry: 5
+fail2ban_caddy_basic_auth_findtime: 10m
+fail2ban_caddy_basic_auth_bantime: 1h
+
+server_backup_enabled: false
+backup_packages_by_family:
+  Debian:
+    - borgbackup
+  Archlinux:
+    - borg
+backup_root_dir: /var/lib/autoconfig-backup
+backup_dump_dir: "{{ backup_root_dir }}/dumps"
+backup_required_mount: /mnt/back-up
+backup_repo_dir: /mnt/back-up/borg/serverannah
+backup_secret_dir: /etc/ansible/secrets
+backup_borg_passphrase_file: "{{ backup_secret_dir }}/borg-passphrase"
+backup_timer_name: autoconfig-borg-backup
+backup_timer_on_calendar: daily
+backup_retention_keep_daily: 7
+backup_retention_keep_weekly: 4
+backup_retention_keep_monthly: 6
+backup_paths:
+  - /opt/aumenuilya
+  - /mnt/SSD_1TO/nextcloud
+  - /opt/pihole
+  - /opt/homepage/config
+  - /opt/reverse-proxy
+backup_database_dumps:
+  - name: aumenuilya
+    container: "{{ aumenuilya_db_container_name }}"
+    database: "{{ aumenuilya_db_name }}"
+    user: root
+    password_file: "{{ aumenuilya_db_root_password_file }}"
+  - name: nextcloud
+    container: "{{ nextcloud_db_container_name }}"
+    database: "{{ nextcloud_db_name }}"
+    user: root
+    password_file: "{{ nextcloud_db_root_password_file }}"
+
+server_pihole_enabled: false
+# Keep the production cutover explicit. Switching the host to production mode is
+# a deliberate code change, separate from the router/DHCP cutover outside Ansible.
+pihole_mode: production
+pihole_mode_profiles:
+  production:
+    dns_listening_mode: LOCAL
+    published_ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+  staged:
+    dns_listening_mode: ALL
+    published_ports:
+      - "5300:53/tcp"
+      - "5300:53/udp"
+pihole_extra_published_ports: []
+# Pi-hole stays on the same shared Docker network so the reverse proxy can front
+# the admin UI without exposing another host HTTP port.
+pihole_container_name: pihole
+# Track the upstream Pi-hole container. The role recreates the container only
+# when Docker actually pulls a newer image digest.
+pihole_image: pihole/pihole:latest
+pihole_network_name: autoconfig-services
+pihole_root_dir: /opt/pihole
+pihole_config_dir: "{{ pihole_root_dir }}/etc-pihole"
+pihole_secret_dir: /etc/ansible/secrets
+pihole_web_password_file: "{{ pihole_secret_dir }}/pihole-web-password"
+pihole_timezone: Europe/Paris
+pihole_dns_listening_mode: "{{ pihole_mode_profiles[pihole_mode].dns_listening_mode }}"
+pihole_dns_upstreams:
+  - 8.8.8.8
+  - 8.8.4.4
+  - 2001:4860:4860::8888
+  - 2001:4860:4860::8844
+pihole_dns_domain: lan
+pihole_dns_ptr_mode: PI.HOLE
+pihole_dns_domain_needed: true
+pihole_dns_expand_hosts: true
+pihole_dns_bogus_priv: true
+pihole_dns_query_logging: true
+pihole_dns_edns0_ecs: true
+# The raspi audit showed that the meaningful policy state lives in gravity.db.
+# Importing adlists and exact allowlist domains from extracted text files is a
+# safer source-of-truth than copying the whole live database blindly.
+pihole_policy_import_enabled: false
+pihole_policy_root: "{{ playbook_dir }}/files/pihole/policy"
+pihole_adlists_file: "{{ pihole_policy_root }}/adlists_enabled.txt"
+pihole_allowlist_exact_file: "{{ pihole_policy_root }}/allowlist_exact.txt"
+pihole_import_comment: Managed by ansible Pi-hole import
+pihole_policy_hash_file: "{{ pihole_root_dir }}/.ansible-policy-hash"
+pihole_published_ports: "{{ pihole_mode_profiles[pihole_mode].published_ports + pihole_extra_published_ports }}"
+# NET_ADMIN is kept explicit because Pi-hole documents it as the practical
+# default for containerized network operations, even when DHCP stays off.
+pihole_capabilities:
+  - NET_ADMIN
+
+server_reverse_proxy_enabled: false
+# Caddy keeps the reverse proxy readable enough to use as a learning tool.
+server_reverse_proxy_container_name: server-reverse-proxy
+server_reverse_proxy_image: caddy:2.10-alpine
+server_reverse_proxy_root_dir: /opt/reverse-proxy
+server_reverse_proxy_config_dir: "{{ server_reverse_proxy_root_dir }}/caddy"
+server_reverse_proxy_data_dir: "{{ server_reverse_proxy_root_dir }}/data"
+server_reverse_proxy_secret_dir: /etc/ansible/secrets
+server_reverse_proxy_access_log: /data/access.log
+server_reverse_proxy_network_name: autoconfig-services
+server_reverse_proxy_auto_https: false
+server_reverse_proxy_published_ports:
+  - "80:80"
+server_reverse_proxy_basic_auth_default_user: lion
+# Each site can either proxy to an upstream or redirect to a canonical host.
+server_reverse_proxy_sites: []
+
+server_aumenuilya_enabled: false
+aumenuilya_network_name: autoconfig-services
+aumenuilya_root_dir: /opt/aumenuilya
+aumenuilya_app_dir: "{{ aumenuilya_root_dir }}/wordpress"
+aumenuilya_db_data_dir: "{{ aumenuilya_root_dir }}/mariadb"
+aumenuilya_import_dir: "{{ aumenuilya_root_dir }}/import"
+aumenuilya_secret_dir: /etc/ansible/secrets
+aumenuilya_db_container_name: aumenuilya-db
+aumenuilya_app_container_name: aumenuilya
+aumenuilya_db_image: mariadb:11.4
+# The live Pi site has been updated beyond the old 2022 backup. Track the modern
+# PHP line explicitly instead of pinning the restored container to old WP/PHP.
+aumenuilya_wordpress_image: wordpress:php8.2-apache
+aumenuilya_wpcli_image: wordpress:cli-php8.2
+aumenuilya_db_name: aumenuilkomyriam
+aumenuilya_db_user: aumenuilkomyriam
+aumenuilya_db_password_file: "{{ aumenuilya_secret_dir }}/aumenuilya-db-password"
+aumenuilya_db_root_password_file: "{{ aumenuilya_secret_dir }}/aumenuilya-db-root-password"
+aumenuilya_table_prefix: wp_
+aumenuilya_old_url: http://www.aumenuilya.com
+aumenuilya_public_url: http://aumenuilya.localtest.me:8081
+aumenuilya_backup_root: ""
+aumenuilya_source_tree: "{{ aumenuilya_backup_root }}/www_old"
+aumenuilya_source_wp_content: "{{ aumenuilya_source_tree }}/wp-content/"
+aumenuilya_source_htaccess: "{{ aumenuilya_source_tree }}/.htaccess"
+aumenuilya_source_ads_txt: "{{ aumenuilya_backup_root }}/ads.txt"
+aumenuilya_source_sql_dump: "{{ aumenuilya_backup_root }}/aumenuilkomyriam_mysql_db_NoComments_20220515.sql"
+aumenuilya_published_ports: []
+aumenuilya_wait_retries: 30
+aumenuilya_wait_delay: 5
