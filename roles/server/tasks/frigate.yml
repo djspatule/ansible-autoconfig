@@ -118,6 +118,11 @@
         name: "{{ frigate_image }}"
         source: pull
 
+    - name: Ensure Frigate container network exists
+      community.docker.docker_network:
+        name: "{{ frigate_network_name }}"
+        state: present
+
     - name: Run Frigate container
       community.docker.docker_container:
         name: "{{ frigate_container_name }}"
@@ -128,6 +133,8 @@
         shm_size: "{{ frigate_shm_size }}"
         stop_timeout: 30
         published_ports: "{{ frigate_published_ports }}"
+        networks:
+          - name: "{{ frigate_network_name }}"
         devices: "{{ frigate_devices }}"
         volumes:
           - /etc/localtime:/etc/localtime:ro

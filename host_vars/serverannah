@@ -10,6 +10,7 @@ autoconfig_playbook: local.yml
 # Stow packages currently versioned in this repo.
 base_dotfiles_enabled: true
 server_fail2ban_enabled: true
+fail2ban_caddy_basic_auth_enabled: true
 server_backup_enabled: true
 server_homepage_enabled: true
 server_bentopdf_enabled: true
@@ -53,6 +54,13 @@ server_reverse_proxy_sites:
     redirect_to: https://tabletop-timer.com
   - hostname: homepage.dinnizer.com
     upstream: homepage:3000
+    basic_auth: true
+  - hostname: pdf.dinnizer.com
+    upstream: bentopdf:8080
+    basic_auth: true
+  - hostname: frigate.dinnizer.com
+    upstream: https://frigate:8971
+    upstream_tls_insecure_skip_verify: true
     basic_auth: true
   - hostname: cloud.dinnizer.com
     upstream: nextcloud:80

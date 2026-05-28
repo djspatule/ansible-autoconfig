@@ -89,6 +89,7 @@ frigate_admin_password_file: "{{ frigate_secret_dir }}/frigate-admin-password"
 frigate_auth_state_hash_file: "{{ frigate_root_dir }}/.ansible-auth-hash"
 frigate_container_name: frigate
 frigate_image: ghcr.io/blakeblackshear/frigate:stable
+frigate_network_name: autoconfig-services
 frigate_shm_size: 256M
 frigate_devices: []
 frigate_published_ports:
@@ -132,6 +133,11 @@ fail2ban_maxretry: 5
 fail2ban_sshd_enabled: true
 fail2ban_sshd_port: ssh
 fail2ban_sshd_backend: systemd
+fail2ban_caddy_basic_auth_enabled: false
+fail2ban_caddy_basic_auth_logpath: /opt/reverse-proxy/data/access.log
+fail2ban_caddy_basic_auth_maxretry: 5
+fail2ban_caddy_basic_auth_findtime: 10m
+fail2ban_caddy_basic_auth_bantime: 1h
 
 server_backup_enabled: false
 backup_packages_by_family:
@@ -232,6 +238,7 @@ server_reverse_proxy_root_dir: /opt/reverse-proxy
 server_reverse_proxy_config_dir: "{{ server_reverse_proxy_root_dir }}/caddy"
 server_reverse_proxy_data_dir: "{{ server_reverse_proxy_root_dir }}/data"
 server_reverse_proxy_secret_dir: /etc/ansible/secrets
+server_reverse_proxy_access_log: /data/access.log
 server_reverse_proxy_network_name: autoconfig-services
 server_reverse_proxy_auto_https: false
 server_reverse_proxy_published_ports:
