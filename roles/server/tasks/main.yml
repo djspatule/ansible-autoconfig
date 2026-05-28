@@ -18,6 +18,12 @@
     - server
     - fail2ban
 
+- import_tasks: backup.yml
+  when: server_backup_enabled | default(false)
+  tags:
+    - server
+    - backup
+
 - import_tasks: homepage.yml
   when: server_homepage_enabled | default(false)
   tags:

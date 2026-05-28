@@ -130,6 +130,41 @@ fail2ban_sshd_enabled: true
 fail2ban_sshd_port: ssh
 fail2ban_sshd_backend: systemd
 
+server_backup_enabled: false
+backup_packages_by_family:
+  Debian:
+    - borgbackup
+  Archlinux:
+    - borg
+backup_root_dir: /var/lib/autoconfig-backup
+backup_dump_dir: "{{ backup_root_dir }}/dumps"
+backup_required_mount: /mnt/back-up
+backup_repo_dir: /mnt/back-up/borg/serverannah
+backup_secret_dir: /etc/ansible/secrets
+backup_borg_passphrase_file: "{{ backup_secret_dir }}/borg-passphrase"
+backup_timer_name: autoconfig-borg-backup
+backup_timer_on_calendar: daily
+backup_retention_keep_daily: 7
+backup_retention_keep_weekly: 4
+backup_retention_keep_monthly: 6
+backup_paths:
+  - /opt/aumenuilya
+  - /mnt/SSD_1TO/nextcloud
+  - /opt/pihole
+  - /opt/homepage/config
+  - /opt/reverse-proxy
+backup_database_dumps:
+  - name: aumenuilya
+    container: "{{ aumenuilya_db_container_name }}"
+    database: "{{ aumenuilya_db_name }}"
+    user: root
+    password_file: "{{ aumenuilya_db_root_password_file }}"
+  - name: nextcloud
+    container: "{{ nextcloud_db_container_name }}"
+    database: "{{ nextcloud_db_name }}"
+    user: root
+    password_file: "{{ nextcloud_db_root_password_file }}"
+
 server_pihole_enabled: false
 # Keep the production cutover explicit. Switching the host to production mode is
 # a deliberate code change, separate from the router/DHCP cutover outside Ansible.

@@ -1,0 +1,158 @@
+---
+- name: Gather minimal facts for Borg backups
+  ansible.builtin.setup:
+    gather_subset:
+      - min
+
+- name: Require a supported OS family for Borg backups
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.os_family in backup_packages_by_family
+    fail_msg: >-
+      Borg backup packages are not defined for {{ ansible_facts.os_family }}.
+      Add this OS family to backup_packages_by_family.
+
+- name: Install Borg backup packages
+  ansible.builtin.package:
+    name: "{{ backup_packages_by_family[ansible_facts.os_family] }}"
+    state: present
+
+- name: Check whether the Borg backup target mount is active
+  ansible.builtin.command:
+    argv:
+      - findmnt
+      - --mountpoint
+      - "{{ backup_required_mount }}"
+  register: backup_required_mount_state
+  changed_when: false
+  failed_when: false
+
+- name: Require the Borg backup target mount to be active
+  ansible.builtin.assert:
+    that:
+      - backup_required_mount_state.rc == 0
+    fail_msg: >-
+      {{ backup_required_mount }} is not mounted. Refusing to create a Borg
+      repository on the root filesystem.
+
+- name: Ensure Borg backup directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  loop:
+    - "{{ backup_root_dir }}"
+    - "{{ backup_dump_dir }}"
+    - "{{ backup_secret_dir }}"
+    - "{{ backup_repo_dir }}"
+
+- name: Check whether the Borg passphrase exists
+  ansible.builtin.stat:
+    path: "{{ backup_borg_passphrase_file }}"
+  register: backup_borg_passphrase_file_stat
+  no_log: true
+
+- name: Generate the Borg passphrase on the target host
+  ansible.builtin.shell: "tr -dc 'A-Za-z0-9' </dev/urandom | head -c 48"
+  register: backup_borg_passphrase_generated
+  changed_when: true
+  when: not backup_borg_passphrase_file_stat.stat.exists
+  no_log: true
+
+- name: Save the generated Borg passphrase
+  ansible.builtin.copy:
+    content: "{{ backup_borg_passphrase_generated.stdout }}\n"
+    dest: "{{ backup_borg_passphrase_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: not backup_borg_passphrase_file_stat.stat.exists
+  no_log: true
+
+- name: Install Borg backup runner script
+  ansible.builtin.copy:
+    dest: /usr/local/sbin/autoconfig-borg-backup
+    owner: root
+    group: root
+    mode: "0700"
+    content: |
+      #!/bin/sh
+      set -eu
+
+      export BORG_REPO='{{ backup_repo_dir }}'
+      export BORG_PASSPHRASE="$(cat '{{ backup_borg_passphrase_file }}')"
+      export BORG_UNKNOWN_UNENCRYPTED_REPO_ACCESS_IS_OK=no
+      export BORG_RELOCATED_REPO_ACCESS_IS_OK=no
+
+      dump_dir='{{ backup_dump_dir }}'
+      mkdir -p "$dump_dir"
+      chmod 700 "$dump_dir"
+
+      {% for dump in backup_database_dumps %}
+      if docker inspect '{{ dump.container }}' >/dev/null 2>&1 && [ -f '{{ dump.password_file }}' ]; then
+        docker exec '{{ dump.container }}' mariadb-dump -u'{{ dump.user }}' -p"$(cat '{{ dump.password_file }}')" '{{ dump.database }}' > "$dump_dir/{{ dump.name }}.sql"
+        chmod 600 "$dump_dir/{{ dump.name }}.sql"
+      fi
+      {% endfor %}
+
+      if ! borg info "$BORG_REPO" >/dev/null 2>&1; then
+        borg init --encryption=repokey "$BORG_REPO"
+      fi
+
+      archive="{{ inventory_hostname }}-$(date +%Y-%m-%dT%H-%M-%S)"
+      borg create --stats --compression zstd,6 "$BORG_REPO::$archive" \
+      {% for path in backup_paths %}
+        {% if not loop.last %}'{{ path }}' \
+        {% else %}'{{ path }}' \
+        {% endif %}
+      {% endfor %}
+        "$dump_dir"
+
+      borg prune --list "$BORG_REPO" \
+        --keep-daily={{ backup_retention_keep_daily }} \
+        --keep-weekly={{ backup_retention_keep_weekly }} \
+        --keep-monthly={{ backup_retention_keep_monthly }}
+
+      borg compact "$BORG_REPO"
+
+- name: Install Borg backup systemd service
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/{{ backup_timer_name }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Run autoconfig Borg backup
+      Requires=docker.service
+      After=network-online.target docker.service
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/sbin/autoconfig-borg-backup
+
+- name: Install Borg backup systemd timer
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/{{ backup_timer_name }}.timer"
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Run autoconfig Borg backup timer
+
+      [Timer]
+      OnCalendar={{ backup_timer_on_calendar }}
+      Persistent=true
+
+      [Install]
+      WantedBy=timers.target
+
+- name: Ensure Borg backup timer is enabled and running
+  ansible.builtin.systemd:
+    name: "{{ backup_timer_name }}.timer"
+    enabled: true
+    state: started
+    daemon_reload: true
