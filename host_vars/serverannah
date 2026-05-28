@@ -3,7 +3,7 @@ ansible_connection: local
 ansible_python_interpreter: auto_silent
 
 # serverannah pulls and applies its own config locally.
-autoconfig_branch: server-bootstrap
+autoconfig_branch: main
 autoconfig_playbook: local.yml
 
 # Keep common shell config on the real server, but only from the small safe
