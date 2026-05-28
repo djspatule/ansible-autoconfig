@@ -47,6 +47,7 @@ server_reverse_proxy_sites:
     redirect_to: https://tabletop-timer.com
   - hostname: homepage.dinnizer.com
     upstream: homepage:3000
+    basic_auth: true
   - hostname: cloud.dinnizer.com
     upstream: nextcloud:80
 nextcloud_managed_users:

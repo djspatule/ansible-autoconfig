@@ -228,10 +228,12 @@ server_reverse_proxy_image: caddy:2.10-alpine
 server_reverse_proxy_root_dir: /opt/reverse-proxy
 server_reverse_proxy_config_dir: "{{ server_reverse_proxy_root_dir }}/caddy"
 server_reverse_proxy_data_dir: "{{ server_reverse_proxy_root_dir }}/data"
+server_reverse_proxy_secret_dir: /etc/ansible/secrets
 server_reverse_proxy_network_name: autoconfig-services
 server_reverse_proxy_auto_https: false
 server_reverse_proxy_published_ports:
   - "80:80"
+server_reverse_proxy_basic_auth_default_user: lion
 # Each site can either proxy to an upstream or redirect to a canonical host.
 server_reverse_proxy_sites: []
 

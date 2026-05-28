@@ -22,6 +22,12 @@ http://{{ site.hostname }} {
     # a single public URL and avoid duplicate host handling.
     redir {{ site.redirect_to }}{{ '{uri}' }} {{ site.redirect_status | default(308) }}
 {% else %}
+{% if site.basic_auth | default(false) %}
+    # Protect admin-style dashboards exposed through public DNS.
+    basic_auth {
+        {{ server_reverse_proxy_basic_auth_hashes[site.hostname].user }} {{ server_reverse_proxy_basic_auth_hashes[site.hostname].hash }}
+    }
+{% endif %}
     reverse_proxy {{ site.upstream }}
 {% endif %}
 }
