@@ -134,6 +134,47 @@
       FTLCONF_dns_EDNS0ECS: "{{ pihole_dns_edns0_ecs | ternary('true', 'false') }}"
   no_log: true
 
+- name: Collect LAN-bound Pi-hole published IPs
+  ansible.builtin.set_fact:
+    pihole_bind_ips: "{{ (pihole_bind_ips | default([])) + [item.split(':')[0]] }}"
+  loop: "{{ pihole_published_ports }}"
+  when: item is match('^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:')
+
+# Docker can try to restart LAN-IP-bound containers before DHCP has restored the
+# address. This small systemd helper gives Pi-hole another start attempt after
+# network-online.target and waits for any explicit bind IP first.
+- name: Install Pi-hole network-online starter service
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/autoconfig-pihole-start.service
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Start the autoconfig Pi-hole container after the LAN address exists
+      Requires=docker.service
+      After=network-online.target docker.service
+      Wants=network-online.target
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      {% for bind_ip in pihole_bind_ips | default([]) | unique %}
+      ExecStartPre=/bin/sh -c 'for i in $(seq 1 60); do ip -4 addr show | grep -q "{{ bind_ip }}/" && exit 0; sleep 2; done; exit 1'
+      {% endfor %}
+      ExecStart=/usr/bin/docker start {{ pihole_container_name }}
+
+      [Install]
+      WantedBy=multi-user.target
+  register: pihole_starter_unit
+
+- name: Enable and run Pi-hole network-online starter service
+  ansible.builtin.systemd:
+    name: autoconfig-pihole-start.service
+    enabled: true
+    state: started
+    daemon_reload: "{{ pihole_starter_unit.changed }}"
+
 - name: Wait for Pi-hole gravity.db to be present
   ansible.builtin.stat:
     path: "{{ pihole_config_dir }}/gravity.db"

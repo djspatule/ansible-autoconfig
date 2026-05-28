@@ -295,6 +295,18 @@
     recurse: true
   when: not (aumenuilya_seed_needed | bool)
 
+# WordPress updates plugins, themes, translations, uploads and temporary backup
+# trees under wp-content. The migrated backup preserved root ownership in many
+# subdirectories, so keep the live content tree writable by the web user.
+- name: Ensure existing AuMenuIlYA wp-content tree is writable
+  ansible.builtin.file:
+    path: "{{ aumenuilya_app_dir }}/wp-content"
+    state: directory
+    owner: "33"
+    group: "33"
+    recurse: true
+  when: not (aumenuilya_seed_needed | bool)
+
 - name: Wait for generated AuMenuIlYA wp-config.php
   ansible.builtin.stat:
     path: "{{ aumenuilya_app_dir }}/wp-config.php"
