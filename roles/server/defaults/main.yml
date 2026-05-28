@@ -46,6 +46,28 @@ game_timer_image: nginx:alpine
 game_timer_network_name: autoconfig-services
 game_timer_published_ports: []
 
+server_dinnizer_enabled: false
+dinnizer_network_name: autoconfig-services
+dinnizer_root_dir: /opt/dinnizer
+dinnizer_repo_dir: "{{ dinnizer_root_dir }}/app"
+dinnizer_db_data_dir: "{{ dinnizer_root_dir }}/postgres"
+dinnizer_secret_dir: /etc/ansible/secrets
+dinnizer_repo_url: https://github.com/djspatule/dinnizer.git
+dinnizer_repo_version: main
+dinnizer_image_name: dinnizer:autoconfig
+dinnizer_container_name: dinnizer
+dinnizer_db_container_name: dinnizer-db
+dinnizer_db_image: postgres:11-alpine
+dinnizer_db_name: dinnizer_production
+dinnizer_db_user: dinnizer
+dinnizer_db_password_file: "{{ dinnizer_secret_dir }}/dinnizer-db-password"
+dinnizer_secret_key_base_file: "{{ dinnizer_secret_dir }}/dinnizer-secret-key-base"
+dinnizer_public_url: https://app.dinnizer.com
+dinnizer_port: 3000
+dinnizer_wait_retries: 30
+dinnizer_wait_delay: 5
+dinnizer_cloudinary_url: ""
+
 server_nextcloud_enabled: false
 # Nextcloud keeps both app state and user files on persistent storage. The real
 # server uses SSD_1TO so the service does not silently fall back to the root LV.

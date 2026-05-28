@@ -12,9 +12,34 @@ base_dotfiles_enabled: true
 server_fail2ban_enabled: true
 fail2ban_caddy_basic_auth_enabled: true
 server_backup_enabled: true
+backup_paths:
+  - /opt/aumenuilya
+  - /mnt/SSD_1TO/nextcloud
+  - /opt/pihole
+  - /opt/homepage/config
+  - /opt/reverse-proxy
+  - /opt/dinnizer
+backup_database_dumps:
+  - name: aumenuilya
+    container: aumenuilya-db
+    database: aumenuilkomyriam
+    user: root
+    password_file: /etc/ansible/secrets/aumenuilya-db-root-password
+  - name: nextcloud
+    container: nextcloud-db
+    database: nextcloud
+    user: root
+    password_file: /etc/ansible/secrets/nextcloud-db-root-password
+  - name: dinnizer
+    engine: postgres
+    container: dinnizer-db
+    database: dinnizer_production
+    user: dinnizer
+    password_file: /etc/ansible/secrets/dinnizer-db-password
 server_homepage_enabled: true
 server_bentopdf_enabled: true
 server_game_timer_enabled: true
+server_dinnizer_enabled: true
 server_nextcloud_enabled: true
 server_frigate_enabled: true
 # Keep Pi-hole on the LAN address so systemd-resolved can continue to own the
@@ -52,6 +77,8 @@ server_reverse_proxy_sites:
     upstream: game-timer:80
   - hostname: www.tabletop-timer.com
     redirect_to: https://tabletop-timer.com
+  - hostname: app.dinnizer.com
+    upstream: dinnizer:3000
   - hostname: homepage.dinnizer.com
     upstream: homepage:3000
     basic_auth: true

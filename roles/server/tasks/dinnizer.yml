@@ -1,0 +1,202 @@
+---
+- name: Ensure Dinnizer directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ dinnizer_root_dir }}"
+    - "{{ dinnizer_db_data_dir }}"
+
+- name: Ensure Dinnizer secret directory exists
+  ansible.builtin.file:
+    path: "{{ dinnizer_secret_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Check whether the Dinnizer DB password exists
+  ansible.builtin.stat:
+    path: "{{ dinnizer_db_password_file }}"
+  register: dinnizer_db_password_file_stat
+  no_log: true
+
+- name: Generate the Dinnizer DB password on the target host
+  ansible.builtin.shell: "tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32"
+  register: dinnizer_db_password_generated
+  changed_when: true
+  when: not dinnizer_db_password_file_stat.stat.exists
+  no_log: true
+
+- name: Save the generated Dinnizer DB password
+  ansible.builtin.copy:
+    content: "{{ dinnizer_db_password_generated.stdout }}\n"
+    dest: "{{ dinnizer_db_password_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: not dinnizer_db_password_file_stat.stat.exists
+  no_log: true
+
+- name: Check whether the Dinnizer secret key base exists
+  ansible.builtin.stat:
+    path: "{{ dinnizer_secret_key_base_file }}"
+  register: dinnizer_secret_key_base_file_stat
+  no_log: true
+
+- name: Generate the Dinnizer secret key base on the target host
+  ansible.builtin.shell: "tr -dc 'A-Fa-f0-9' </dev/urandom | head -c 128"
+  register: dinnizer_secret_key_base_generated
+  changed_when: true
+  when: not dinnizer_secret_key_base_file_stat.stat.exists
+  no_log: true
+
+- name: Save the generated Dinnizer secret key base
+  ansible.builtin.copy:
+    content: "{{ dinnizer_secret_key_base_generated.stdout }}\n"
+    dest: "{{ dinnizer_secret_key_base_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: not dinnizer_secret_key_base_file_stat.stat.exists
+  no_log: true
+
+- name: Read the managed Dinnizer DB password
+  ansible.builtin.slurp:
+    src: "{{ dinnizer_db_password_file }}"
+  register: dinnizer_db_password_slurp
+  no_log: true
+
+- name: Read the managed Dinnizer secret key base
+  ansible.builtin.slurp:
+    src: "{{ dinnizer_secret_key_base_file }}"
+  register: dinnizer_secret_key_base_slurp
+  no_log: true
+
+- name: Load the managed Dinnizer secrets
+  ansible.builtin.set_fact:
+    dinnizer_db_password: "{{ dinnizer_db_password_slurp.content | b64decode | trim }}"
+    dinnizer_secret_key_base: "{{ dinnizer_secret_key_base_slurp.content | b64decode | trim }}"
+    dinnizer_database_url: "postgres://{{ dinnizer_db_user }}:{{ dinnizer_db_password_slurp.content | b64decode | trim }}@{{ dinnizer_db_container_name }}:5432/{{ dinnizer_db_name }}"
+  no_log: true
+
+- name: Ensure the Dinnizer container network exists
+  community.docker.docker_network:
+    name: "{{ dinnizer_network_name }}"
+    state: present
+
+- name: Pull the Dinnizer database image
+  community.docker.docker_image:
+    name: "{{ dinnizer_db_image }}"
+    source: pull
+
+- name: Checkout the Dinnizer application repository
+  ansible.builtin.git:
+    repo: "{{ dinnizer_repo_url }}"
+    dest: "{{ dinnizer_repo_dir }}"
+    version: "{{ dinnizer_repo_version }}"
+    force: true
+  register: dinnizer_git_checkout
+
+- name: Build the Dinnizer application image
+  community.docker.docker_image:
+    name: "{{ dinnizer_image_name }}"
+    source: build
+    force_source: "{{ dinnizer_git_checkout.changed }}"
+    build:
+      path: "{{ dinnizer_repo_dir }}"
+  register: dinnizer_image_build
+
+- name: Run the Dinnizer database container
+  community.docker.docker_container:
+    name: "{{ dinnizer_db_container_name }}"
+    image: "{{ dinnizer_db_image }}"
+    state: started
+    restart_policy: unless-stopped
+    networks:
+      - name: "{{ dinnizer_network_name }}"
+    volumes:
+      - "{{ dinnizer_db_data_dir }}:/var/lib/postgresql/data"
+    env:
+      POSTGRES_DB: "{{ dinnizer_db_name }}"
+      POSTGRES_USER: "{{ dinnizer_db_user }}"
+      POSTGRES_PASSWORD: "{{ dinnizer_db_password }}"
+  no_log: true
+
+- name: Wait for the Dinnizer database to become ready
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - "{{ dinnizer_db_container_name }}"
+      - pg_isready
+      - -U
+      - "{{ dinnizer_db_user }}"
+      - -d
+      - "{{ dinnizer_db_name }}"
+  register: dinnizer_db_ready
+  changed_when: false
+  retries: "{{ dinnizer_wait_retries }}"
+  delay: "{{ dinnizer_wait_delay }}"
+  until: dinnizer_db_ready.rc == 0
+
+- name: Check whether the Dinnizer database is initialized
+  ansible.builtin.shell: |
+    docker exec -e PGPASSWORD='{{ dinnizer_db_password }}' '{{ dinnizer_db_container_name }}' \
+      psql -U'{{ dinnizer_db_user }}' -d'{{ dinnizer_db_name }}' -tAc "select to_regclass('public.users');"
+  args:
+    executable: /bin/bash
+  register: dinnizer_users_table_check
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: Initialize the Dinnizer database schema when empty
+  ansible.builtin.shell: |
+    docker run --rm --network '{{ dinnizer_network_name }}' \
+      -e RAILS_ENV=production \
+      -e DISABLE_DATABASE_ENVIRONMENT_CHECK=1 \
+      -e DATABASE_URL='{{ dinnizer_database_url }}' \
+      -e SECRET_KEY_BASE='{{ dinnizer_secret_key_base }}' \
+      -e RAILS_LOG_TO_STDOUT=1 \
+      -e RAILS_SERVE_STATIC_FILES=1 \
+      '{{ dinnizer_image_name }}' bundle exec rails db:schema:load
+  args:
+    executable: /bin/bash
+  when: dinnizer_users_table_check.stdout | trim != 'users'
+  no_log: true
+
+- name: Run Dinnizer database migrations
+  ansible.builtin.shell: |
+    docker run --rm --network '{{ dinnizer_network_name }}' \
+      -e RAILS_ENV=production \
+      -e DATABASE_URL='{{ dinnizer_database_url }}' \
+      -e SECRET_KEY_BASE='{{ dinnizer_secret_key_base }}' \
+      -e RAILS_LOG_TO_STDOUT=1 \
+      -e RAILS_SERVE_STATIC_FILES=1 \
+      '{{ dinnizer_image_name }}' bundle exec rails db:migrate
+  args:
+    executable: /bin/bash
+  changed_when: false
+  no_log: true
+
+- name: Run the Dinnizer application container
+  community.docker.docker_container:
+    name: "{{ dinnizer_container_name }}"
+    image: "{{ dinnizer_image_name }}"
+    state: started
+    recreate: "{{ dinnizer_image_build.changed }}"
+    restart_policy: unless-stopped
+    networks:
+      - name: "{{ dinnizer_network_name }}"
+    env:
+      RAILS_ENV: production
+      RAILS_LOG_TO_STDOUT: "1"
+      RAILS_SERVE_STATIC_FILES: "1"
+      DATABASE_URL: "{{ dinnizer_database_url }}"
+      SECRET_KEY_BASE: "{{ dinnizer_secret_key_base }}"
+      CLOUDINARY_URL: "{{ dinnizer_cloudinary_url }}"
+  no_log: true

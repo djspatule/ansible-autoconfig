@@ -105,6 +105,12 @@
     - server
     - game_timer
 
+- import_tasks: dinnizer.yml
+  when: server_dinnizer_enabled | default(false)
+  tags:
+    - server
+    - dinnizer
+
 - import_tasks: nextcloud_preflight.yml
   when: server_nextcloud_enabled | default(false)
   tags:

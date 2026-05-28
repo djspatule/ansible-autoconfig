@@ -92,7 +92,11 @@
 
       {% for dump in backup_database_dumps %}
       if docker inspect '{{ dump.container }}' >/dev/null 2>&1 && [ -f '{{ dump.password_file }}' ]; then
+        {% if dump.engine | default('mariadb') == 'postgres' %}
+        docker exec -e PGPASSWORD="$(cat '{{ dump.password_file }}')" '{{ dump.container }}' pg_dump -U'{{ dump.user }}' '{{ dump.database }}' > "$dump_dir/{{ dump.name }}.sql"
+        {% else %}
         docker exec '{{ dump.container }}' mariadb-dump -u'{{ dump.user }}' -p"$(cat '{{ dump.password_file }}')" '{{ dump.database }}' > "$dump_dir/{{ dump.name }}.sql"
+        {% endif %}
         chmod 600 "$dump_dir/{{ dump.name }}.sql"
       fi
       {% endfor %}
