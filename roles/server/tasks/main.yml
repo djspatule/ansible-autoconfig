@@ -6,6 +6,69 @@
     - server
     - server_docker
 
+- name: Install Docker LAN-only published port guard
+  ansible.builtin.copy:
+    dest: /usr/local/sbin/autoconfig-docker-lan-guard
+    owner: root
+    group: root
+    mode: "0700"
+    content: |
+      #!/bin/sh
+      set -eu
+      iptables -N AUTOCONFIG-LAN-ONLY 2>/dev/null || true
+      iptables -F AUTOCONFIG-LAN-ONLY
+      {% for cidr in server_lan_cidrs %}
+      iptables -A AUTOCONFIG-LAN-ONLY -s {{ cidr }} -j RETURN
+      {% endfor %}
+      iptables -A AUTOCONFIG-LAN-ONLY -j DROP
+      {% for port in server_lan_only_published_ports %}
+      iptables -C DOCKER-USER -p tcp -m conntrack --ctorigdstport {{ port }} -j AUTOCONFIG-LAN-ONLY 2>/dev/null || iptables -I DOCKER-USER 1 -p tcp -m conntrack --ctorigdstport {{ port }} -j AUTOCONFIG-LAN-ONLY
+      {% endfor %}
+      iptables -C DOCKER-USER -j RETURN 2>/dev/null || iptables -A DOCKER-USER -j RETURN
+  when: server_lan_only_published_ports | length > 0
+  tags:
+    - server
+    - server_docker
+    - firewall
+
+- name: Install Docker LAN-only published port guard service
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/autoconfig-docker-lan-guard.service
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Restrict selected Docker published ports to LAN clients
+      Requires=docker.service
+      After=docker.service
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=/usr/local/sbin/autoconfig-docker-lan-guard
+
+      [Install]
+      WantedBy=multi-user.target
+  register: server_lan_guard_unit
+  when: server_lan_only_published_ports | length > 0
+  tags:
+    - server
+    - server_docker
+    - firewall
+
+- name: Enable and run Docker LAN-only published port guard service
+  ansible.builtin.systemd:
+    name: autoconfig-docker-lan-guard.service
+    enabled: true
+    state: started
+    daemon_reload: "{{ server_lan_guard_unit.changed }}"
+  when: server_lan_only_published_ports | length > 0
+  tags:
+    - server
+    - server_docker
+    - firewall
+
 - import_tasks: mounts.yml
   when: server_manage_fstab | default(false)
   tags:

@@ -26,6 +26,9 @@ pihole_published_ports:
   - "192.168.1.100:53:53/tcp"
   - "192.168.1.100:53:53/udp"
   - "192.168.1.100:8089:80"
+server_lan_only_published_ports:
+  - 8089
+  - 8080
 server_reverse_proxy_enabled: true
 server_aumenuilya_enabled: true
 homepage_extra_allowed_hosts:

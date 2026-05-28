@@ -12,6 +12,9 @@ server_docker_packages_by_family:
       - python-docker
 server_docker_users:
   - "{{ dotfiles_user | default(desktop_user | default('lion')) }}"
+server_lan_cidrs:
+  - 192.168.1.0/24
+server_lan_only_published_ports: []
 
 server_homepage_enabled: false
 homepage_container_name: homepage
