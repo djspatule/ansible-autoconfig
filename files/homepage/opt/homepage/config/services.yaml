@@ -1,18 +1,65 @@
 ---
-- Infrastructure:
-    - Homepage:
-        icon: homepage.png
-        href: /
-        description: Server dashboard
+- Public Sites:
+    - AuMenuIlYA:
+        icon: wordpress.png
+        href: https://www.aumenuilya.fr/
+        description: Mimi's food blog
         server: local-docker
-        container: homepage
+        container: aumenuilya
         showStats: true
-        siteMonitor: http://homepage:3000/
+        siteMonitor: http://aumenuilya/
+    - Tabletop Timer:
+        icon: mdi-timer-outline
+        href: https://tabletop-timer.com/
+        description: Board-game timer
+        server: local-docker
+        container: game-timer
+        showStats: true
+        siteMonitor: http://game-timer/
+
+- Family Services:
+    - Nextcloud:
+        icon: nextcloud.png
+        href: https://cloud.dinnizer.com/
+        description: Family cloud and files
+        server: local-docker
+        container: nextcloud
+        showStats: true
+        siteMonitor: http://nextcloud/
+    - Frigate:
+        icon: frigate.png
+        href: https://192.168.1.100:8971/
+        description: Local camera NVR
     - BentoPDF:
         icon: mdi-file-pdf-box
         href: http://192.168.1.100:8080/
-        description: Privacy-first PDF toolkit
+        description: LAN-only PDF toolkit
         server: local-docker
         container: bentopdf
         showStats: true
         siteMonitor: http://bentopdf:8080/
+
+- Infrastructure:
+    - Homepage:
+        icon: homepage.png
+        href: https://homepage.dinnizer.com/
+        description: Protected service dashboard
+        server: local-docker
+        container: homepage
+        showStats: true
+        siteMonitor: http://homepage:3000/
+    - Pi-hole:
+        icon: pi-hole.png
+        href: http://192.168.1.100:8089/admin/login
+        description: LAN-only DNS filtering admin
+        server: local-docker
+        container: pihole
+        showStats: true
+        siteMonitor: http://pihole/admin/login
+    - Caddy:
+        icon: caddy.png
+        href: https://homepage.dinnizer.com/
+        description: Public HTTPS reverse proxy
+        server: local-docker
+        container: server-reverse-proxy
+        showStats: true

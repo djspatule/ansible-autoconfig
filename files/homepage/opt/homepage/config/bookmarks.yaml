@@ -4,3 +4,35 @@
         - abbr: AA
           href: https://github.com/djspatule/ansible-autoconfig
           description: Source repository
+    - Serverannah SSH:
+        - abbr: SSH
+          href: ssh://lion@192.168.1.100
+          description: Local SSH endpoint
+    - Pi-hole Admin:
+        - abbr: PH
+          href: http://192.168.1.100:8089/admin/login
+          description: LAN-only DNS admin
+
+- Public:
+    - AuMenuIlYA:
+        - abbr: AM
+          href: https://www.aumenuilya.fr/
+          description: Food blog
+    - Nextcloud:
+        - abbr: NC
+          href: https://cloud.dinnizer.com/
+          description: Family cloud
+    - Tabletop Timer:
+        - abbr: TT
+          href: https://tabletop-timer.com/
+          description: Game timer
+
+- Local Tools:
+    - BentoPDF:
+        - abbr: PDF
+          href: http://192.168.1.100:8080/
+          description: LAN-only PDF tools
+    - Frigate:
+        - abbr: FR
+          href: https://192.168.1.100:8971/
+          description: Camera dashboard
