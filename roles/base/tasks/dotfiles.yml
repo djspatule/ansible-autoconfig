@@ -128,6 +128,33 @@
       (dotfiles_starship_stat.stat.islnk | default(false)
        and dotfiles_starship_link_target.stdout != dotfiles_source_dir ~ '/starship/.config/starship.toml')
 
+# Stow refuses to create a symlink when a real file already exists. Preserve the
+# first copy of selected workstation configs, then remove the unmanaged path so
+# Stow can own it. The bash/starship-specific tasks above are kept for readable
+# history; this generic loop covers newer packages such as tmux, ssh, opencode.
+- name: Preserve unmanaged selected dotfiles before Stow takes over
+  ansible.builtin.shell: |
+    set -eu
+    target='{{ dotfiles_home }}/{{ item.path }}'
+    expected='{{ dotfiles_source_dir }}/{{ item.package }}/{{ item.path }}'
+    backup="$target.pre-stow-backup"
+
+    [ -e "$target" ] || [ -L "$target" ] || exit 0
+    if [ -L "$target" ] && [ "$(readlink -f "$target")" = "$expected" ]; then
+      exit 0
+    fi
+
+    if [ ! -e "$backup" ] && [ ! -L "$backup" ]; then
+      cp -a "$target" "$backup"
+      chown -h '{{ dotfiles_user }}:{{ dotfiles_user }}' "$backup"
+    fi
+    rm -rf "$target"
+  args:
+    executable: /bin/bash
+  loop: "{{ dotfiles_managed_paths | selectattr('package', 'in', dotfiles_stow_packages) | list }}"
+  when:
+    - item.package not in ['bash', 'starship']
+
 # Stow remains the symlink engine, while Ansible decides which packages are safe
 # to apply on this host.
 - name: Stow the selected dotfiles packages

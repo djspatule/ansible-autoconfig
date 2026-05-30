@@ -1,0 +1,19 @@
+---
+- name: Gather minimal facts for workstation CLI packages
+  ansible.builtin.setup:
+    gather_subset:
+      - min
+
+- name: Require a supported OS family for workstation CLI packages
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.os_family in workstation_cli_packages_by_family
+    fail_msg: >-
+      Workstation CLI packages are not defined for {{ ansible_facts.os_family }}.
+      Add this OS family to workstation_cli_packages_by_family.
+
+- name: Install workstation CLI/TUI packages
+  ansible.builtin.package:
+    name: "{{ workstation_cli_packages_by_family[ansible_facts.os_family] }}"
+    state: present
+  when: workstation_cli_packages_by_family[ansible_facts.os_family] | length > 0

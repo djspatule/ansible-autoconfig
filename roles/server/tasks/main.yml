@@ -17,6 +17,7 @@
       set -eu
       iptables -N AUTOCONFIG-LAN-ONLY 2>/dev/null || true
       iptables -F AUTOCONFIG-LAN-ONLY
+      iptables -A AUTOCONFIG-LAN-ONLY -m conntrack --ctstate RELATED,ESTABLISHED -j RETURN
       {% for cidr in server_lan_cidrs %}
       iptables -A AUTOCONFIG-LAN-ONLY -s {{ cidr }} -j RETURN
       {% endfor %}

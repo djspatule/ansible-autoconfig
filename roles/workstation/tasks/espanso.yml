@@ -1,0 +1,9 @@
+---
+- name: Keep Espanso installation explicit on Arch/Omarchy
+  ansible.builtin.assert:
+    that:
+      - workstation_espanso_install_supported | default(false)
+    fail_msg: >-
+      Espanso installation is intentionally disabled for now. On Arch/Omarchy it
+      can require AUR/source builds, which are slow and resource-heavy. Manage
+      config through dotfiles first; add a deliberate installer later.

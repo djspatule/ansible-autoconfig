@@ -1,3 +1,17 @@
 ---
 - block:
-  - import_tasks: betterbird.yml
+    - import_tasks: cli_packages.yml
+      when: workstation_cli_enabled | default(true)
+      tags:
+        - workstation_cli
+
+    - import_tasks: dotfiles.yml
+      when: workstation_dotfiles_enabled | default(true)
+      tags:
+        - workstation_dotfiles
+
+    - import_tasks: espanso.yml
+      when: workstation_espanso_enabled | default(false)
+      tags:
+        - workstation_espanso
+  when: workstation_enabled | default(false)

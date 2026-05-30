@@ -72,6 +72,8 @@ without implementing anything ('dry run')._
   - [ ] other services : implement Odoo, plex timeshift or borg?
   - [ ] correct minimally and deploy the dinnizer app at app.dinnizer.com. I'll
         later use the dinnizer.com landing page for a corporate website.
+  - [ ] Google Analytics : make sure each site is configured (aumenuilya,
+        app.dinnizer and tabletop-timer)
   - [ ] re-establish when possible the conf file for Homepage as on raspi (with
         the same "widgets" when relevant). Update also the links there.
   - [ ] develop a very simple dinnizer landing page for a CFO part time service.

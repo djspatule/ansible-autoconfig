@@ -1,0 +1,12 @@
+---
+- name: Ensure workstation dotfiles are enabled through the base role
+  ansible.builtin.assert:
+    that:
+      - base_dotfiles_enabled | default(false)
+    fail_msg: >-
+      Workstation dotfiles reuse the base Stow engine. Set
+      base_dotfiles_enabled: true and choose dotfiles_stow_packages for this host.
+
+- name: Show selected workstation dotfiles packages
+  ansible.builtin.debug:
+    msg: "Workstation dotfiles selected for {{ workstation_user }}: {{ dotfiles_stow_packages | default([]) | join(', ') }}"

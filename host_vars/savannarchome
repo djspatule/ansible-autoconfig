@@ -1,0 +1,24 @@
+---
+# Disposable Omarchy/Arch VM used to prove workstation automation before the
+# real laptop target. Adjust the port to match the GNOME Boxes SSH forward.
+ansible_host: 127.0.0.1
+ansible_port: 2222
+ansible_user: lion
+ansible_python_interpreter: /usr/bin/python3
+
+desktop_user: lion
+base_dotfiles_enabled: true
+base_lazydocker_enabled: false
+workstation_enabled: true
+workstation_cli_enabled: true
+workstation_dotfiles_enabled: true
+workstation_espanso_enabled: false
+
+# Keep this first pass focused on CLI/TUI and config. GUI apps and mail profiles
+# are intentionally out of scope until the role is boring and repeatable.
+dotfiles_stow_packages:
+  - bash
+  - starship
+  - tmux
+  - ssh
+  - opencode

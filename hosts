@@ -1,3 +1,8 @@
 [server]
 raspberrypi
 serverannah
+
+[workstation]
+# Test VM first. With GNOME Boxes NAT, forward host port 2222 to guest port 22
+# and set ansible_port accordingly in host_vars/savannarchome.
+savannarchome

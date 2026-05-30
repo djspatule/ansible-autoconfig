@@ -1,0 +1,30 @@
+---
+workstation_enabled: false
+workstation_user: "{{ desktop_user | default('lion') }}"
+workstation_home: "/home/{{ workstation_user }}"
+
+workstation_cli_enabled: true
+workstation_dotfiles_enabled: true
+workstation_espanso_enabled: false
+
+# Arch/Omarchy first. Debian can be added later if an actual workstation needs it.
+workstation_cli_packages_by_family:
+  Archlinux:
+    - fd
+    - fzf
+    - git
+    - github-cli
+    - jq
+    - lazygit
+    - neovim
+    - tmux
+    - unzip
+    - wl-clipboard
+    - yq
+    - zip
+    - zoxide
+  Debian: []
+
+# Espanso on Arch/Omarchy is intentionally not installed by default. It often
+# means AUR/source builds, so keep it as an explicit later opt-in.
+workstation_espanso_install_supported: false
