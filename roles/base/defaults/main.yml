@@ -5,6 +5,7 @@ base_packages_by_family:
   Debian:
     cli:
       - curl
+      - tmux
       - btop
       - python3-psutil
       - micro
