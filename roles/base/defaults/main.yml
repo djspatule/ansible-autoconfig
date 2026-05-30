@@ -33,6 +33,7 @@ base_packages_by_family:
   Archlinux:
     cli:
       - curl
+      - tmux
       - btop
       - python-psutil
       - micro
