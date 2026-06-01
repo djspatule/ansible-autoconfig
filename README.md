@@ -60,7 +60,7 @@ without implementing anything ('dry run')._
 - [x] initiate base role and server role
 - [ ] finish implementing a base and server roles that work on fresh arch and
       ubuntu machines
-  - [ ] nextcloud: implement "old" users ?
+  - [x] nextcloud: implement "old" users ?
   - [ ] aumenuilya:
     - [ ] why is it an old version and not the one "running" on the pi ? use SSH
           to create the latest back-up and replace in SSD_1TO (keep the old
@@ -70,24 +70,31 @@ without implementing anything ('dry run')._
         also homepage update, etc. (since they are dockers, pull the latest
         image?)
   - [ ] other services : implement Odoo, plex timeshift or borg?
-  - [ ] correct minimally and deploy the dinnizer app at app.dinnizer.com. I'll
+    - [x] borg backups for server services
+    - [ ] Odoo
+    - [ ] Plex
+  - [x] correct minimally and deploy the dinnizer app at app.dinnizer.com. I'll
         later use the dinnizer.com landing page for a corporate website.
   - [ ] Google Analytics : make sure each site is configured (aumenuilya,
         app.dinnizer and tabletop-timer)
-  - [ ] re-establish when possible the conf file for Homepage as on raspi (with
+  - [x] re-establish when possible the conf file for Homepage as on raspi (with
         the same "widgets" when relevant). Update also the links there.
   - [ ] develop a very simple dinnizer landing page for a CFO part time service.
 - [ ] secure server
   - [ ] implement tailscale
-  - [ ] implement caddy auth for homepage and bentopdf? is there a fail2ban-like
+  - [x] implement caddy auth for homepage and bentopdf? is there a fail2ban-like
         system of authentication to these services that would ban after 10
         failed attemps for instance ?
 - [ ] implement workstation role
+  - [x] create first CLI/TUI/dotfiles foundation
+  - [ ] test on disposable Arch/Omarchy VM
+  - [ ] add vault-managed secrets and SSH private keys
+  - [ ] add GUI/Omarchy config after VM validation
 - [ ] implement kids role
 - [ ] find inspiration in
       [jaylacroix's code](https://github.com/LearnLinuxTV/personal_ansible_desktop_configs/tree/main)
       and eventually omakub's code or Jeff Geerling's code.
-- [ ] use tags to only test/execute parts of the ansible-autoconfig script...
+- [x] use tags to only test/execute parts of the ansible-autoconfig script...
       that should accelerate dev/debug and limit need for protection against
       downloads (to preserve bandwidth).
 
@@ -190,6 +197,8 @@ The active goal is simple:
   automation
 - `roles/server`: Docker services, reverse proxy, Pi-hole, Nextcloud, Frigate,
   fail2ban, storage bootstrap
+- `roles/workstation`: first CLI/TUI and dotfiles foundation for Arch/Omarchy
+  workstation testing
 - `files/dotfiles/`: Stow packages actually managed by this repo
 - `files/serverannah/etc/fstab`: source of truth for `serverannah` storage
   mounts
@@ -206,7 +215,7 @@ sudo ansible-playbook -i hosts --limit serverannah local.yml
 Run with `ansible-pull` on the target machine:
 
 ```bash
-sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git -C server-bootstrap -d /opt/ansible-pull local.yml
+sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git -C main -d /opt/ansible-pull local.yml
 ```
 
 When testing on a VM or before public DNS/port forwarding is ready, do not ask
@@ -214,7 +223,7 @@ Caddy to obtain public HTTPS certificates yet. Keep the real `serverannah` vars
 as the production target, and override only the staging network edge explicitly:
 
 ```bash
-sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git -C server-bootstrap -d /opt/ansible-pull local.yml \
+sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git -C main -d /opt/ansible-pull local.yml \
   -e 'server_reverse_proxy_auto_https=false server_reverse_proxy_published_ports=["8081:80"] server_reverse_proxy_sites=[{"hostname":"homepage.localtest.me","upstream":"homepage:3000"},{"hostname":"bentopdf.localtest.me","upstream":"bentopdf:8080"},{"hostname":"game-timer.localtest.me","upstream":"game-timer:80"},{"hostname":"pihole.localtest.me","upstream":"pihole:80"}]'
 ```
 
