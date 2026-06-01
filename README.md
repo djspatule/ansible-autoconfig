@@ -59,40 +59,58 @@ without implementing anything ('dry run')._
 
 - [x] initiate base role
 - [ ] implement server roles (fresh arch and ubuntu machines compatible)
-  - [x] **nextcloud**: implement "old" users ?
-  - [x] **aumenuilya**:
-    - [x] why is it an old version and not the one "running" on the pi ? use SSH
-          to create the latest back-up and replace in SSD_1TO (keep the old
-          back-up).
-    - [x] updating wordpress to its latest version doesn't work....Debug.
+  - [ ] keep server and workstation roles Arch-compatible where practical for
+        server flexibility and future distro hopping
+  - [x] use tags to only test/execute parts of the ansible-autoconfig script...
+        that should accelerate dev/debug and limit need for protection against
+        downloads (to preserve bandwidth).
   - [x] include running pi-hole update as part of the ansible playbook? Include
         also homepage update, etc. (since they are dockers, pull the latest
         image?)
+  - [ ] pull latest container images on each run unless it slows runs down too
+        much
+- [ ] server services
+  - [x] **nextcloud**: implement "old" users ?
+  - [x] re-establish when possible the conf file for Homepage as on raspi (with
+        the same "widgets" when relevant). Update also the links there.
   - [ ] **other services**:
     - [x] borg backups for
       - [x] server services
-      - [ ] server files
-    - [ ] timeshift back-up (on SSD_512?) for simple system-level checkpoints
-          and restore points
-    - [ ] Odoo
-    - [ ] Plex
+      - [ ] server files, including aumenuilya, tabletop-timer, and other
+            service data
+    - [ ] timeshift back-up on SSD_512 for simple system-level checkpoints and
+          restore points for serverannah internal storage only
+    - [ ] Odoo with small database stored on serverannah internal SSD under /home
+    - [ ] Plex reading media from SSD_1TO
     - [ ] Dictation app/server (voxtype, whisper, etc.) ? Need to be discussed
           before.
+- [x] **aumenuilya**:
+  - [x] why is it an old version and not the one "running" on the pi ? use SSH
+        to create the latest back-up and replace in SSD_1TO (keep the old
+        back-up).
+  - [x] updating wordpress to its latest version doesn't work....Debug.
+- [ ] dinnizer
   - [ ] **App.dinnizer.com**:
     - [x] correct minimally and deploy the dinnizer app at app.dinnizer.com.
-    - [ ] use the "Dinnizer app todo.csv" to make the last debugs/improvements.
-  - [ ] **Google Analytics** :
-    - [ ] make sure each site is configured (aumenuilya, app.dinnizer and
-          tabletop-timer)
-    - [ ] add advertising/monetization to these three sites?
-  - [x] re-establish when possible the conf file for Homepage as on raspi (with
-        the same "widgets" when relevant). Update also the links there.
+    - [ ] use `/home/lion/Documents/ansible-autoconfig/Dinnizer app todo.csv` to
+          make the last debugs/improvements.
   - [ ] develop a very simple dinnizer landing page at dinnizer.com for a CFO
         part time service.
+    - [ ] serve it as a standalone static Caddy site
+    - [ ] write it in HTML with the latest Material Design implementation
+    - [ ] use this palette: https://colorhunt.co/palette/f9f7f7dbe2ef3f72af112d4e
+    - [ ] define page contents later
+- [ ] tabletop-timer
   - [ ] slightly upgrade the tabletop-timer app ? focus on mobile responsivness
         and upgrade the app's security and usability without changing the code
         significantly as it was and still needs to be the fruit of my work for
         the major part.
+- [ ] analytics and monetization
+  - [ ] **Google Analytics** :
+    - [ ] configure tabletop-timer with G-5E4TWCP28D
+    - [ ] configure app.dinnizer with G-SB091QKKGE
+    - [x] leave aumenuilya alone because it was set up another way
+    - [ ] add advertising/monetization to these three sites?
 - [ ] secure server
   - [ ] implement tailscale
   - [x] implement caddy auth for homepage and bentopdf and fail2ban jail after
@@ -103,8 +121,12 @@ without implementing anything ('dry run')._
         Arch compatible as well)
 - [ ] implement workstation role
   - [ ] dotfiles:
-    - [ ] create first CLI/TUI/dotfiles foundation
-    - [ ] make sure the dotfiles are stored in an easily accessible
+    - [x] create first CLI/TUI/dotfiles foundation
+    - [ ] make sure the dotfiles are stored in an easily accessible folder where
+          they can be updated, versioned and backed up in GitHub, implemented
+          live with Stow, and portable to another machine
+    - [ ] protect secrets so private keys, tokens, and credentials never land in
+          public dotfiles
   - [ ] test on disposable Arch/Omarchy VM
   - [ ] add vault-managed secrets and SSH private keys
   - [ ] add GUI/Omarchy config after VM validation
@@ -112,9 +134,6 @@ without implementing anything ('dry run')._
 - [ ] find inspiration in
       [jaylacroix's code](https://github.com/LearnLinuxTV/personal_ansible_desktop_configs/tree/main)
       and eventually omakub's code or Jeff Geerling's code to improve the whole.
-- [x] use tags to only test/execute parts of the ansible-autoconfig script...
-      that should accelerate dev/debug and limit need for protection against
-      downloads (to preserve bandwidth).
 
 ### Guidelines for coding agents
 
