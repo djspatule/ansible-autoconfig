@@ -59,8 +59,8 @@ without implementing anything ('dry run')._
 
 - [x] initiate base role
 - [ ] implement server roles (fresh arch and ubuntu machines compatible)
-  - [x] nextcloud: implement "old" users ?
-  - [x] aumenuilya:
+  - [x] **nextcloud**: implement "old" users ?
+  - [x] **aumenuilya**:
     - [x] why is it an old version and not the one "running" on the pi ? use SSH
           to create the latest back-up and replace in SSD_1TO (keep the old
           back-up).
@@ -81,8 +81,10 @@ without implementing anything ('dry run')._
   - [ ] **App.dinnizer.com**:
     - [x] correct minimally and deploy the dinnizer app at app.dinnizer.com.
     - [ ] use the "Dinnizer app todo.csv" to make the last debugs/improvements.
-  - [ ] Google Analytics : make sure each site is configured (aumenuilya,
-        app.dinnizer and tabletop-timer)
+  - [ ] **Google Analytics** :
+    - [ ] make sure each site is configured (aumenuilya, app.dinnizer and
+          tabletop-timer)
+    - [ ] add advertising/monetization to these three sites?
   - [x] re-establish when possible the conf file for Homepage as on raspi (with
         the same "widgets" when relevant). Update also the links there.
   - [ ] develop a very simple dinnizer landing page at dinnizer.com for a CFO
