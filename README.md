@@ -57,43 +57,59 @@ without implementing anything ('dry run')._
 
 ## ToDo
 
-- [x] initiate base role and server role
-- [ ] finish implementing a base and server roles that work on fresh arch and
-      ubuntu machines
+- [x] initiate base role
+- [ ] implement server roles (fresh arch and ubuntu machines compatible)
   - [x] nextcloud: implement "old" users ?
-  - [ ] aumenuilya:
-    - [ ] why is it an old version and not the one "running" on the pi ? use SSH
+  - [x] aumenuilya:
+    - [x] why is it an old version and not the one "running" on the pi ? use SSH
           to create the latest back-up and replace in SSD_1TO (keep the old
           back-up).
-    - [ ] updating wordpress to its latest version doesn't work....Debug.
-  - [ ] include running pi-hole update as part of the ansible playbook? Include
+    - [x] updating wordpress to its latest version doesn't work....Debug.
+  - [x] include running pi-hole update as part of the ansible playbook? Include
         also homepage update, etc. (since they are dockers, pull the latest
         image?)
-  - [ ] other services : implement Odoo, plex timeshift or borg?
-    - [x] borg backups for server services
+  - [ ] **other services**:
+    - [x] borg backups for
+      - [x] server services
+      - [ ] server files
+    - [ ] timeshift back-up (on SSD_512?) for simple system-level checkpoints
+          and restore points
     - [ ] Odoo
     - [ ] Plex
-  - [x] correct minimally and deploy the dinnizer app at app.dinnizer.com. I'll
-        later use the dinnizer.com landing page for a corporate website.
+    - [ ] Dictation app/server (voxtype, whisper, etc.) ? Need to be discussed
+          before.
+  - [ ] **App.dinnizer.com**:
+    - [x] correct minimally and deploy the dinnizer app at app.dinnizer.com.
+    - [ ] use the "Dinnizer app todo.csv" to make the last debugs/improvements.
   - [ ] Google Analytics : make sure each site is configured (aumenuilya,
         app.dinnizer and tabletop-timer)
   - [x] re-establish when possible the conf file for Homepage as on raspi (with
         the same "widgets" when relevant). Update also the links there.
-  - [ ] develop a very simple dinnizer landing page for a CFO part time service.
+  - [ ] develop a very simple dinnizer landing page at dinnizer.com for a CFO
+        part time service.
+  - [ ] slightly upgrade the tabletop-timer app ? focus on mobile responsivness
+        and upgrade the app's security and usability without changing the code
+        significantly as it was and still needs to be the fruit of my work for
+        the major part.
 - [ ] secure server
   - [ ] implement tailscale
-  - [x] implement caddy auth for homepage and bentopdf? is there a fail2ban-like
-        system of authentication to these services that would ban after 10
-        failed attemps for instance ?
+  - [x] implement caddy auth for homepage and bentopdf and fail2ban jail after
+        several failed attemps.
+- [ ] update server automatically
+  - [ ] create a special user added to passwordless sudoers
+  - [ ] run the ansible-pull (with -O flag) every hour via cron job (make it
+        Arch compatible as well)
 - [ ] implement workstation role
-  - [x] create first CLI/TUI/dotfiles foundation
+  - [ ] dotfiles:
+    - [ ] create first CLI/TUI/dotfiles foundation
+    - [ ] make sure the dotfiles are stored in an easily accessible
   - [ ] test on disposable Arch/Omarchy VM
   - [ ] add vault-managed secrets and SSH private keys
   - [ ] add GUI/Omarchy config after VM validation
 - [ ] implement kids role
 - [ ] find inspiration in
       [jaylacroix's code](https://github.com/LearnLinuxTV/personal_ansible_desktop_configs/tree/main)
-      and eventually omakub's code or Jeff Geerling's code.
+      and eventually omakub's code or Jeff Geerling's code to improve the whole.
 - [x] use tags to only test/execute parts of the ansible-autoconfig script...
       that should accelerate dev/debug and limit need for protection against
       downloads (to preserve bandwidth).

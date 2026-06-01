@@ -1,0 +1,35 @@
+﻿Name,Assign,Attachments,Due,Label,Status
+"créer vidéo ""usecase""?",,,,,Backlog
+Feedback JBB,,,,,Backlog
+Link the recipe’s ingredients with the guest’s likes and dislikes,,,,,Backlog
+Recipes can be categorized,,,,,Backlog
+"create default pictures with ""initials"" for users, guests and recipes.",,,,,Backlog
+"As a user, I can access a « stats » page",,,,,Backlog
+FRONT - UI when too many guests or recipes in a dinner,,,,BUG,Ready
+Save photos in seed ? (to avoid loss of photos at each db:seed).,,,,,Backlog
+Add a “.md” content editor to improve recipe description input…if easily available in gems,,,,,Ready
+FRONT - list in each recipe its dinners and guests ?,,,,,Ready
+FRONT - Landing page,,"https://docs.google.com/presentation/d/1sUgmhRcyILBu4bSJLfY2M6ZwmXF7pkhrX82o4qdslHE/edit?usp=drive_web, https://drive.google.com/file/d/0B03jhzK6MspdX2RwT0lPRURFZWRHeGdscjJRZ0RfUU1KQWcw/view?usp=drive_web, Dinnizer/home2.pdf",,,Ready
+seed the recipe base with aumenuilya recipes (and/or add a link to recipes_list),,,,,Ready
+"Order indexes by adding .order(:last_name, :created_at) to the db queries.",,,,,In Progress
+BUG - dinner_form,,,,BUG,In Progress
+attach to www.dinnizer.com,,,,,Done
+BUG - guest_show lists the same recipe multiple times,,,,BUG,Done
+FRONT - Improve forms,,,,,Done
+add likes and dislikes to guest,,,,VITAL FUNCTIONNALITY,Done
+BUG - edit_dinner - recipes and guests are added instead of updated,,,,BUG,Done
+"Only authorize a user to CRUD its own dinners, recipes and guests",,,,,Done
+improve devise views,,,,,Done
+add multiple recipes and guests per dinner,,,,,Done
+"As a user, I can upload pictures to guests",,,,,Done
+"As a user, I can CRUD a guest",,,,,Done
+"As a user, I can CRUD a dinner",,,,,Done
+"use ""nested forms"" to achieve the new_dinner form",,,,,Done
+list in each guest its dinners and recipes,,,,,Done
+"As a user, I can upload pictures to recipes",,,,,Done
+"As a visitor, I can sign-up",,,,,Done
+navbar : menus for creating new recipe or listing all recipes,,,,,Done
+"As a user, I can upload an avatar",,,,,Done
+"As a user, I can CRUD a recipe",,,,,Done
+"As a visitor, I can login",,,,,Done
+implement navbar drop-down for guests and dinners,,,,,Done
