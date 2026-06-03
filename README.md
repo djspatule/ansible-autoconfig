@@ -80,10 +80,13 @@ without implementing anything ('dry run')._
             service data
     - [ ] timeshift back-up on SSD_512 for simple system-level checkpoints and
           restore points for serverannah internal storage only
-    - [ ] Odoo with small database stored on serverannah internal SSD under /home
+    - [ ] Odoo with small database stored on serverannah internal SSD under
+          /home
     - [ ] Plex reading media from SSD_1TO
     - [ ] Dictation app/server (voxtype, whisper, etc.) ? Need to be discussed
           before.
+    - [ ] Excalidraw docker (at draw.dinnizer.com, secured via caddy auth)
+    - [ ] have docker-compose to try new dockers easily (Tryton, ERPNext, etc.)
 - [x] **aumenuilya**:
   - [x] why is it an old version and not the one "running" on the pi ? use SSH
         to create the latest back-up and replace in SSD_1TO (keep the old
@@ -98,7 +101,8 @@ without implementing anything ('dry run')._
         part time service.
     - [ ] serve it as a standalone static Caddy site
     - [ ] write it in HTML with the latest Material Design implementation
-    - [ ] use this palette: https://colorhunt.co/palette/f9f7f7dbe2ef3f72af112d4e
+    - [ ] use this palette:
+          <https://colorhunt.co/palette/f9f7f7dbe2ef3f72af112d4e>
     - [ ] define page contents later
 - [ ] tabletop-timer
   - [ ] slightly upgrade the tabletop-timer app ? focus on mobile responsivness
