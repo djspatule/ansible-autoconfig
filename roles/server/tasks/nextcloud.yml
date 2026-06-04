@@ -27,6 +27,66 @@
     - "{{ nextcloud_db_data_dir }}"
     - "{{ nextcloud_data_dir }}"
 
+- name: Install ACL support for Nextcloud external mounts
+  ansible.builtin.package:
+    name: "{{ nextcloud_acl_packages_by_family[ansible_facts.os_family] }}"
+    state: present
+  when:
+    - nextcloud_external_mounts | default([]) | length > 0
+    - ansible_facts.os_family in nextcloud_acl_packages_by_family
+
+- name: Allow Nextcloud to access external mount contents
+  ansible.posix.acl:
+    path: "{{ item.path }}"
+    entity: "{{ nextcloud_external_mount_acl_user }}"
+    etype: user
+    permissions: rwX
+    state: present
+    recursive: true
+  loop: "{{ nextcloud_external_mounts | default([]) }}"
+
+- name: Allow new external mount contents to inherit Nextcloud access
+  ansible.posix.acl:
+    path: "{{ item.path }}"
+    entity: "{{ nextcloud_external_mount_acl_user }}"
+    etype: user
+    permissions: rwX
+    state: present
+    default: true
+    recursive: true
+  loop: "{{ nextcloud_external_mounts | default([]) }}"
+
+- name: Remove Nextcloud ACL access from protected external paths
+  ansible.posix.acl:
+    path: "{{ item }}"
+    entity: "{{ nextcloud_external_mount_acl_user }}"
+    etype: user
+    state: absent
+    recursive: true
+  loop: "{{ nextcloud_external_mount_acl_excludes | default([]) }}"
+
+- name: Remove inherited Nextcloud ACL access from protected external paths
+  ansible.posix.acl:
+    path: "{{ item }}"
+    entity: "{{ nextcloud_external_mount_acl_user }}"
+    etype: user
+    state: absent
+    default: true
+    recursive: true
+  loop: "{{ nextcloud_external_mount_acl_excludes | default([]) }}"
+
+- name: Restrict protected external paths at their entry point
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: root
+    group: root
+    mode: "0700"
+  loop: "{{ nextcloud_external_mount_acl_excludes | default([]) }}"
+
+- name: Build Nextcloud external storage bind mounts
+  ansible.builtin.set_fact:
+    nextcloud_external_mount_volumes: "{{ nextcloud_external_mounts | default([]) | map(attribute='path') | map('regex_replace', '^(.*)$', '\\1:\\1') | list }}"
+
 - name: Check whether the Nextcloud DB password file exists
   ansible.builtin.stat:
     path: "{{ nextcloud_db_password_file }}"
@@ -181,9 +241,7 @@
     published_ports: "{{ nextcloud_published_ports }}"
     networks:
       - name: "{{ nextcloud_network_name }}"
-    volumes:
-      - "{{ nextcloud_app_dir }}:/var/www/html"
-      - "{{ nextcloud_data_dir }}:/var/www/html/data"
+    volumes: "{{ [nextcloud_app_dir ~ ':/var/www/html', nextcloud_data_dir ~ ':/var/www/html/data'] + nextcloud_external_mount_volumes }}"
     env:
       MYSQL_HOST: "{{ nextcloud_db_container_name }}"
       MYSQL_DATABASE: "{{ nextcloud_db_name }}"

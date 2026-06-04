@@ -69,10 +69,10 @@ dinnizer_wait_delay: 5
 dinnizer_cloudinary_url: ""
 
 server_nextcloud_enabled: false
-# Nextcloud keeps both app state and user files on persistent storage. The real
-# server uses SSD_1TO so the service does not silently fall back to the root LV.
+# Nextcloud keeps app state and its internal data on the server disk. Larger
+# family storage can be exposed separately through nextcloud_external_mounts.
 nextcloud_network_name: autoconfig-services
-nextcloud_root_dir: /mnt/SSD_1TO/nextcloud
+nextcloud_root_dir: /opt/nextcloud
 nextcloud_app_dir: "{{ nextcloud_root_dir }}/app"
 nextcloud_db_data_dir: "{{ nextcloud_root_dir }}/db"
 nextcloud_data_dir: "{{ nextcloud_root_dir }}/data"
@@ -97,6 +97,13 @@ nextcloud_wait_retries: 30
 nextcloud_wait_delay: 5
 nextcloud_managed_users: []
 nextcloud_external_mounts: []
+nextcloud_external_mount_acl_user: www-data
+nextcloud_external_mount_acl_excludes: []
+nextcloud_acl_packages_by_family:
+  Debian:
+    - acl
+  Archlinux:
+    - acl
 
 server_frigate_enabled: false
 # Frigate is started as a migration skeleton first because the service depends on
@@ -180,7 +187,7 @@ backup_retention_keep_weekly: 4
 backup_retention_keep_monthly: 6
 backup_paths:
   - /opt/aumenuilya
-  - /mnt/SSD_1TO/nextcloud
+  - /opt/nextcloud
   - /opt/pihole
   - /opt/homepage/config
   - /opt/reverse-proxy

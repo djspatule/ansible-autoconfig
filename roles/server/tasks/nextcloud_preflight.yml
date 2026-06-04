@@ -1,8 +1,6 @@
 ---
-# Nextcloud stores both application state and family data under nextcloud_root_dir.
-# On serverannah that path is expected to live on a mounted data disk, not on the
-# small system disk. If the mount is absent, creating the directory would silently
-# put all Nextcloud data on the root filesystem, which is hard to notice later.
+# Nextcloud stores app state and internal data under nextcloud_root_dir. Resolve
+# the backing filesystem with findmnt --target so paths on / are valid too.
 - name: Derive the required Nextcloud storage mount point
   ansible.builtin.set_fact:
     nextcloud_required_mount_point: "{{ nextcloud_root_dir | dirname }}"
@@ -11,7 +9,7 @@
   ansible.builtin.command:
     argv:
       - findmnt
-      - --mountpoint
+      - --target
       - "{{ nextcloud_required_mount_point }}"
   register: nextcloud_required_mount_check
   changed_when: false
@@ -25,6 +23,6 @@
   ansible.builtin.debug:
     msg: >-
       Nextcloud is enabled, but {{ nextcloud_required_mount_point }} is not an
-      active mount. Skipping Nextcloud so its data is not accidentally written to
-      the root filesystem.
+      available filesystem target. Skipping Nextcloud so its data is not written
+      somewhere unexpected.
   when: not nextcloud_storage_mount_available

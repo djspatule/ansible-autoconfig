@@ -14,7 +14,7 @@ fail2ban_caddy_basic_auth_enabled: true
 server_backup_enabled: true
 backup_paths:
   - /opt/aumenuilya
-  - /mnt/SSD_1TO/nextcloud
+  - /opt/nextcloud
   - /opt/pihole
   - /opt/homepage/config
   - /opt/reverse-proxy
@@ -104,6 +104,8 @@ nextcloud_external_mounts:
     users:
       - lion
       - mimi
+nextcloud_external_mount_acl_excludes:
+  - /mnt/SSD_1TO/nextcloud
 
 # Only Stow packages that are already curated into files/dotfiles are enabled.
 dotfiles_stow_packages:
