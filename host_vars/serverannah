@@ -104,6 +104,8 @@ nextcloud_external_mounts:
     users:
       - lion
       - mimi
+nextcloud_trusted_proxies:
+  - 172.18.0.0/16
 nextcloud_external_mount_acl_excludes:
   - /mnt/SSD_1TO/nextcloud
 

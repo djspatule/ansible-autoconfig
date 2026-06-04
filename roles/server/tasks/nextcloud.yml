@@ -320,6 +320,25 @@
     index_var: index
   changed_when: false
 
+- name: Set Nextcloud forwarded-for headers
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - config:system:set
+      - forwarded_for_headers
+      - "{{ index | string }}"
+      - --value={{ item }}
+  loop: "{{ nextcloud_forwarded_for_headers }}"
+  loop_control:
+    index_var: index
+  changed_when: false
+
 - name: Set Nextcloud overwrite host
   ansible.builtin.command:
     argv:
