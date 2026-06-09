@@ -11,13 +11,14 @@
       changed_when: false
       when: ansible_facts['distribution'] == 'Archlinux'
 
-    - name: update repositories
+    - name: update repositories and apply distribution upgrades
       tags: always
       become: true
       ansible.builtin.apt:
         update_cache: true
         upgrade: dist
-      changed_when: false
+      # No changed_when override here: a dist upgrade is a real system change, so
+      # let Ansible report "changed" honestly when packages were actually upgraded.
       when: ansible_facts['distribution'] in ["Debian", "Pop!_OS", "Ubuntu"]
 
 # run roles
@@ -40,33 +41,20 @@
   roles:
     - workstation
 
-# end of run cleanup and reporting
+# end of run cleanup
 - hosts: all
   become: true
   tasks:
     - name: cleanup package cache (debian and ubuntu)
       tags: always
-      apt:
+      ansible.builtin.apt:
         autoclean: true
       changed_when: false
       when: ansible_facts['distribution'] in ["Debian", "Pop!_OS", "Ubuntu"]
 
     - name: autoremove orphan packages (debian and ubuntu)
       tags: always
-      apt:
+      ansible.builtin.apt:
         autoremove: true
         purge: true
       when: ansible_facts['distribution'] in ["Debian", "Pop!_OS", "Ubuntu"]
-
-  # - name: send completion alert
-  #   include_tasks: playbooks/send_completion_alert.yml
-  #   tags: always
-  #   when:
-  #     - task_failed is not defined
-
-  # - name: send failure alert
-  #   include_tasks: playbooks/send_failure_alert.yml
-  #   tags: always
-  #   when:
-  #     - task_failed is defined
-  #     - task_failed == true

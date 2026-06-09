@@ -10,16 +10,20 @@
       - [Roles](#roles)
       - [Extra instructions](#extra-instructions)
       - [Do not do](#do-not-do)
-  - [Agent written readme](#agent-written-readme) -
-  [Design Rules](#design-rules) - [Active Layout](#active-layout) -
-  [Current Entry Points](#current-entry-points) -
-  [Why `requirements.yml` Stays](#why-requirementsyml-stays) -
-  [What `group_vars/all` Still Does](#what-groupvarsall-still-does) -
-  [Storage Model](#storage-model) - [Dotfiles Model](#dotfiles-model) -
-  [Pi-hole Source Of Truth](#pi-hole-source-of-truth) -
-  [Serverannah Notes](#serverannah-notes) -
-  [Conventions For Future Changes](#conventions-for-future-changes) -
-  [Known Reality](#known-reality)
+  - [Agent written readme](#agent-written-readme)
+    - [Design Rules](#design-rules)
+    - [Active Layout](#active-layout)
+    - [Current Entry Points](#current-entry-points)
+    - [Secrets And Vault](#secrets-and-vault)
+    - [Linting](#linting)
+    - [Why `requirements.yml` Stays](#why-requirementsyml-stays)
+    - [What `group_vars/all` Still Does](#what-group_varsall-still-does)
+    - [Storage Model](#storage-model)
+    - [Dotfiles Model](#dotfiles-model)
+    - [Pi-hole Source Of Truth](#pi-hole-source-of-truth)
+    - [Serverannah Notes](#serverannah-notes)
+    - [Conventions For Future Changes](#conventions-for-future-changes)
+    - [Known Reality](#known-reality)
   <!--toc:end-->
 
 ![Ansible Logo](https://www.learnlinux.tv/wp-content/uploads/2020/12/ansible-e1607524003363.png)
@@ -95,8 +99,24 @@ without implementing anything ('dry run')._
 - [ ] dinnizer
   - [ ] **App.dinnizer.com**:
     - [x] correct minimally and deploy the dinnizer app at app.dinnizer.com.
-    - [ ] use `/home/lion/Documents/ansible-autoconfig/Dinnizer app todo.csv` to
-          make the last debugs/improvements.
+    - [ ] make the last debugs/improvements. These come from
+          `Dinnizer app todo.csv` (kept as the detailed scratch list until the
+          items below are closed; the relevant still-open ones are folded in
+          here):
+      - [ ] BUG: front UI breaks when a dinner has too many guests or recipes
+      - [ ] BUG: `dinner_form`
+      - [ ] order index pages with `.order(:last_name, :created_at)`
+      - [ ] front: list each recipe's dinners and guests
+      - [ ] add a Markdown content editor for recipe descriptions (if an easy gem
+            exists)
+      - [ ] seed the recipe base with aumenuilya recipes (or link to a recipe
+            list)
+      - [ ] save photos in the seed so `db:seed` does not drop them
+      - [ ] link a recipe's ingredients to each guest's likes and dislikes
+      - [ ] allow recipes to be categorized
+      - [ ] generate default "initials" pictures for users, guests and recipes
+      - [ ] add a per-user stats page
+      - [ ] (later/marketing) usecase video, JBB feedback
   - [ ] develop a very simple dinnizer landing page at dinnizer.com for a CFO
         part time service.
     - [ ] serve it as a standalone static Caddy site
@@ -119,21 +139,30 @@ without implementing anything ('dry run')._
   - [ ] implement tailscale
   - [x] implement caddy auth for homepage and bentopdf and fail2ban jail after
         several failed attemps.
-- [ ] update server automatically
-  - [ ] create a special user added to passwordless sudoers
-  - [ ] run the ansible-pull (with -O flag) every hour via cron job (make it
-        Arch compatible as well)
+- [x] update server automatically
+  - [x] run ansible-pull on a schedule. Implemented in `roles/base` as a systemd
+        timer (`autoconfig-pull.timer`, `OnCalendar=daily`,
+        `RandomizedDelaySec=30m`, `Persistent=true`) plus a helper script and a
+        oneshot service. Works on both Arch and Debian families.
+  - [ ] optionally add a dedicated passwordless-sudo user. The timer currently
+        runs as root via systemd, so this is now a hardening nicety, not a
+        blocker.
 - [ ] implement workstation role
   - [ ] dotfiles:
     - [x] create first CLI/TUI/dotfiles foundation
-    - [ ] make sure the dotfiles are stored in an easily accessible folder where
-          they can be updated, versioned and backed up in GitHub, implemented
-          live with Stow, and portable to another machine
+    - [ ] keep migrating the dotfiles from the standalone `omarchy-dotfiles`
+          repo into this repo's `files/dotfiles/` so they are versioned here,
+          applied live with Stow, and portable to another machine
     - [ ] protect secrets so private keys, tokens, and credentials never land in
-          public dotfiles
-  - [ ] test on disposable Arch/Omarchy VM
-  - [ ] add vault-managed secrets and SSH private keys
-  - [ ] add GUI/Omarchy config after VM validation
+          this public repo unencrypted (use ansible-vault, see
+          [Secrets And Vault](#secrets-and-vault))
+  - [ ] test on the disposable Arch/Omarchy VM (`savannarchome`)
+  - [x] vault-password-file plumbing is wired end to end (bootstrap script,
+        ansible-pull timer, `ansible.cfg`). Encrypting the actual SSH/private
+        files with it is the next step.
+  - [ ] workstation stays CLI/TUI only for now. GUI/Omarchy config is
+        intentionally out of scope (the old Betterbird/Thunderbird automation was
+        removed as stale).
 - [ ] implement kids role
 - [ ] find inspiration in
       [jaylacroix's code](https://github.com/LearnLinuxTV/personal_ansible_desktop_configs/tree/main)
@@ -283,6 +312,78 @@ Dry-run a local checkout when testing:
 sudo ansible-playbook -i hosts --limit serverannah local.yml --check
 ```
 
+### Secrets And Vault
+
+This is a **public** repo, so secrets are handled at two levels:
+
+1. **Generated on the host, never committed.** Service passwords (database
+   passwords, Nextcloud admin password, Dinnizer secret key base, etc.) are
+   generated on the target machine into `/etc/ansible/secrets/` on first run and
+   reused afterwards. They never enter git at all. This is the default and covers
+   most services today.
+2. **Committed but encrypted with `ansible-vault`.** For files that genuinely
+   have to live in the repo (for example SSH config or private keys, API tokens
+   in dotfiles), encrypt them with `ansible-vault` before committing. The
+   encrypted blob is safe in a public repo; only the password that unlocks it is
+   secret.
+
+The vault password itself is never committed. Supply it one of two ways:
+
+```bash
+# Per command:
+sudo ansible-playbook -i hosts local.yml --vault-password-file ~/.ansible-vault-pass
+
+# Or for every run: uncomment vault_password_file in ansible.cfg.
+```
+
+The same `--vault-password-file` flows through `scripts/bootstrap-server.sh`
+(`AUTOCONFIG_VAULT_PASSWORD_FILE`) and the managed `autoconfig-pull` timer
+(`autoconfig_vault_password_file`), so a scheduled pull can decrypt vaulted files
+unattended. Password-file names like `~/.ansible-vault-pass`, `secret.txt` and
+`*.vault-pass` are already in `.gitignore`.
+
+Common commands:
+
+```bash
+ansible-vault encrypt files/dotfiles/ssh/.ssh/config   # encrypt in place
+ansible-vault edit    files/dotfiles/ssh/.ssh/config   # edit encrypted
+ansible-vault view    files/dotfiles/ssh/.ssh/config   # read without decrypting to disk
+```
+
+> Keep `vault_password_file` commented in `ansible.cfg` until at least one
+> encrypted file exists, otherwise runs fail looking for a password they do not
+> need.
+
+### Linting
+
+Linting is local-only. There is no GitHub Action and no cloud cost: everything
+runs on your machine.
+
+- `scripts/lint.sh` runs `yamllint` + `ansible-lint`. On first run it builds a
+  throwaway virtualenv (`.lint-venv/`, gitignored) so nothing is installed
+  system-wide. Run it any time:
+
+  ```bash
+  ./scripts/lint.sh
+  ```
+
+- A **pre-commit hook** is an optional convenience: a check that git runs
+  automatically every time you `git commit`, refusing the commit if linting
+  fails (so mistakes never reach history). It is configured in
+  `.pre-commit-config.yaml` and is also fully local. One-time setup:
+
+  ```bash
+  pipx install pre-commit   # or: pip install --user pre-commit
+  pre-commit install        # installs the hook into .git/hooks
+  pre-commit run --all-files  # optional: lint everything now
+  ```
+
+Config lives in `.yamllint` (lenient: long lines warn, real booleans only) and
+`.ansible-lint` (`basic` profile; the role-prefix naming rule is deliberately
+skipped because this repo names variables by concern, e.g. `nextcloud_`,
+`pihole_`, not `server_nextcloud_`). The remaining findings are cosmetic
+(long lines, a few unnamed `import_tasks`) and can be cleaned up over time.
+
 ### Why `requirements.yml` Stays
 
 `requirements.yml` is not just documentation.
@@ -332,10 +433,34 @@ to one specific installation.
 Dotfiles are handled with:
 
 - Ansible as orchestrator
-- Stow as symlink engine
+- Stow as symlink engine for plaintext configs
+- `ansible-vault` + a copy-decrypt step for the few configs that contain secrets
 
-Only curated packages that already live in `files/dotfiles/` should be enabled.
-Right now the active set is intentionally small.
+Plaintext packages live under `files/dotfiles/<package>/` mirroring the home
+layout, and are listed per host in `dotfiles_stow_packages`. The migrated set is
+`bash`, `starship`, `tmux`, `opencode`, `claude`, `nvim`, `git`, `gh`, and the
+sanitized public `ssh` config. These are symlinked into `$HOME` by Stow.
+
+Note two deliberate boundaries:
+
+- `gh` ships only `config.yml`. `hosts.yml` holds a GitHub OAuth token and is
+  **not** committed, even encrypted — let `gh auth login` recreate it per host.
+- the `ssh` package ships only the sanitized public config, which does nothing
+  but `Include ~/.ssh/config.local`. The real host aliases live in that local
+  file.
+
+Secret dotfiles (currently `~/.ssh/config.local`) are stored **vault-encrypted**
+under `files/dotfiles-secret/` and listed in `dotfiles_secret_files`. They cannot
+be Stow-symlinked, because the symlink would hand the application the ciphertext;
+instead Ansible copies them into place and decrypts on the way (see
+[Secrets And Vault](#secrets-and-vault)). To update one:
+
+```bash
+ansible-vault edit --vault-password-file ~/secret.txt files/dotfiles-secret/ssh/config.local
+```
+
+GUI/Omarchy desktop config (Hyprland, Waybar, etc.) is intentionally **not**
+migrated yet: the workstation role stays CLI/TUI only for now.
 
 ### Pi-hole Source Of Truth
 

@@ -1,0 +1,29 @@
+#!/bin/sh
+# Managed by Ansible (roles/server). Do not edit on the host: change the template
+# and re-run the playbook instead.
+#
+# Purpose: keep selected Docker published ports reachable only from the LAN.
+# Docker inserts its own ACCEPT rules into iptables that bypass the normal INPUT
+# chain, so we filter inside the DOCKER-USER chain, which Docker evaluates first.
+set -eu
+
+# A dedicated chain keeps our rules isolated and idempotent: we flush and rebuild
+# it every run instead of trying to surgically diff individual rules.
+iptables -N AUTOCONFIG-LAN-ONLY 2>/dev/null || true
+iptables -F AUTOCONFIG-LAN-ONLY
+
+# Always allow replies to connections the host already accepted.
+iptables -A AUTOCONFIG-LAN-ONLY -m conntrack --ctstate RELATED,ESTABLISHED -j RETURN
+{% for cidr in server_lan_cidrs %}
+iptables -A AUTOCONFIG-LAN-ONLY -s {{ cidr }} -j RETURN
+{% endfor %}
+# Anything that did not match a LAN source above is dropped.
+iptables -A AUTOCONFIG-LAN-ONLY -j DROP
+
+# Send each guarded published port through the chain above. -C tests first so we
+# never stack duplicate jump rules across repeated runs.
+{% for port in server_lan_only_published_ports %}
+iptables -C DOCKER-USER -p tcp -m conntrack --ctorigdstport {{ port }} -j AUTOCONFIG-LAN-ONLY 2>/dev/null || iptables -I DOCKER-USER 1 -p tcp -m conntrack --ctorigdstport {{ port }} -j AUTOCONFIG-LAN-ONLY
+{% endfor %}
+# Keep Docker's own RETURN terminator at the end of DOCKER-USER.
+iptables -C DOCKER-USER -j RETURN 2>/dev/null || iptables -A DOCKER-USER -j RETURN

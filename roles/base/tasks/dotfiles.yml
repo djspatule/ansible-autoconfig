@@ -171,3 +171,30 @@
   become: true
   become_user: "{{ dotfiles_user }}"
   changed_when: false
+
+# Secret dotfiles are stored vault-encrypted in the repo. Stow cannot manage them
+# (a symlink would hand the application ciphertext), so they are copied into place
+# instead. The copy module decrypts a vaulted source automatically as long as the
+# vault password is available (--vault-password-file or ansible.cfg).
+- name: Ensure parent directories for secret dotfiles exist
+  ansible.builtin.file:
+    path: "{{ (dotfiles_home ~ '/' ~ item.dest) | dirname }}"
+    state: directory
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "{{ item.dir_mode | default('0700') }}"
+  loop: "{{ dotfiles_secret_files | default([]) }}"
+  loop_control:
+    label: "{{ item.dest }}"
+
+- name: Deploy vault-encrypted dotfiles (decrypted into place)
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ dotfiles_home }}/{{ item.dest }}"
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    mode: "{{ item.mode | default('0600') }}"
+  loop: "{{ dotfiles_secret_files | default([]) }}"
+  loop_control:
+    label: "{{ item.dest }}"
+  no_log: true

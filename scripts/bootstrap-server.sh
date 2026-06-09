@@ -2,7 +2,7 @@
 set -eu
 
 repo_url="${AUTOCONFIG_REPO_URL:-https://github.com/djspatule/ansible-autoconfig.git}"
-branch="${AUTOCONFIG_BRANCH:-server-bootstrap}"
+branch="${AUTOCONFIG_BRANCH:-main}"
 repo_dir="${AUTOCONFIG_REPO_DIR:-/opt/ansible-pull}"
 playbook="${1:-${AUTOCONFIG_PLAYBOOK:-local.yml}}"
 vault_password_file="${AUTOCONFIG_VAULT_PASSWORD_FILE:-}"

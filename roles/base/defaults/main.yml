@@ -69,6 +69,7 @@ dotfiles_source_dir: "{{ playbook_dir }}/files/dotfiles"
 dotfiles_stow_packages:
   - bash
   - starship
+  - claude
 dotfiles_managed_paths:
   - package: bash
     path: .bashrc
@@ -76,10 +77,29 @@ dotfiles_managed_paths:
     path: .config/starship.toml
   - package: tmux
     path: .config/tmux/tmux.conf
-  - package: ssh
-    path: .ssh/config
   - package: opencode
     path: .config/opencode/opencode.json
+  - package: claude
+    path: .claude/settings.json
+  # ssh ships only the sanitized public config (it just Includes ~/.ssh/config.local).
+  # The real host aliases live in the vaulted config.local (see dotfiles_secret_files).
+  - package: ssh
+    path: .ssh/config
+  - package: nvim
+    path: .config/nvim
+  - package: git
+    path: .config/git
+  - package: gh
+    path: .config/gh/config.yml
+
+# Secret dotfiles cannot use Stow: a symlink would expose the vault ciphertext to
+# the application instead of the real config. They are stored vault-encrypted in
+# the repo and copied into place; Ansible decrypts them on the fly when the vault
+# password is provided (see the Secrets And Vault section of the README). Each
+# entry: src (absolute path to the encrypted file), dest (relative to the user
+# home), and optional mode/dir_mode. Empty by default; hosts opt in.
+dotfiles_secret_source_dir: "{{ playbook_dir }}/files/dotfiles-secret"
+dotfiles_secret_files: []
 base_starship_prompt_enabled: true
 
 base_lazydocker_enabled: true

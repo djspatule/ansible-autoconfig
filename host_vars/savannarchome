@@ -14,11 +14,23 @@ workstation_cli_enabled: true
 workstation_dotfiles_enabled: true
 workstation_espanso_enabled: false
 
-# Keep this first pass focused on CLI/TUI and config. GUI apps and mail profiles
-# are intentionally out of scope until the role is boring and repeatable.
+# Keep this first pass focused on CLI/TUI and config. GUI apps are intentionally
+# out of scope until the role is boring and repeatable.
 dotfiles_stow_packages:
   - bash
   - starship
   - tmux
   - ssh
   - opencode
+  - nvim
+  - git
+  - gh
+
+# Secret dotfiles deployed by copy-decrypt (not Stow). The vaulted source holds
+# the real SSH host aliases; the public ssh package only ships the sanitized
+# config that Includes this file. Needs a vault password at run time.
+dotfiles_secret_files:
+  - src: "{{ dotfiles_secret_source_dir }}/ssh/config.local"
+    dest: .ssh/config.local
+    mode: "0600"
+    dir_mode: "0700"

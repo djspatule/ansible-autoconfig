@@ -1,0 +1,24 @@
+---
+# Lenient yamllint config: catch real mistakes (syntax errors, duplicate keys,
+# bad indentation, trailing spaces) without fighting this repo's readable style.
+extends: default
+
+# yamllint does not read .gitignore, so exclude generated/vendored trees here.
+ignore: |
+  .lint-venv/
+  .ansible/
+  files/dotfiles/
+  files/dotfiles-secret/
+
+rules:
+  # Some host_vars / reverse-proxy lines are legitimately long. Warn, don't fail.
+  line-length:
+    max: 120
+    level: warning
+  # Ansible templates and inline systemd units sometimes need flexible comments.
+  comments:
+    min-spaces-from-content: 1
+  # We deliberately use real booleans (true/false), so only police values.
+  truthy:
+    allowed-values: ["true", "false"]
+    check-keys: false

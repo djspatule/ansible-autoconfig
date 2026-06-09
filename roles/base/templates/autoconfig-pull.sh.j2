@@ -24,11 +24,12 @@ fi
 # no matter where the helper is launched from.
 export ANSIBLE_CONFIG="$repo_dir/ansible.cfg"
 
-exec ansible-pull \
-  -U "$repo_url" \
-  -C "$branch" \
-  -d "$repo_dir" \
-  {% if autoconfig_vault_password_file %}
---vault-password-file "{{ autoconfig_vault_password_file }}" \
-  {% endif %}
-"$playbook"
+# Build the argument list in the shell so the optional vault flag can be added
+# cleanly. Doing this with Jinja line-continuations is fragile; "set --" is not.
+set -- ansible-pull -U "$repo_url" -C "$branch" -d "$repo_dir"
+{% if autoconfig_vault_password_file %}
+set -- "$@" --vault-password-file "{{ autoconfig_vault_password_file }}"
+{% endif %}
+set -- "$@" "$playbook"
+
+exec "$@"

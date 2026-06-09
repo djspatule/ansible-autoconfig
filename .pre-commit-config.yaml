@@ -1,0 +1,22 @@
+---
+# Pre-commit hooks run automatically every time you `git commit`, and block the
+# commit if a check fails. This keeps lint errors out of history instead of
+# finding them later. It runs entirely on your machine (no GitHub Action, no
+# cloud cost).
+#
+# One-time setup:
+#   pipx install pre-commit   # or: pip install --user pre-commit
+#   pre-commit install        # installs the git hook into this repo
+# Then it just works on every commit. To refresh the pinned versions later:
+#   pre-commit autoupdate
+# To run on demand against everything:
+#   pre-commit run --all-files
+repos:
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+  - repo: https://github.com/ansible/ansible-lint
+    rev: v24.12.2
+    hooks:
+      - id: ansible-lint

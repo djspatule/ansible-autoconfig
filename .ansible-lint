@@ -1,0 +1,20 @@
+---
+# Start on the "basic" profile: it flags real problems (deprecated syntax, broken
+# references, risky shell usage) without the strictest production rules that would
+# bury a learning-oriented repo in noise. Tighten to "moderate"/"safety" later.
+profile: basic
+
+# This repo names variables by concern (nextcloud_, pihole_, dinnizer_) on
+# purpose for readability, instead of prefixing every var with its role name.
+# That is a conscious style choice, so silence the role-prefix rule rather than
+# rename ~300 variables.
+skip_list:
+  - var-naming[no-role-prefix]
+
+exclude_paths:
+  - .git/
+  - .lint-venv/
+  # Vendored third-party app configs (nvim, gh, git, ...) are not our Ansible
+  # YAML and should not be judged by these rules.
+  - files/dotfiles/
+  - files/dotfiles-secret/

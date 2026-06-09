@@ -1,0 +1,31 @@
+{
+  "theme": "dark",
+  "effortLevel": "medium",
+  "permissions": {
+    "defaultMode": "auto"
+  },
+  "hooks": {
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '\"Permission needed: \" + (.tool_name // \"unknown\")' | xargs -I{} notify-send -u critical 'Claude Code' '{}' 2>/dev/null; paplay /usr/share/sounds/freedesktop/stereo/window-attention.oga 2>/dev/null || true",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "notify-send -u critical 'Claude Code' 'Session finished' 2>/dev/null; paplay /usr/share/sounds/freedesktop/stereo/complete.oga 2>/dev/null || true",
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}

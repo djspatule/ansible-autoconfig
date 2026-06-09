@@ -8,3 +8,12 @@ backups/raspi/etc/versions
 
 # Local tmux plugin clones
 files/dotfiles/tmux/.config/tmux/plugins/
+
+# Vault password files must never be committed to this public repo. Encrypted
+# *content* (ansible-vault) is fine to commit; the password that unlocks it is not.
+.ansible-vault-pass
+secret.txt
+*.vault-pass
+
+# Throwaway virtualenv created by scripts/lint.sh
+.lint-venv/
