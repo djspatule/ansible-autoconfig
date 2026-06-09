@@ -54,6 +54,10 @@
   register: backup_borg_passphrase_file_stat
   no_log: true
 
+# NOTE: The passphrase is generated on the managed host and stored only in
+# backup_borg_passphrase_file (/etc/ansible/secrets/borg-passphrase). It is
+# never stored in this repo. Back up that file separately — losing it means
+# losing access to all Borg archives.
 - name: Generate the Borg passphrase on the target host
   ansible.builtin.shell: "tr -dc 'A-Za-z0-9' </dev/urandom | head -c 48"
   register: backup_borg_passphrase_generated

@@ -60,16 +60,27 @@ base_packages_by_family:
       - nethogs
     snaps: []
 
+# NOTE: Opt-in per host. False by default so unknown machines are never touched.
+# To enable dotfiles on a new host, add to its host_vars:
+#   base_dotfiles_enabled: true
+#   dotfiles_stow_packages: [bash, starship, claude, ...]  # override if needed
+# For a group of similar hosts, set the default in group_vars/<group> instead.
 base_dotfiles_enabled: false
-# Keep the first Stow slice intentionally small and low-risk: only packages that
-# are versioned directly in this repo get applied per host.
 dotfiles_user: "{{ desktop_user | default('lion') }}"
 dotfiles_home: "/home/{{ dotfiles_user }}"
 dotfiles_source_dir: "{{ playbook_dir }}/files/dotfiles"
+# Default package list applied when a host does not override dotfiles_stow_packages.
+# claude is intentionally included: it is a CLI tool valid on headless servers too.
 dotfiles_stow_packages:
   - bash
   - starship
   - claude
+# NOTE: This is the pre-stow backup guard, NOT the package registry.
+# Stow will refuse to create a symlink if a real file already exists at the target.
+# Every path that any Stow package will own must have an entry here so Ansible can
+# preserve the pre-existing file as <path>.pre-stow-backup on the first run.
+# Adding a new Stow package: (1) create files/dotfiles/<pkg>/..., (2) add it to
+# dotfiles_stow_packages in the relevant host_vars, (3) add its path(s) here.
 dotfiles_managed_paths:
   - package: bash
     path: .bashrc

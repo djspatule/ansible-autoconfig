@@ -24,6 +24,8 @@
     group: root
     mode: "0755"
 
+# All tasks below are skipped when the correct version is already installed.
+# The version check (rc != 0 or version not in stdout) is the skip condition.
 - name: Download lazydocker release archive
   ansible.builtin.get_url:
     url: >-

@@ -1,6 +1,7 @@
 ---
-# Base is the common foundation for every host, closer to the LearnLinuxTV
-# layout. Only server-safe tasks belong here.
+# Base is the common foundation for every host. Only server-safe tasks belong here.
+# lazydocker, starship, and dotfiles are opt-in via their respective flags.
+# autopull always runs — every host must be self-managing via ansible-pull.
 - import_tasks: common_packages.yml
 - import_tasks: lazydocker.yml
   when: base_lazydocker_enabled | default(false)

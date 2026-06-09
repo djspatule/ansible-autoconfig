@@ -3,7 +3,10 @@ Description=Schedule Ansible pull for autoconfig
 
 [Timer]
 OnCalendar={{ autoconfig_on_calendar }}
+# RandomizedDelaySec staggers pull runs across hosts so they don't all hit
+# GitHub and package mirrors at the same second each day.
 RandomizedDelaySec={{ autoconfig_randomized_delay }}
+# Persistent=true means a missed run (host was off) fires immediately on next boot.
 Persistent={{ autoconfig_persistent | ternary('true', 'false') }}
 
 [Install]

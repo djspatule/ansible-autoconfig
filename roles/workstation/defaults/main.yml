@@ -1,8 +1,12 @@
 ---
+# NOTE: Opt-in per host, same pattern as base_dotfiles_enabled.
+# Set workstation_enabled: true in host_vars/<hostname> to activate this role.
 workstation_enabled: false
 workstation_user: "{{ desktop_user | default('lion') }}"
 workstation_home: "/home/{{ workstation_user }}"
 
+# Sub-features are on by default once workstation_enabled is true, except
+# espanso which requires an explicit opt-in (AUR/source build on Arch).
 workstation_cli_enabled: true
 workstation_dotfiles_enabled: true
 workstation_espanso_enabled: false

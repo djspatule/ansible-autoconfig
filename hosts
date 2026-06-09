@@ -1,4 +1,7 @@
 [server]
+# NOTE: raspberrypi has no host_vars file → inherits all role defaults →
+# base_dotfiles_enabled: false, no secrets deployed. To activate dotfiles,
+# create host_vars/raspberrypi with base_dotfiles_enabled: true.
 raspberrypi
 serverannah
 

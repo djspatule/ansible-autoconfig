@@ -20,6 +20,11 @@
       The dotfiles home {{ dotfiles_home }} or the source tree
       {{ dotfiles_source_dir }} is missing.
 
+# NOTE: The bash and starship tasks below are legacy per-file tasks kept for
+# readable git history. The generic shell loop further down covers all newer
+# packages (tmux, ssh, opencode, claude, nvim, git, gh, ...).
+# TODO: these legacy tasks can be collapsed into the generic loop once the git
+# history value is no longer needed.
 - name: Check whether the existing bashrc is unmanaged
   ansible.builtin.stat:
     path: "{{ dotfiles_home }}/.bashrc"
@@ -128,10 +133,13 @@
       (dotfiles_starship_stat.stat.islnk | default(false)
        and dotfiles_starship_link_target.stdout != dotfiles_source_dir ~ '/starship/.config/starship.toml')
 
-# Stow refuses to create a symlink when a real file already exists. Preserve the
-# first copy of selected workstation configs, then remove the unmanaged path so
-# Stow can own it. The bash/starship-specific tasks above are kept for readable
-# history; this generic loop covers newer packages such as tmux, ssh, opencode.
+# Stow refuses to create a symlink when a real file already exists. This loop:
+#   1. Skips if the path doesn't exist (fresh machine — nothing to rescue).
+#   2. Skips if the path is already our Stow symlink (idempotent re-runs).
+#   3. Otherwise: saves a one-time backup as <path>.pre-stow-backup, then removes
+#      the original so Stow can place its symlink. The backup is never overwritten.
+# The bash/starship-specific tasks above are kept for readable git history;
+# this generic loop covers newer packages such as tmux, ssh, opencode.
 - name: Preserve unmanaged selected dotfiles before Stow takes over
   ansible.builtin.shell: |
     set -eu

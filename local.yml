@@ -1,4 +1,8 @@
 ---
+# Play order: pre_tasks (package cache) → base (all hosts) → server → workstation → cleanup.
+# Run a subset with tags:  ansible-playbook local.yml --tags base
+#                          ansible-playbook local.yml --tags server,pihole
+# Limit to one host:       ansible-playbook local.yml --limit serverannah
 - hosts: all
   tags: always
   become: true

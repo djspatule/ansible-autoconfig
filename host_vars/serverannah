@@ -6,8 +6,8 @@ ansible_python_interpreter: auto_silent
 autoconfig_branch: main
 autoconfig_playbook: local.yml
 
-# Keep common shell config on the real server, but only from the small safe
-# Stow packages currently versioned in this repo.
+# Dotfiles enabled; dotfiles_stow_packages below is intentionally overridden to
+# the server subset. Add packages here individually as they mature.
 base_dotfiles_enabled: true
 server_fail2ban_enabled: true
 fail2ban_caddy_basic_auth_enabled: true
@@ -109,7 +109,8 @@ nextcloud_trusted_proxies:
 nextcloud_external_mount_acl_excludes:
   - /mnt/SSD_1TO/nextcloud
 
-# Only Stow packages that are already curated into files/dotfiles are enabled.
+# NOTE: Keep this list conservative for the production server. CLI tools like
+# claude that are valid on servers can be added here individually.
 dotfiles_stow_packages:
   - bash
   - starship

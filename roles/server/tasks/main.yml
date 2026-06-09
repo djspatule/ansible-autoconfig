@@ -99,6 +99,10 @@
     - server
     - dinnizer
 
+# Nextcloud and Frigate follow a two-phase pattern: the preflight task checks
+# hardware/storage availability and sets a fact; the main task only runs when
+# both the feature flag AND the preflight fact are true. This prevents the
+# deployment from failing on a machine where the required disk is not yet mounted.
 - import_tasks: nextcloud_preflight.yml
   when: server_nextcloud_enabled | default(false)
   tags:

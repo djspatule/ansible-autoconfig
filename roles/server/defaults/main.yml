@@ -10,6 +10,8 @@ server_docker_packages_by_family:
     docker:
       - docker
       - python-docker
+# Falls back through dotfiles_user → desktop_user → 'lion' to stay consistent
+# with whichever variable the calling host actually defines.
 server_docker_users:
   - "{{ dotfiles_user | default(desktop_user | default('lion')) }}"
 server_lan_cidrs:
@@ -46,6 +48,10 @@ game_timer_image: nginx:alpine
 game_timer_network_name: autoconfig-services
 game_timer_published_ports: []
 
+# NOTE: *_secret_dir variables across all services point to /etc/ansible/secrets
+# on the MANAGED HOST (not in this repo). Passwords and passphrases are stored
+# there at runtime — either placed manually before the first run, or generated
+# on first run (Borg passphrase). They are never committed to the repo.
 server_dinnizer_enabled: false
 dinnizer_network_name: autoconfig-services
 dinnizer_root_dir: /opt/dinnizer

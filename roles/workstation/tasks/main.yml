@@ -1,4 +1,6 @@
 ---
+# NOTE: The entire block is gated by workstation_enabled (default false).
+# Set it to true in host_vars to activate this role on a new workstation.
 - block:
     - import_tasks: cli_packages.yml
       when: workstation_cli_enabled | default(true)
