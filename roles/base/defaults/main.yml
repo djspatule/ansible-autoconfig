@@ -28,6 +28,7 @@ base_packages_by_family:
       - sqlite3
       - v4l-utils
       - ffmpeg
+      - nethogs
     snaps: [] # keep the [] for as long as this list is empty. Delete [] when you at at least one line.
       # - tldr
   Archlinux:
@@ -56,6 +57,7 @@ base_packages_by_family:
       - sqlite
       - v4l-utils
       - ffmpeg
+      - nethogs
     snaps: []
 
 base_dotfiles_enabled: false
