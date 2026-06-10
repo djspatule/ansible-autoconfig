@@ -21,6 +21,10 @@
   community.docker.docker_image:
     name: "{{ server_reverse_proxy_image }}"
     source: pull
+    # Re-check the registry every run; recreate the container (below) only when a
+    # genuinely new image was pulled.
+    force_source: true
+  register: server_reverse_proxy_image_pull
 
 - name: Remember reverse proxy sites protected with basic auth
   ansible.builtin.set_fact:
@@ -82,7 +86,8 @@
     name: "{{ server_reverse_proxy_container_name }}"
     image: "{{ server_reverse_proxy_image }}"
     state: started
-    # Restart when the Caddyfile changes so the new routes actually get loaded.
+    # Recreate on a new image, restart on a Caddyfile change (so new routes load).
+    recreate: "{{ server_reverse_proxy_image_pull.changed }}"
     restart: "{{ server_reverse_proxy_config.changed }}"
     restart_policy: unless-stopped
     published_ports: "{{ server_reverse_proxy_published_ports }}"

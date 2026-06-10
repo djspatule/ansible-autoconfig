@@ -138,7 +138,12 @@ without implementing anything ('dry run')._
     - [x] leave aumenuilya alone because it was set up another way
     - [ ] add advertising/monetization to these three sites?
 - [ ] secure server
-  - [ ] implement tailscale
+  - [ ] implement tailscale — **delayed on purpose.** It is a private overlay:
+        every device (you and family) must install the app and authenticate
+        before reaching a hosted service, which is the wrong trade-off for the
+        public family-facing sites already handled well by Caddy auth + fail2ban.
+        Its real value is your own remote admin access, so it is a later
+        nice-to-have, not a security upgrade over what exists.
   - [x] implement caddy auth for homepage and bentopdf and fail2ban jail after
         several failed attemps.
 - [x] update server automatically
@@ -146,6 +151,10 @@ without implementing anything ('dry run')._
         timer (`autoconfig-pull.timer`, `OnCalendar=daily`,
         `RandomizedDelaySec=30m`, `Persistent=true`) plus a helper script and a
         oneshot service. Works on both Arch and Debian families.
+  - [x] make the daily pull resilient to a dirty checkout: the helper (and
+        `bootstrap-server.sh`) force-sync to the remote branch
+        (`fetch` + `checkout -f` + `reset --hard` + `clean -fd`) so a file an app
+        rewrote through a dotfile symlink cannot break the run.
   - [ ] optionally add a dedicated passwordless-sudo user. The timer currently
         runs as root via systemd, so this is now a hardening nicety, not a
         blocker.
@@ -154,10 +163,14 @@ without implementing anything ('dry run')._
     - [x] create first CLI/TUI/dotfiles foundation
     - [x] migrate the first CLI/TUI dotfiles from the standalone
           `omarchy-dotfiles` repo into `files/dotfiles/`: `nvim`, `git`, `gh`
-          config, plus the existing `bash`/`starship`/`tmux`/`ssh`/`opencode`.
-          Validated on the VM.
-    - [ ] keep migrating remaining CLI/TUI dotfiles as needed (GUI/Omarchy
-          desktop config stays out of scope, see below)
+          config, `lazygit`, plus the existing
+          `bash`/`starship`/`tmux`/`ssh`/`opencode`. Stow runs with
+          `--no-folding` so app-written files (gh token, ssh keys, lock files)
+          never land in the repo; validated idempotent (`changed=0`) on the VM.
+    - [ ] keep migrating remaining CLI/TUI dotfiles as needed. Gotcha: omarchy
+          ships machine-specific theme symlinks (nvim `theme.lua`, `btop` theme)
+          that must NOT be vendored — omarchy manages them locally. GUI/Omarchy
+          desktop config stays out of scope (see below).
     - [x] protect secrets with ansible-vault so nothing lands in this public
           repo unencrypted. `~/.ssh/config.local` is vault-encrypted and
           deployed by copy-decrypt; the `gh` OAuth token is deliberately not
@@ -505,8 +518,23 @@ Dotfiles are handled with:
 
 Plaintext packages live under `files/dotfiles/<package>/` mirroring the home
 layout, and are listed per host in `dotfiles_stow_packages`. The migrated set is
-`bash`, `starship`, `tmux`, `opencode`, `claude`, `nvim`, `git`, `gh`, and the
-sanitized public `ssh` config. These are symlinked into `$HOME` by Stow.
+`bash`, `starship`, `tmux`, `opencode`, `claude`, `nvim`, `git`, `gh`, `lazygit`,
+and the sanitized public `ssh` config. These are symlinked into `$HOME` by Stow.
+
+Stow runs with **`--no-folding`** on purpose. By default Stow "folds" a config
+directory that does not yet exist into a single directory symlink pointing into
+the repo (e.g. `~/.config/gh -> repo/.../gh`). Because our repo is a *public*
+checkout managed in place, any file an app then writes into that dir (gh's
+`hosts.yml` token, ssh `known_hosts`, nvim lock files) would be written straight
+into the git tree. `--no-folding` keeps every directory a real local dir and
+symlinks only the curated files, so app-written files stay local. The pre-stow
+"preserve" step is directory-aware to match (it leaves an already-managed dir
+alone instead of rebuilding it every run, which keeps pulls idempotent).
+
+Do not vendor machine-specific symlinks. Omarchy points some configs at the
+active theme (nvim `lua/plugins/theme.lua`, `btop` theme) via absolute symlinks
+into `~/.config/omarchy/current/`. Those are gitignored / left out; omarchy
+recreates them locally, and Stow `--no-folding` would (correctly) refuse them.
 
 Note two deliberate boundaries:
 

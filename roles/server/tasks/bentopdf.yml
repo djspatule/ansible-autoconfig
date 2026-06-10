@@ -10,12 +10,17 @@
   community.docker.docker_image:
     name: "{{ bentopdf_image }}"
     source: pull
+    # Re-check the registry every run, but only report changed (and below,
+    # recreate the container) when a genuinely new image was pulled.
+    force_source: true
+  register: bentopdf_image_pull
 
 - name: Run BentoPDF container
   community.docker.docker_container:
     name: "{{ bentopdf_container_name }}"
     image: "{{ bentopdf_image }}"
     state: started
+    recreate: "{{ bentopdf_image_pull.changed }}"
     restart_policy: unless-stopped
     published_ports:
       - "{{ bentopdf_port }}:8080"

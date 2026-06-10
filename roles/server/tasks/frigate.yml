@@ -117,6 +117,9 @@
       community.docker.docker_image:
         name: "{{ frigate_image }}"
         source: pull
+        # Re-check the registry every run; recreate (below) only on a new image.
+        force_source: true
+      register: frigate_image_pull
 
     - name: Ensure Frigate container network exists
       community.docker.docker_network:
@@ -128,6 +131,7 @@
         name: "{{ frigate_container_name }}"
         image: "{{ frigate_image }}"
         state: started
+        recreate: "{{ frigate_image_pull.changed }}"
         restart_policy: unless-stopped
         privileged: true
         shm_size: "{{ frigate_shm_size }}"
