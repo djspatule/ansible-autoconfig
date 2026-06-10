@@ -165,10 +165,19 @@
 
 # Stow remains the symlink engine, while Ansible decides which packages are safe
 # to apply on this host.
+#
+# --no-folding is important: without it, Stow "folds" a whole package directory
+# into a single directory symlink when the target dir does not pre-exist (e.g.
+# ~/.config/gh -> repo/.../gh/.config/gh). That is dangerous here because the
+# repo lives in the managed pull checkout: an app writing runtime state into that
+# dir (gh writing hosts.yml with its OAuth token, nvim writing lazy state) would
+# write straight into the git working tree. --no-folding keeps every directory a
+# real local dir and symlinks only the individual managed files.
 - name: Stow the selected dotfiles packages
   ansible.builtin.command:
     argv:
       - stow
+      - --no-folding
       - --restow
       - --target
       - "{{ dotfiles_home }}"
@@ -178,6 +187,10 @@
   loop: "{{ dotfiles_stow_packages }}"
   become: true
   become_user: "{{ dotfiles_user }}"
+  # --restow rebuilds the links every run, which also repairs any older folded
+  # install and drops links for files removed from a package. That means stow
+  # always "acts", but the net end state is stable/idempotent, so we report
+  # unchanged rather than flag churn on every pull.
   changed_when: false
 
 # Secret dotfiles are stored vault-encrypted in the repo. Stow cannot manage them

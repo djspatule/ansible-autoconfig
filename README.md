@@ -16,6 +16,7 @@
     - [Current Entry Points](#current-entry-points)
     - [Secrets And Vault](#secrets-and-vault)
     - [Linting](#linting)
+    - [Testing On A VM](#testing-on-a-vm)
     - [Why `requirements.yml` Stays](#why-requirementsyml-stays)
     - [What `group_vars/all` Still Does](#what-group_varsall-still-does)
     - [Storage Model](#storage-model)
@@ -24,7 +25,7 @@
     - [Serverannah Notes](#serverannah-notes)
     - [Conventions For Future Changes](#conventions-for-future-changes)
     - [Known Reality](#known-reality)
-  <!--toc:end-->
+    <!--toc:end-->
 
 ![Ansible Logo](https://www.learnlinux.tv/wp-content/uploads/2020/12/ansible-e1607524003363.png)
 
@@ -90,7 +91,8 @@ without implementing anything ('dry run')._
     - [ ] Dictation app/server (voxtype, whisper, etc.) ? Need to be discussed
           before.
     - [ ] Excalidraw docker (at draw.dinnizer.com, secured via caddy auth)
-    - [ ] have docker-compose to try new dockers easily (Tryton, ERPNext, etc.)
+    - [ ] have docker-compose to try new dockers easily (Tryton, ERPNext, Hermes
+          agent, Odysseus by PewDiePie, etc.)
 - [x] **aumenuilya**:
   - [x] why is it an old version and not the one "running" on the pi ? use SSH
         to create the latest back-up and replace in SSD_1TO (keep the old
@@ -107,8 +109,8 @@ without implementing anything ('dry run')._
       - [ ] BUG: `dinner_form`
       - [ ] order index pages with `.order(:last_name, :created_at)`
       - [ ] front: list each recipe's dinners and guests
-      - [ ] add a Markdown content editor for recipe descriptions (if an easy gem
-            exists)
+      - [ ] add a Markdown content editor for recipe descriptions (if an easy
+            gem exists)
       - [ ] seed the recipe base with aumenuilya recipes (or link to a recipe
             list)
       - [ ] save photos in the seed so `db:seed` does not drop them
@@ -150,19 +152,25 @@ without implementing anything ('dry run')._
 - [ ] implement workstation role
   - [ ] dotfiles:
     - [x] create first CLI/TUI/dotfiles foundation
-    - [ ] keep migrating the dotfiles from the standalone `omarchy-dotfiles`
-          repo into this repo's `files/dotfiles/` so they are versioned here,
-          applied live with Stow, and portable to another machine
-    - [ ] protect secrets so private keys, tokens, and credentials never land in
-          this public repo unencrypted (use ansible-vault, see
-          [Secrets And Vault](#secrets-and-vault))
-  - [ ] test on the disposable Arch/Omarchy VM (`savannarchome`)
+    - [x] migrate the first CLI/TUI dotfiles from the standalone
+          `omarchy-dotfiles` repo into `files/dotfiles/`: `nvim`, `git`, `gh`
+          config, plus the existing `bash`/`starship`/`tmux`/`ssh`/`opencode`.
+          Validated on the VM.
+    - [ ] keep migrating remaining CLI/TUI dotfiles as needed (GUI/Omarchy
+          desktop config stays out of scope, see below)
+    - [x] protect secrets with ansible-vault so nothing lands in this public
+          repo unencrypted. `~/.ssh/config.local` is vault-encrypted and
+          deployed by copy-decrypt; the `gh` OAuth token is deliberately not
+          committed (see [Secrets And Vault](#secrets-and-vault)).
+  - [x] test on the disposable Arch/Omarchy VM (`savannarchome`). Self-pull via
+        `ansible-pull` validated: base + workstation, Stow dotfiles, and the
+        vaulted `config.local` deploy all apply with `failed=0`. See
+        [Testing On A VM](#testing-on-a-vm).
   - [x] vault-password-file plumbing is wired end to end (bootstrap script,
-        ansible-pull timer, `ansible.cfg`). Encrypting the actual SSH/private
-        files with it is the next step.
+        ansible-pull timer, `ansible.cfg`) and proven on the VM.
   - [ ] workstation stays CLI/TUI only for now. GUI/Omarchy config is
-        intentionally out of scope (the old Betterbird/Thunderbird automation was
-        removed as stale).
+        intentionally out of scope (the old Betterbird/Thunderbird automation
+        was removed as stale).
 - [ ] implement kids role
 - [ ] find inspiration in
       [jaylacroix's code](https://github.com/LearnLinuxTV/personal_ansible_desktop_configs/tree/main)
@@ -319,8 +327,8 @@ This is a **public** repo, so secrets are handled at two levels:
 1. **Generated on the host, never committed.** Service passwords (database
    passwords, Nextcloud admin password, Dinnizer secret key base, etc.) are
    generated on the target machine into `/etc/ansible/secrets/` on first run and
-   reused afterwards. They never enter git at all. This is the default and covers
-   most services today.
+   reused afterwards. They never enter git at all. This is the default and
+   covers most services today.
 2. **Committed but encrypted with `ansible-vault`.** For files that genuinely
    have to live in the repo (for example SSH config or private keys, API tokens
    in dotfiles), encrypt them with `ansible-vault` before committing. The
@@ -338,9 +346,9 @@ sudo ansible-playbook -i hosts local.yml --vault-password-file ~/.ansible-vault-
 
 The same `--vault-password-file` flows through `scripts/bootstrap-server.sh`
 (`AUTOCONFIG_VAULT_PASSWORD_FILE`) and the managed `autoconfig-pull` timer
-(`autoconfig_vault_password_file`), so a scheduled pull can decrypt vaulted files
-unattended. Password-file names like `~/.ansible-vault-pass`, `secret.txt` and
-`*.vault-pass` are already in `.gitignore`.
+(`autoconfig_vault_password_file`), so a scheduled pull can decrypt vaulted
+files unattended. Password-file names like `~/.ansible-vault-pass`, `secret.txt`
+and `*.vault-pass` are already in `.gitignore`.
 
 Common commands:
 
@@ -381,8 +389,67 @@ runs on your machine.
 Config lives in `.yamllint` (lenient: long lines warn, real booleans only) and
 `.ansible-lint` (`basic` profile; the role-prefix naming rule is deliberately
 skipped because this repo names variables by concern, e.g. `nextcloud_`,
-`pihole_`, not `server_nextcloud_`). The remaining findings are cosmetic
-(long lines, a few unnamed `import_tasks`) and can be cleaned up over time.
+`pihole_`, not `server_nextcloud_`). The remaining findings are cosmetic (long
+lines, a few unnamed `import_tasks`) and can be cleaned up over time.
+
+### Testing On A VM
+
+The workstation role is proven on a disposable Arch/Omarchy VM (`savannarchome`)
+before touching a real laptop. The VM configures **itself** with `ansible-pull`,
+exactly like a real new machine would, so no host-to-guest SSH or
+port-forwarding is needed.
+
+GNOME Boxes uses QEMU user-mode networking (the guest gets `10.0.2.15`, which
+the host cannot reach), so the self-pull model is not just convenient, it is the
+only simple option. Three lines inside the VM:
+
+```bash
+# 1. ansible-pull targets the inventory host whose name matches the machine's
+#    hostname, so the VM must call itself savannarchome.
+sudo hostnamectl set-hostname savannarchome
+
+# 2. The vault password (same one used on the laptop) so config.local can decrypt.
+printf '%s' 'YOUR_VAULT_PASSWORD' > ~/secret.txt && chmod 600 ~/secret.txt
+
+# 3. Fetch and run the bootstrap: installs git+ansible, clones, installs
+#    collections, runs ansible-pull for base + workstation.
+curl -fsSL https://raw.githubusercontent.com/djspatule/ansible-autoconfig/main/scripts/bootstrap-server.sh \
+  | sudo env AUTOCONFIG_VAULT_PASSWORD_FILE=/home/lion/secret.txt sh
+```
+
+A healthy first run ends with `failed=0` and shows, among others, the
+`Deploy vault-encrypted dotfiles (decrypted into place)` task as `changed` (a
+wrong vault password would fail there). Reset or snapshot the VM freely between
+runs; the playbook is idempotent.
+
+**Live access from the host (for fast iteration):** the self-pull above is
+enough to validate a change, but to drive `--check` runs against the VM from the
+host (or just poke around), a reverse SSH tunnel avoids fighting GNOME Boxes'
+NAT. GNOME Boxes user-mode networking reaches the host at `10.0.2.2`, so run
+**one command in the guest** to dial out and forward host port 2222 back to the
+guest's sshd, then **one on the host** to install your key through it:
+
+```bash
+# In the GUEST: hold open a reverse tunnel (host:2222 -> guest:22).
+ssh -fN -R 2222:127.0.0.1:22 lion@10.0.2.2
+
+# On the HOST: authorize your key over that tunnel.
+ssh-copy-id -p 2222 lion@127.0.0.1
+```
+
+After that, `ssh -p 2222 lion@127.0.0.1` works, and because
+`host_vars/savannarchome` already points at `127.0.0.1:2222`, so does
+`ansible -i hosts savannarchome -m ping`. The tunnel lasts until the VM reboots
+or that `ssh` process is killed; wrap it in `autossh` + a systemd user unit if
+you want it to persist.
+
+**Clipboard with GNOME Boxes (Hyprland guest):** install `spice-vdagent` and
+`wl-clipboard`, enable `spice-vdagentd`, and add `exec-once = spice-vdagent`
+(without `-x`) to the Hyprland config so the client starts inside the Wayland
+session. Sync is then automatic (normal copy/paste, no special shortcut). If the
+client comes up in X11 mode (`spice-vdagent -x`), it cannot read the Wayland
+clipboard; `pkill -x spice-vdagent` then re-run `spice-vdagent` from a terminal
+in the live session.
 
 ### Why `requirements.yml` Stays
 
@@ -450,9 +517,9 @@ Note two deliberate boundaries:
   file.
 
 Secret dotfiles (currently `~/.ssh/config.local`) are stored **vault-encrypted**
-under `files/dotfiles-secret/` and listed in `dotfiles_secret_files`. They cannot
-be Stow-symlinked, because the symlink would hand the application the ciphertext;
-instead Ansible copies them into place and decrypts on the way (see
+under `files/dotfiles-secret/` and listed in `dotfiles_secret_files`. They
+cannot be Stow-symlinked, because the symlink would hand the application the
+ciphertext; instead Ansible copies them into place and decrypts on the way (see
 [Secrets And Vault](#secrets-and-vault)). To update one:
 
 ```bash
