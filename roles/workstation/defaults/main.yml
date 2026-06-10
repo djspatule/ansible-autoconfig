@@ -11,7 +11,8 @@ workstation_cli_enabled: true
 workstation_dotfiles_enabled: true
 workstation_espanso_enabled: false
 
-# Arch/Omarchy first. Debian can be added later if an actual workstation needs it.
+# Arch/Omarchy and Debian (trixie+) CLI/TUI tooling. Debian names differ where
+# noted: github-cli -> gh, fd -> fd-find (binary is fdfind on Debian).
 workstation_cli_packages_by_family:
   Archlinux:
     - fd
@@ -27,7 +28,20 @@ workstation_cli_packages_by_family:
     - yq
     - zip
     - zoxide
-  Debian: []
+  Debian:
+    - fd-find
+    - fzf
+    - git
+    - gh
+    - jq
+    - lazygit
+    - neovim
+    - tmux
+    - unzip
+    - wl-clipboard
+    - yq
+    - zip
+    - zoxide
 
 # Espanso on Arch/Omarchy is intentionally not installed by default. It often
 # means AUR/source builds, so keep it as an explicit later opt-in.

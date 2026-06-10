@@ -1,0 +1,25 @@
+---
+# Raspberry Pi 4 (Debian 13 trixie, aarch64). Used as a CLI/TUI dev + AI test
+# bench, so it gets the common base, a curated dotfiles subset, and the
+# workstation CLI tooling — but no GUI/Omarchy desktop config.
+ansible_python_interpreter: /usr/bin/python3
+
+# Common foundation + dotfiles.
+base_dotfiles_enabled: true
+base_lazydocker_enabled: false
+
+# CLI/TUI workstation tooling.
+workstation_enabled: true
+workstation_cli_enabled: true
+workstation_dotfiles_enabled: true
+workstation_espanso_enabled: false
+
+# The subset of dotfiles to apply here. Add more later as needed.
+dotfiles_stow_packages:
+  - bash
+  - starship
+  - tmux
+  - nvim
+  - git
+  - gh
+  - lazygit

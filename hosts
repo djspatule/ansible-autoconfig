@@ -9,3 +9,5 @@ serverannah
 # Test VM first. With GNOME Boxes NAT, forward host port 2222 to guest port 22
 # and set ansible_port accordingly in host_vars/savannarchome.
 savannarchome
+# Raspberry Pi 4 (Debian trixie, aarch64) used as a CLI/TUI dev + AI test bench.
+raspi
