@@ -11,9 +11,14 @@ playbook="{{ autoconfig_playbook }}"
 if [ ! -d "$repo_dir/.git" ]; then
   git clone --branch "$branch" "$repo_url" "$repo_dir"
 else
+  # The checkout is a managed mirror, not a place to keep edits. Force it to match
+  # the remote branch exactly so the daily pull cannot break on a dirty or
+  # divergent tree (e.g. an app rewriting a tracked file through a dotfile symlink,
+  # or an upstream force-push). clean runs without -x, so ignored paths survive.
   git -C "$repo_dir" fetch --prune origin
-  git -C "$repo_dir" checkout "$branch"
-  git -C "$repo_dir" pull --ff-only origin "$branch"
+  git -C "$repo_dir" checkout -f "$branch"
+  git -C "$repo_dir" reset --hard "origin/$branch"
+  git -C "$repo_dir" clean -fd
 fi
 
 if [ -f "$repo_dir/requirements.yml" ]; then

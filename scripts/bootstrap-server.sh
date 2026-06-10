@@ -41,9 +41,13 @@ esac
 if [ ! -d "$repo_dir/.git" ]; then
   git clone --branch "$branch" "$repo_url" "$repo_dir"
 else
+  # Force the checkout to match the remote branch exactly. It is a managed mirror,
+  # so discarding local drift here keeps bootstrap robust on a dirty/divergent
+  # tree. clean runs without -x, so ignored paths (e.g. a lint venv) survive.
   git -C "$repo_dir" fetch --prune origin
-  git -C "$repo_dir" checkout "$branch"
-  git -C "$repo_dir" pull --ff-only origin "$branch"
+  git -C "$repo_dir" checkout -f "$branch"
+  git -C "$repo_dir" reset --hard "origin/$branch"
+  git -C "$repo_dir" clean -fd
 fi
 
 if [ -f "$repo_dir/requirements.yml" ]; then
