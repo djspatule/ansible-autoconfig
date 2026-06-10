@@ -20,6 +20,7 @@
     - [Why `requirements.yml` Stays](#why-requirementsyml-stays)
     - [What `group_vars/all` Still Does](#what-group_varsall-still-does)
     - [Storage Model](#storage-model)
+    - [Disaster Recovery](#disaster-recovery)
     - [Dotfiles Model](#dotfiles-model)
     - [Pi-hole Source Of Truth](#pi-hole-source-of-truth)
     - [Serverannah Notes](#serverannah-notes)
@@ -80,9 +81,12 @@ without implementing anything ('dry run')._
         the same "widgets" when relevant). Update also the links there.
   - [ ] **other services**:
     - [x] borg backups for
-      - [x] server services
+      - [x] server services — **and the restore path is tested**: a full archive
+            restores cleanly onto a *fresh Ubuntu VM* (all 53k files decrypt and
+            extract, DB dumps byte-for-byte). See
+            [Disaster Recovery](#disaster-recovery).
       - [ ] server files, including aumenuilya, tabletop-timer, and other
-            service data
+            service data (these paths are not in `backup_paths` yet)
     - [ ] timeshift back-up on SSD_512 for simple system-level checkpoints and
           restore points for serverannah internal storage only
     - [ ] Odoo with small database stored on serverannah internal SSD under
@@ -507,6 +511,34 @@ The server role then:
 
 This keeps data mounts versioned without hard-coding boot/root UUIDs that belong
 to one specific installation.
+
+### Disaster Recovery
+
+Backups are Borg (see `roles/server/tasks/backup.yml`): a daily systemd timer
+dumps the databases and creates an archive of the `/opt/*` service dirs into an
+encrypted repo on the backup disk.
+
+- **Repo:** `/mnt/back-up/borg/serverannah` (encryption `repokey` — the key lives
+  *in* the repo, unlocked by the passphrase, so the repo + passphrase are all you
+  need to restore anywhere).
+- **Passphrase:** `/etc/ansible/secrets/borg-passphrase`, generated on the host,
+  **never** in this repo. Losing it means losing every archive — back it up
+  separately (a password manager).
+
+The restore path has been **tested on a fresh Ubuntu VM** (a full archive
+extracts cleanly: every file decrypts, DB dumps intact). To restore on a new
+machine you only need `borgbackup`, the repo (copy the disk, or stream it), and
+the passphrase:
+
+```bash
+export BORG_PASSPHRASE='…'
+borg list  /path/to/repo                       # pick an archive
+borg extract /path/to/repo::serverannah-<ts>   # restores ./opt/... and ./var/...
+```
+
+borg's standalone binary (GitHub releases, `borg-linux-glibc236`) needs no root,
+so a restore works even on a machine where you cannot install packages. Match the
+binary's major version to the one that wrote the repo (currently `1.4.x`).
 
 ### Dotfiles Model
 
