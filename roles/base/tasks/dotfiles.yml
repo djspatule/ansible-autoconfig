@@ -20,6 +20,27 @@
       The dotfiles home {{ dotfiles_home }} or the source tree
       {{ dotfiles_source_dir }} is missing.
 
+# Stow runs as dotfiles_user, so that user must be able to read the checkout. When
+# ansible-pull is run as sudo without -d, it clones under /root (mode 700) and
+# this fails with a cryptic chdir error. Catch it here with a clear message.
+- name: Check the dotfiles source is reachable by the dotfiles user
+  ansible.builtin.command:
+    argv: [test, -r, "{{ dotfiles_source_dir }}"]
+  become: true
+  become_user: "{{ dotfiles_user }}"
+  changed_when: false
+  failed_when: false
+  register: dotfiles_source_user_readable
+
+- name: Fail clearly when the checkout is not readable by the dotfiles user
+  ansible.builtin.assert:
+    that:
+      - dotfiles_source_user_readable.rc == 0
+    fail_msg: >-
+      {{ dotfiles_user }} cannot read {{ dotfiles_source_dir }} (Stow runs as that
+      user). This usually means ansible-pull checked the repo out under /root. Run
+      it against a shared, readable path, e.g. add: -d /opt/ansible-pull
+
 # NOTE: The bash and starship tasks below are legacy per-file tasks kept for
 # readable git history. The generic shell loop further down covers all newer
 # packages (tmux, ssh, opencode, claude, nvim, git, gh, ...).

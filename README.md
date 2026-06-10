@@ -45,7 +45,13 @@ objective is to have something that can be run easily on a new machine or not
 (idempotent) with:
 
 > sudo ansible-pull -U <https://github.com/djspatule/ansible-autoconfig.git>
-> --vault-password-file ~/secret.txt -C main
+> -C main -d /opt/ansible-pull --vault-password-file ~/secret.txt
+
+The `-d /opt/ansible-pull` matters: run as `sudo`, ansible-pull otherwise clones
+into `/root/.ansible/pull/…` (mode 700), and the dotfiles `stow` step — which
+runs as your normal user — cannot read the repo there and fails with a
+permission error. Always check out into a shared, readable path. (The managed
+auto-pull timer already does this.)
 
 in test mode, to avoid having to "git push" each modification in order to test
 it locally on a development machine where the repo is present (because i'm
