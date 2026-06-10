@@ -1,28 +1,57 @@
 ---
-- name: Ensure game-timer root directory exists
+# tabletop-timer.com is a plain static HTML/CSS/JS site with no build step.
+#
+# Deployment model: its source lives in its own PUBLIC repo (game_timer_repo_url).
+# We clone that repo directly on the server and publish a curated copy of it into
+# the dir nginx serves. There is NO vendored snapshot in this (ansible) repo, so
+# the app has a single source of truth. To ship a change:
+#   1. push the game-timer repo
+#   2. re-run the autoconfig pull on the server (it re-clones + republishes)
+# nginx serves the files from a read-only bind mount, so updates are live the
+# instant they are published — no container restart needed.
+
+- name: Ensure game-timer directories exist
   ansible.builtin.file:
-    path: "{{ game_timer_root_dir }}"
+    path: "{{ item }}"
     state: directory
     owner: root
     group: root
     mode: "0755"
+  loop:
+    - "{{ game_timer_root_dir }}"
+    - "{{ game_timer_site_dir }}"
 
-- name: Deploy the vendored game-timer site tree
-  ansible.builtin.copy:
-    src: "{{ game_timer_source_dir }}"
-    dest: "{{ game_timer_site_dir }}/"
-    owner: root
-    group: root
-    mode: preserve
-    directory_mode: "0755"
+- name: Clone/update the game-timer site repository
+  ansible.builtin.git:
+    repo: "{{ game_timer_repo_url }}"
+    dest: "{{ game_timer_src_dir }}"
+    version: "{{ game_timer_repo_version }}"
+    # force: discard any local drift in the checkout so the server is always an
+    # exact mirror of the repo (the checkout is managed state, not an edit copy).
+    force: true
+  register: game_timer_checkout
+
+# Publish the repo into the nginx site dir, excluding the git metadata and the
+# dev-only dirs. Serving the whole checkout would expose .git (a security leak)
+# and old experiments under main/ etc. --delete keeps the site dir an exact
+# mirror of the filtered repo, so files removed upstream disappear here too.
+# -i (itemize-changes) makes rsync print only what it actually changed, which is
+# what drives the honest "changed" status below.
+- name: Publish the served files into the nginx site dir
+  ansible.builtin.command:
+    argv: "{{ ['rsync', '-ai', '--delete'] +
+              (game_timer_deploy_excludes | map('regex_replace', '^', '--exclude=') | list) +
+              [game_timer_src_dir ~ '/', game_timer_site_dir ~ '/'] }}"
+  register: game_timer_publish
+  changed_when: game_timer_publish.stdout | trim | length > 0
 
 - name: Ensure the game-timer container network exists
   community.docker.docker_network:
     name: "{{ game_timer_network_name }}"
     state: present
 
-# Serve the cloned repository directly because this app is already plain HTML,
-# CSS, and JS with no build step.
+# Serve the published static files directly; the app is plain HTML/CSS/JS with no
+# build step, mounted read-only so the container never writes into the site dir.
 - name: Run the game-timer container
   community.docker.docker_container:
     name: "{{ game_timer_container_name }}"

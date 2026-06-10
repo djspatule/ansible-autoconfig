@@ -38,11 +38,23 @@ bentopdf_network_name: autoconfig-services
 bentopdf_port: 8080
 
 server_game_timer_enabled: false
-# game-timer is a plain static site, so keeping a vendored snapshot here makes
-# ansible-pull deployment simpler than depending on authenticated Git access.
+# tabletop-timer.com is a plain static HTML/CSS/JS site (no build step). Its
+# source is its own PUBLIC repo, which the server clones directly — there is no
+# vendored snapshot in this repo anymore. To deploy a change: push the game-timer
+# repo, then re-run the autoconfig pull (which re-clones it).
+game_timer_repo_url: https://github.com/djspatule/game-timer.git
+game_timer_repo_version: main
 game_timer_root_dir: /opt/game-timer
+# Where the repo is cloned, and the curated dir nginx actually serves.
+game_timer_src_dir: "{{ game_timer_root_dir }}/src"
 game_timer_site_dir: "{{ game_timer_root_dir }}/site"
-game_timer_source_dir: "{{ role_path }}/../../files/game-timer/site/"
+# Repo paths that must NOT be served: git metadata (security) and dev-only dirs.
+# Everything else in the repo root is published to the site dir.
+game_timer_deploy_excludes:
+  - .git
+  - main
+  - newTimerParadigm
+  - README.md
 game_timer_container_name: game-timer
 game_timer_image: nginx:alpine
 game_timer_network_name: autoconfig-services
