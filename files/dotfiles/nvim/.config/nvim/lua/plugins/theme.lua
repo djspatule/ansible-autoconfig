@@ -1,1 +1,0 @@
-/home/lion/.config/omarchy/current/theme/neovim.lua

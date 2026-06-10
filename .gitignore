@@ -17,3 +17,6 @@ secret.txt
 
 # Throwaway virtualenv created by scripts/lint.sh
 .lint-venv/
+
+# Omarchy manages this nvim theme pointer locally (machine-specific symlink)
+files/dotfiles/nvim/.config/nvim/lua/plugins/theme.lua

@@ -1,19 +1,23 @@
 ---
 # NOTE: The entire block is gated by workstation_enabled (default false).
 # Set it to true in host_vars to activate this role on a new workstation.
-- block:
-    - import_tasks: cli_packages.yml
+- name: Configure the workstation (CLI/TUI, dotfiles, espanso)
+  when: workstation_enabled | default(false)
+  block:
+    - name: Install workstation CLI/TUI packages
+      ansible.builtin.import_tasks: cli_packages.yml
       when: workstation_cli_enabled | default(true)
       tags:
         - workstation_cli
 
-    - import_tasks: dotfiles.yml
+    - name: Apply workstation dotfiles
+      ansible.builtin.import_tasks: dotfiles.yml
       when: workstation_dotfiles_enabled | default(true)
       tags:
         - workstation_dotfiles
 
-    - import_tasks: espanso.yml
+    - name: Set up espanso
+      ansible.builtin.import_tasks: espanso.yml
       when: workstation_espanso_enabled | default(false)
       tags:
         - workstation_espanso
-  when: workstation_enabled | default(false)

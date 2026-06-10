@@ -9,4 +9,6 @@
 
 - name: Show selected workstation dotfiles packages
   ansible.builtin.debug:
-    msg: "Workstation dotfiles selected for {{ workstation_user }}: {{ dotfiles_stow_packages | default([]) | join(', ') }}"
+    msg: >-
+      Workstation dotfiles selected for {{ workstation_user }}:
+      {{ dotfiles_stow_packages | default([]) | join(', ') }}

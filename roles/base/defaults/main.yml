@@ -102,6 +102,8 @@ dotfiles_managed_paths:
     path: .config/git
   - package: gh
     path: .config/gh/config.yml
+  - package: lazygit
+    path: .config/lazygit/config.yml
 
 # Secret dotfiles cannot use Stow: a symlink would expose the vault ciphertext to
 # the application instead of the real config. They are stored vault-encrypted in

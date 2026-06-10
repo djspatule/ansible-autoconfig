@@ -147,19 +147,41 @@
     expected='{{ dotfiles_source_dir }}/{{ item.package }}/{{ item.path }}'
     backup="$target.pre-stow-backup"
 
-    [ -e "$target" ] || [ -L "$target" ] || exit 0
+    # CASE 1: nothing at the target -> Stow can create it freely.
+    if [ ! -e "$target" ] && [ ! -L "$target" ]; then echo NOOP; exit 0; fi
+
+    # CASE 2: target is already our Stow symlink (a whole-dir fold, legacy state).
     if [ -L "$target" ] && [ "$(readlink -f "$target")" = "$expected" ]; then
-      exit 0
+      echo NOOP; exit 0
     fi
 
+    # CASE 3: with --no-folding a managed directory is a REAL dir whose entries
+    # are symlinks into the package source. If we find such a symlink, the path is
+    # already managed -> leave it alone (otherwise we would wipe it every run).
+    if [ -d "$target" ] && [ ! -L "$target" ]; then
+      link=$(find "$target" -type l 2>/dev/null | head -n1)
+      if [ -n "$link" ]; then
+        case "$(readlink -f "$link")" in
+          "$expected"/*) echo NOOP; exit 0 ;;
+        esac
+      fi
+    fi
+
+    # CASE 4: an unmanaged file/dir is in the way: back it up once, then remove it
+    # so Stow can place its links. Emit CHANGED so Ansible reports this honestly.
     if [ ! -e "$backup" ] && [ ! -L "$backup" ]; then
       cp -a "$target" "$backup"
       chown -h '{{ dotfiles_user }}:{{ dotfiles_user }}' "$backup"
     fi
     rm -rf "$target"
+    echo CHANGED
   args:
     executable: /bin/bash
   loop: "{{ dotfiles_managed_paths | selectattr('package', 'in', dotfiles_stow_packages) | list }}"
+  # Per loop item, the item's own stdout is available here, so this flags changed
+  # only when the script actually backed up/removed something.
+  changed_when: "'CHANGED' in preserve_dotfiles.stdout"
+  register: preserve_dotfiles
   when:
     - item.package not in ['bash', 'starship']
 
