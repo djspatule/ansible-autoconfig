@@ -137,6 +137,12 @@
     - server
     - pihole
 
+- import_tasks: ollama.yml
+  when: server_ollama_enabled | default(false)
+  tags:
+    - server
+    - ollama
+
 - import_tasks: aumenuilya.yml
   when: server_aumenuilya_enabled | default(false)
   tags:

@@ -1,0 +1,87 @@
+---
+- name: Ensure Ollama model storage directory exists on SSD
+  ansible.builtin.file:
+    path: "{{ ollama_models_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Ensure Open WebUI data directory exists
+  ansible.builtin.file:
+    path: "{{ ollama_webui_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Ensure Ollama container network exists
+  community.docker.docker_network:
+    name: "{{ ollama_network_name }}"
+    state: present
+
+- name: Pull Ollama image
+  community.docker.docker_image:
+    name: "{{ ollama_image }}"
+    source: pull
+    force_source: true
+  register: ollama_image_pull
+
+- name: Run Ollama container
+  community.docker.docker_container:
+    name: "{{ ollama_container_name }}"
+    image: "{{ ollama_image }}"
+    state: started
+    recreate: "{{ ollama_image_pull.changed }}"
+    restart_policy: unless-stopped
+    published_ports:
+      - "{{ ollama_api_port }}:11434"
+    volumes:
+      - "{{ ollama_models_dir }}:/root/.ollama"
+    networks:
+      - name: "{{ ollama_network_name }}"
+
+- name: Wait for Ollama API to be ready
+  ansible.builtin.uri:
+    url: "http://localhost:{{ ollama_api_port }}/api/tags"
+  register: ollama_ready
+  retries: 20
+  delay: 3
+  until: ollama_ready.status == 200
+
+- name: Check which models are already present
+  ansible.builtin.set_fact:
+    ollama_present_models: >-
+      {{ ollama_ready.json.models | default([]) | map(attribute='name') | list }}
+
+- name: Pull Ollama model if not present (downloads ~5 GB on first run)
+  ansible.builtin.command:
+    cmd: docker exec {{ ollama_container_name }} ollama pull {{ ollama_model }}
+  when: ollama_model not in ollama_present_models
+  changed_when: true
+  async: 3600
+  poll: 15
+
+- name: Pull Open WebUI image
+  community.docker.docker_image:
+    name: "{{ ollama_webui_image }}"
+    source: pull
+    force_source: true
+  register: ollama_webui_image_pull
+
+- name: Run Open WebUI container
+  community.docker.docker_container:
+    name: "{{ ollama_webui_container_name }}"
+    image: "{{ ollama_webui_image }}"
+    state: started
+    recreate: "{{ ollama_webui_image_pull.changed }}"
+    restart_policy: unless-stopped
+    published_ports:
+      - "{{ ollama_webui_port }}:8080"
+    volumes:
+      - "{{ ollama_webui_dir }}:/app/backend/data"
+    networks:
+      - name: "{{ ollama_network_name }}"
+    env:
+      OLLAMA_BASE_URL: "http://{{ ollama_container_name }}:11434"
+      WEBUI_AUTH: "False"

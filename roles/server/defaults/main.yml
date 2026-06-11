@@ -325,3 +325,16 @@ aumenuilya_source_sql_dump: "{{ aumenuilya_backup_root }}/aumenuilkomyriam_mysql
 aumenuilya_published_ports: []
 aumenuilya_wait_retries: 30
 aumenuilya_wait_delay: 5
+
+server_ollama_enabled: false
+ollama_container_name: ollama
+ollama_image: ollama/ollama:latest
+ollama_webui_container_name: open-webui
+ollama_webui_image: ghcr.io/open-webui/open-webui:main
+ollama_model: hermes3:8b
+ollama_network_name: ollama-net
+ollama_api_port: 11434
+ollama_webui_port: 3002
+# Store models on the SSD so the OS drive stays clean.
+ollama_models_dir: /mnt/SSD_1TO/ollama/models
+ollama_webui_dir: /opt/ollama/open-webui
