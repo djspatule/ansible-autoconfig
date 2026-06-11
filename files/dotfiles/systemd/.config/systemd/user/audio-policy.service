@@ -1,0 +1,13 @@
+[Unit]
+Description=Apply preferred audio device policy
+PartOf=graphical-session.target
+After=graphical-session.target wireplumber.service
+
+[Service]
+Type=simple
+ExecStart=%h/audio_policy.sh
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=graphical-session.target

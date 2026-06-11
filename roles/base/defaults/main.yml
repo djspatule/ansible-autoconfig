@@ -29,6 +29,11 @@ base_packages_by_family:
       - v4l-utils
       - ffmpeg
       - nethogs
+      - fzf
+      - fd-find
+      - yq
+      - lazygit
+      - zoxide
     snaps: [] # keep the [] for as long as this list is empty. Delete [] when you at at least one line.
       # - tldr
   Archlinux:
@@ -104,6 +109,24 @@ dotfiles_managed_paths:
     path: .config/gh/config.yml
   - package: lazygit
     path: .config/lazygit/config.yml
+  - package: hypr
+    path: .config/hypr
+  - package: wireplumber
+    path: .config/wireplumber
+  - package: systemd
+    path: .config/systemd/user/audio-policy.service
+  - package: systemd
+    path: .config/systemd/user/freebox-mount.service
+  - package: scripts
+    path: audio_policy.sh
+  - package: scripts
+    path: freebox.sh
+  - package: scripts
+    path: rclone_mount.sh
+  - package: scripts
+    path: serverannah_mount.sh
+  - package: scripts
+    path: packages.sh
 
 # Secret dotfiles cannot use Stow: a symlink would expose the vault ciphertext to
 # the application instead of the real config. They are stored vault-encrypted in

@@ -1,0 +1,14 @@
+[Unit]
+Description=Mount Freebox share in user space
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/freebox.sh
+ExecStop=/usr/bin/fusermount3 -u %h/mnt/freebox
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=graphical-session.target

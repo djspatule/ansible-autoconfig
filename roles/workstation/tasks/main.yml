@@ -21,3 +21,9 @@
       when: workstation_espanso_enabled | default(false)
       tags:
         - workstation_espanso
+
+    - name: Enable workstation user services
+      ansible.builtin.import_tasks: systemd_user.yml
+      when: workstation_systemd_user_services | default([]) | length > 0
+      tags:
+        - workstation_systemd

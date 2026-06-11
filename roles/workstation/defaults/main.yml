@@ -46,3 +46,7 @@ workstation_cli_packages_by_family:
 # Espanso on Arch/Omarchy is intentionally not installed by default. It often
 # means AUR/source builds, so keep it as an explicit later opt-in.
 workstation_espanso_install_supported: false
+
+# Systemd user services to enable after dotfiles are deployed. Override in
+# host_vars to select which services are active on a given workstation.
+workstation_systemd_user_services: []

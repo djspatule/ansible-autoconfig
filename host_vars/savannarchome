@@ -1,24 +1,21 @@
 ---
-# Disposable Omarchy/Arch VM used to prove workstation automation before the
-# real laptop target. Adjust the port to match the GNOME Boxes SSH forward.
-ansible_host: 127.0.0.1
-ansible_port: 2222
+# Production Omarchy/Arch workstation. Runs the playbook locally (no SSH hop).
+ansible_connection: local
 ansible_user: lion
 ansible_python_interpreter: /usr/bin/python3
 
 desktop_user: lion
 base_dotfiles_enabled: true
-base_lazydocker_enabled: false
+base_lazydocker_enabled: true
 workstation_enabled: true
 workstation_cli_enabled: true
 workstation_dotfiles_enabled: true
 workstation_espanso_enabled: false
 
-# Keep this first pass focused on CLI/TUI and config. GUI apps are intentionally
-# out of scope until the role is boring and repeatable.
 dotfiles_stow_packages:
   - bash
   - starship
+  - claude
   - tmux
   - ssh
   - opencode
@@ -26,6 +23,10 @@ dotfiles_stow_packages:
   - git
   - gh
   - lazygit
+  - hypr
+  - wireplumber
+  - systemd
+  - scripts
 
 # Secret dotfiles deployed by copy-decrypt (not Stow). The vaulted source holds
 # the real SSH host aliases; the public ssh package only ships the sanitized
@@ -35,3 +36,8 @@ dotfiles_secret_files:
     dest: .ssh/config.local
     mode: "0600"
     dir_mode: "0700"
+
+# Systemd user services to enable after stow deploys them.
+workstation_systemd_user_services:
+  - audio-policy.service
+  - freebox-mount.service

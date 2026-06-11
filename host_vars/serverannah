@@ -114,6 +114,9 @@ nextcloud_external_mount_acl_excludes:
 dotfiles_stow_packages:
   - bash
   - starship
+  - tmux
+  - git
+  - nvim
 
 # Storage stays simple: ship the target fstab as a normal file and copy it.
 server_manage_fstab: true
