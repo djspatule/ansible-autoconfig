@@ -111,6 +111,10 @@ dotfiles_managed_paths:
     path: .config/lazygit/config.yml
   - package: hypr
     path: .config/hypr
+  - package: waybar
+    path: .config/waybar/config.jsonc
+  - package: waybar
+    path: .config/waybar/style.css
   - package: wireplumber
     path: .config/wireplumber
   - package: systemd

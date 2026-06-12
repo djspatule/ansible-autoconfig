@@ -24,6 +24,7 @@ dotfiles_stow_packages:
   - gh
   - lazygit
   - hypr
+  - waybar
   - wireplumber
   - systemd
   - scripts
