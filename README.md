@@ -44,8 +44,8 @@ ChatGPT's Codex (via opencode and pi.dev).
 objective is to have something that can be run easily on a new machine or not
 (idempotent) with:
 
-> sudo ansible-pull -U <https://github.com/djspatule/ansible-autoconfig.git>
-> -C main -d /opt/ansible-pull --vault-password-file ~/secret.txt
+> sudo ansible-pull -U <https://github.com/djspatule/ansible-autoconfig.git> -C
+> main -d /opt/ansible-pull --vault-password-file ~/secret.txt
 
 The `-d /opt/ansible-pull` matters: run as `sudo`, ansible-pull otherwise clones
 into `/root/.ansible/pull/…` (mode 700), and the dotfiles `stow` step — which
@@ -88,7 +88,7 @@ without implementing anything ('dry run')._
   - [ ] **other services**:
     - [x] borg backups for
       - [x] server services — **and the restore path is tested**: a full archive
-            restores cleanly onto a *fresh Ubuntu VM* (all 53k files decrypt and
+            restores cleanly onto a _fresh Ubuntu VM_ (all 53k files decrypt and
             extract, DB dumps byte-for-byte). See
             [Disaster Recovery](#disaster-recovery).
       - [ ] server files, including aumenuilya, tabletop-timer, and other
@@ -151,9 +151,9 @@ without implementing anything ('dry run')._
   - [ ] implement tailscale — **delayed on purpose.** It is a private overlay:
         every device (you and family) must install the app and authenticate
         before reaching a hosted service, which is the wrong trade-off for the
-        public family-facing sites already handled well by Caddy auth + fail2ban.
-        Its real value is your own remote admin access, so it is a later
-        nice-to-have, not a security upgrade over what exists.
+        public family-facing sites already handled well by Caddy auth +
+        fail2ban. Its real value is your own remote admin access, so it is a
+        later nice-to-have, not a security upgrade over what exists.
   - [x] implement caddy auth for homepage and bentopdf and fail2ban jail after
         several failed attemps.
 - [x] update server automatically
@@ -162,9 +162,9 @@ without implementing anything ('dry run')._
         `RandomizedDelaySec=30m`, `Persistent=true`) plus a helper script and a
         oneshot service. Works on both Arch and Debian families.
   - [x] make the daily pull resilient to a dirty checkout: the helper (and
-        `bootstrap-server.sh`) force-sync to the remote branch
-        (`fetch` + `checkout -f` + `reset --hard` + `clean -fd`) so a file an app
-        rewrote through a dotfile symlink cannot break the run.
+        `bootstrap-server.sh`) force-sync to the remote branch (`fetch` +
+        `checkout -f` + `reset --hard` + `clean -fd`) so a file an app rewrote
+        through a dotfile symlink cannot break the run.
   - [ ] optionally add a dedicated passwordless-sudo user. The timer currently
         runs as root via systemd, so this is now a hardening nicety, not a
         blocker.
@@ -524,9 +524,9 @@ Backups are Borg (see `roles/server/tasks/backup.yml`): a daily systemd timer
 dumps the databases and creates an archive of the `/opt/*` service dirs into an
 encrypted repo on the backup disk.
 
-- **Repo:** `/mnt/back-up/borg/serverannah` (encryption `repokey` — the key lives
-  *in* the repo, unlocked by the passphrase, so the repo + passphrase are all you
-  need to restore anywhere).
+- **Repo:** `/mnt/back-up/borg/serverannah` (encryption `repokey` — the key
+  lives _in_ the repo, unlocked by the passphrase, so the repo + passphrase are
+  all you need to restore anywhere).
 - **Passphrase:** `/etc/ansible/secrets/borg-passphrase`, generated on the host,
   **never** in this repo. Losing it means losing every archive — back it up
   separately (a password manager).
@@ -543,8 +543,8 @@ borg extract /path/to/repo::serverannah-<ts>   # restores ./opt/... and ./var/..
 ```
 
 borg's standalone binary (GitHub releases, `borg-linux-glibc236`) needs no root,
-so a restore works even on a machine where you cannot install packages. Match the
-binary's major version to the one that wrote the repo (currently `1.4.x`).
+so a restore works even on a machine where you cannot install packages. Match
+the binary's major version to the one that wrote the repo (currently `1.4.x`).
 
 ### Dotfiles Model
 
@@ -556,12 +556,13 @@ Dotfiles are handled with:
 
 Plaintext packages live under `files/dotfiles/<package>/` mirroring the home
 layout, and are listed per host in `dotfiles_stow_packages`. The migrated set is
-`bash`, `starship`, `tmux`, `opencode`, `claude`, `nvim`, `git`, `gh`, `lazygit`,
-and the sanitized public `ssh` config. These are symlinked into `$HOME` by Stow.
+`bash`, `starship`, `tmux`, `opencode`, `claude`, `nvim`, `git`, `gh`,
+`lazygit`, and the sanitized public `ssh` config. These are symlinked into
+`$HOME` by Stow.
 
 Stow runs with **`--no-folding`** on purpose. By default Stow "folds" a config
 directory that does not yet exist into a single directory symlink pointing into
-the repo (e.g. `~/.config/gh -> repo/.../gh`). Because our repo is a *public*
+the repo (e.g. `~/.config/gh -> repo/.../gh`). Because our repo is a _public_
 checkout managed in place, any file an app then writes into that dir (gh's
 `hosts.yml` token, ssh `known_hosts`, nvim lock files) would be written straight
 into the git tree. `--no-folding` keeps every directory a real local dir and
