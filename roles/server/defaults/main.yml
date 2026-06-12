@@ -325,3 +325,13 @@ aumenuilya_source_sql_dump: "{{ aumenuilya_backup_root }}/aumenuilkomyriam_mysql
 aumenuilya_published_ports: []
 aumenuilya_wait_retries: 30
 aumenuilya_wait_delay: 5
+
+server_timeshift_enabled: false
+timeshift_device_uuid: ""
+timeshift_mount_point: /mnt/SSD_512
+timeshift_schedule:
+  - weekly
+  - daily
+timeshift_keep_monthly: "2"
+timeshift_keep_weekly: "3"
+timeshift_keep_daily: "5"

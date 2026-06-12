@@ -57,6 +57,12 @@
     - server_docker
     - firewall
 
+- import_tasks: timeshift.yml
+  when: server_timeshift_enabled | default(false)
+  tags:
+    - server
+    - timeshift
+
 - import_tasks: mounts.yml
   when: server_manage_fstab | default(false)
   tags:
