@@ -65,6 +65,7 @@ homepage_extra_allowed_hosts:
   - 192.168.1.100:3000
   - homepage.dinnizer.com
 server_reverse_proxy_auto_https: true
+server_reverse_proxy_hsts_enabled: true
 server_reverse_proxy_published_ports:
   - 80:80
   - 443:443
@@ -108,6 +109,28 @@ nextcloud_trusted_proxies:
   - 172.18.0.0/16
 nextcloud_external_mount_acl_excludes:
   - /mnt/SSD_1TO/nextcloud
+
+# Redis distributed cache + file locking (clears the file-locking/memcache
+# warnings and speeds Nextcloud up).
+nextcloud_redis_enabled: true
+
+# Outgoing mail via Gmail SMTP. The aliases hello@/lionel@dinnizer.com are
+# Squarespace *forwarding* rules (inbound only, no SMTP), so we relay through
+# Gmail, where those aliases already land. The app password lives on the host at
+# nextcloud_smtp_password_file (mode 0600), never in this public repo.
+nextcloud_smtp_enabled: true
+nextcloud_smtp_host: smtp.gmail.com
+nextcloud_smtp_port: 587
+nextcloud_smtp_secure: tls
+nextcloud_smtp_name: lionelarnaud84@gmail.com
+nextcloud_smtp_from_address: lionel
+nextcloud_smtp_from_domain: dinnizer.com
+
+# occ-driven setup-warning fixes.
+nextcloud_default_phone_region: FR
+nextcloud_maintenance_window_start: 1          # 01:00 UTC (~03:00 local) low-usage
+nextcloud_bruteforce_allowlist:
+  - 192.168.1.0/24
 
 # NOTE: Keep this list conservative for the production server. CLI tools like
 # claude that are valid on servers can be added here individually.

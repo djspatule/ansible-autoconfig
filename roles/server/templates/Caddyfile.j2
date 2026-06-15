@@ -22,6 +22,10 @@ http://{{ site.hostname }} {
     # a single public URL and avoid duplicate host handling.
     redir {{ site.redirect_to }}{{ '{uri}' }} {{ site.redirect_status | default(308) }}
 {% else %}
+{% if server_reverse_proxy_hsts_enabled and server_reverse_proxy_auto_https %}
+    # Tell browsers to stick to HTTPS for this host (HSTS).
+    header Strict-Transport-Security "max-age={{ server_reverse_proxy_hsts_max_age }}"
+{% endif %}
 {% if site.basic_auth | default(false) %}
     log {
         output file {{ server_reverse_proxy_access_log }}

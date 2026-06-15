@@ -186,6 +186,27 @@
     name: "{{ nextcloud_network_name }}"
     state: present
 
+- name: Ensure the Nextcloud Redis data directory exists
+  ansible.builtin.file:
+    path: "{{ nextcloud_redis_data_dir }}"
+    state: directory
+  when: nextcloud_redis_enabled
+
+# Small Redis used only as Nextcloud's distributed cache and file lock. It stays
+# on the internal service network with no published port, so it is never exposed.
+- name: Run the Nextcloud Redis container
+  community.docker.docker_container:
+    name: "{{ nextcloud_redis_container_name }}"
+    image: "{{ nextcloud_redis_image }}"
+    state: started
+    restart_policy: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    networks:
+      - name: "{{ nextcloud_network_name }}"
+    volumes:
+      - "{{ nextcloud_redis_data_dir }}:/data"
+  when: nextcloud_redis_enabled
+
 - name: Pull the Nextcloud application image
   community.docker.docker_image:
     name: "{{ nextcloud_image }}"
@@ -383,6 +404,186 @@
       - overwrite.cli.url
       - --value={{ nextcloud_public_url }}
   changed_when: false
+
+# --- Redis cache + transactional file locking ---------------------------------
+- name: Configure the Nextcloud Redis connection
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - config:system:set
+      - redis
+      - "{{ item.key }}"
+      - "--value={{ item.value }}"
+      - "--type={{ item.type }}"
+  loop:
+    - { key: host, value: "{{ nextcloud_redis_container_name }}", type: string }
+    - { key: port, value: "{{ nextcloud_redis_port }}", type: integer }
+  loop_control:
+    label: "redis.{{ item.key }}"
+  changed_when: false
+  when: nextcloud_redis_enabled
+
+- name: Configure Nextcloud memory caches
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - config:system:set
+      - "{{ item.key }}"
+      - "--value={{ item.value }}"
+  loop:
+    - { key: memcache.local, value: \OC\Memcache\APCu }
+    - { key: memcache.distributed, value: \OC\Memcache\Redis }
+    - { key: memcache.locking, value: \OC\Memcache\Redis }
+  loop_control:
+    label: "{{ item.key }}"
+  changed_when: false
+  when: nextcloud_redis_enabled
+
+# --- Small setup-warning fixes -------------------------------------------------
+- name: Set Nextcloud default phone region
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - config:system:set
+      - default_phone_region
+      - "--value={{ nextcloud_default_phone_region }}"
+  changed_when: false
+  when: nextcloud_default_phone_region | length > 0
+
+- name: Set Nextcloud maintenance window start hour
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - config:system:set
+      - maintenance_window_start
+      - "--value={{ nextcloud_maintenance_window_start }}"
+      - --type=integer
+  changed_when: false
+  when: nextcloud_maintenance_window_start | string | length > 0
+
+# The Freebox rewrites LAN clients' source address to its own when they reach the
+# server through the public hostname (NAT hairpinning), so Nextcloud throttles the
+# whole house as one IP. Allowlisting the LAN exempts trusted local clients.
+- name: Set Nextcloud brute-force protection allowlist
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - config:system:set
+      - bruteforce.protection.allowlist
+      - "{{ index | string }}"
+      - "--value={{ item }}"
+  loop: "{{ nextcloud_bruteforce_allowlist }}"
+  loop_control:
+    index_var: index
+  changed_when: false
+
+# --- Outgoing email (SMTP) -----------------------------------------------------
+- name: Check whether the Nextcloud SMTP password file exists
+  ansible.builtin.stat:
+    path: "{{ nextcloud_smtp_password_file }}"
+  register: nextcloud_smtp_password_file_stat
+  when: nextcloud_smtp_enabled
+  no_log: true
+
+- name: Warn when SMTP is enabled but the password file is missing
+  ansible.builtin.debug:
+    msg: >-
+      SMTP is enabled but {{ nextcloud_smtp_password_file }} is missing on the
+      host, so outgoing mail was left unconfigured. Create that file (mode 0600)
+      containing your SMTP app password, then re-run autoconfig-pull.
+  when:
+    - nextcloud_smtp_enabled
+    - not nextcloud_smtp_password_file_stat.stat.exists
+
+- name: Read the Nextcloud SMTP password
+  ansible.builtin.slurp:
+    src: "{{ nextcloud_smtp_password_file }}"
+  register: nextcloud_smtp_password_slurp
+  when:
+    - nextcloud_smtp_enabled
+    - nextcloud_smtp_password_file_stat.stat.exists
+  no_log: true
+
+- name: Configure Nextcloud outgoing mail
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - config:system:set
+      - "{{ item.key }}"
+      - "--value={{ item.value }}"
+      - "--type={{ item.type | default('string') }}"
+  loop:
+    - { key: mail_smtpmode, value: smtp }
+    - { key: mail_sendmailmode, value: smtp }
+    - { key: mail_smtphost, value: "{{ nextcloud_smtp_host }}" }
+    - { key: mail_smtpport, value: "{{ nextcloud_smtp_port }}", type: integer }
+    - { key: mail_smtpsecure, value: "{{ nextcloud_smtp_secure }}" }
+    - { key: mail_smtpauth, value: "{{ nextcloud_smtp_auth | ternary('true', 'false') }}", type: boolean }
+    - { key: mail_smtpname, value: "{{ nextcloud_smtp_name }}" }
+    - { key: mail_from_address, value: "{{ nextcloud_smtp_from_address }}" }
+    - { key: mail_domain, value: "{{ nextcloud_smtp_from_domain }}" }
+  loop_control:
+    label: "{{ item.key }}"
+  changed_when: false
+  when:
+    - nextcloud_smtp_enabled
+    - nextcloud_smtp_password_file_stat.stat.exists
+  no_log: true
+
+- name: Configure the Nextcloud SMTP password
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - config:system:set
+      - mail_smtppassword
+      - "--value={{ nextcloud_smtp_password_slurp.content | b64decode | trim }}"
+  changed_when: false
+  when:
+    - nextcloud_smtp_enabled
+    - nextcloud_smtp_password_file_stat.stat.exists
+  no_log: true
 
 - name: Query the current Nextcloud app list
   ansible.builtin.command:

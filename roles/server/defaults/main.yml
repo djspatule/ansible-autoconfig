@@ -124,6 +124,38 @@ nextcloud_acl_packages_by_family:
   Archlinux:
     - acl
 
+# Memory cache + transactional file locking. The official Nextcloud image ships
+# the apcu and redis PHP extensions, so we use APCu for the local cache and a
+# small Redis container for the distributed cache and file locking. This clears
+# the "transactional file locking uses the database" and "no memory cache"
+# setup warnings and genuinely speeds Nextcloud up. Off by default; hosts opt in.
+nextcloud_redis_enabled: false
+nextcloud_redis_image: redis:7-alpine
+nextcloud_redis_container_name: nextcloud-redis
+nextcloud_redis_data_dir: "{{ nextcloud_root_dir }}/redis"
+nextcloud_redis_port: 6379
+
+# Outgoing email. Nextcloud cannot self-generate SMTP credentials, so the
+# password is read from a file you place on the host by hand (mode 0600), the
+# same secrets directory as the DB/admin passwords but supplied rather than
+# generated. SMTP config is skipped (with a notice) when the file is absent.
+# mail_from_address + mail_domain build the From header, e.g.
+# lionel + dinnizer.com -> lionel@dinnizer.com.
+nextcloud_smtp_enabled: false
+nextcloud_smtp_host: ""
+nextcloud_smtp_port: 587
+nextcloud_smtp_secure: tls            # tls = STARTTLS (587); ssl = implicit TLS (465)
+nextcloud_smtp_auth: true
+nextcloud_smtp_name: ""               # SMTP username (the authenticated account)
+nextcloud_smtp_from_address: ""       # local part of the From address
+nextcloud_smtp_from_domain: ""        # domain part of the From address
+nextcloud_smtp_password_file: "{{ nextcloud_secret_dir }}/nextcloud-smtp-password"
+
+# Small occ-driven setup-warning fixes. Empty values are skipped.
+nextcloud_default_phone_region: ""           # ISO 3166-1 code, e.g. FR
+nextcloud_maintenance_window_start: ""       # UTC hour 0-23 for heavy daily jobs
+nextcloud_bruteforce_allowlist: []           # CIDRs exempt from brute-force throttle
+
 server_frigate_enabled: false
 # Frigate is started as a migration skeleton first because the service depends on
 # host hardware details that differ between the raspi and serverannah.
@@ -294,6 +326,13 @@ server_reverse_proxy_published_ports:
 server_reverse_proxy_basic_auth_default_user: lion
 # Each site can either proxy to an upstream or redirect to a canonical host.
 server_reverse_proxy_sites: []
+# HSTS tells browsers to only ever reach these hosts over HTTPS. Only safe once a
+# host reliably serves HTTPS, so it is off by default and only emitted when
+# auto_https is on. The value is max-age in seconds; Nextcloud wants >= 15552000
+# (180 days). We deliberately omit includeSubDomains/preload to avoid committing
+# every *.dinnizer.com subdomain to HTTPS-only.
+server_reverse_proxy_hsts_enabled: false
+server_reverse_proxy_hsts_max_age: 31536000
 
 server_aumenuilya_enabled: false
 aumenuilya_network_name: autoconfig-services
