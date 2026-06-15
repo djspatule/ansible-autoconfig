@@ -1,0 +1,16 @@
+---
+# kidsbook — Linux Mint 22.3 (Zena) XFCE on an old MacBook, x86_64.
+# Reached over SSH as the admin account `daddy`; managed by the kids role.
+ansible_host: 192.168.1.41
+ansible_user: daddy
+ansible_ssh_private_key_file: ~/.ssh/id_ed25519_homelab
+ansible_python_interpreter: /usr/bin/python3
+
+# This host only needs the kids baseline for now. The base role still applies
+# (via the `all` play) so the machine gets the self-managing ansible-pull timer,
+# but its workstation-flavoured extras stay off — no dotfiles, no Starship prompt
+# rewrite, no lazydocker on a kids machine.
+kids_enabled: true
+base_dotfiles_enabled: false
+base_starship_prompt_enabled: false
+base_lazydocker_enabled: false

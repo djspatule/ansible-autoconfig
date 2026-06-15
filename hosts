@@ -11,3 +11,8 @@ serverannah
 savannarchome
 # Raspberry Pi 4 (Debian trixie, aarch64) used as a CLI/TUI dev + AI test bench.
 raspi
+
+[kids]
+# Linux Mint 22.3 (XFCE) on an old MacBook, reached as daddy@192.168.1.41.
+# Strict timekpr parental controls + learning/gaming apps via the kids role.
+kidsbook

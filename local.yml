@@ -23,7 +23,9 @@
         upgrade: dist
       # No changed_when override here: a dist upgrade is a real system change, so
       # let Ansible report "changed" honestly when packages were actually upgraded.
-      when: ansible_facts['distribution'] in ["Debian", "Pop!_OS", "Ubuntu"]
+      # os_family covers every Debian-derivative (Debian, Ubuntu, Pop!_OS, Linux
+      # Mint, …) so apt tasks no longer silently skip on a distro we forgot to list.
+      when: ansible_facts['os_family'] == "Debian"
 
 # run roles
 - hosts: all
@@ -45,6 +47,12 @@
   roles:
     - workstation
 
+- hosts: kids
+  tags: kids
+  become: true
+  roles:
+    - kids
+
 # end of run cleanup
 - hosts: all
   become: true
@@ -54,11 +62,15 @@
       ansible.builtin.apt:
         autoclean: true
       changed_when: false
-      when: ansible_facts['distribution'] in ["Debian", "Pop!_OS", "Ubuntu"]
+      # os_family covers every Debian-derivative (Debian, Ubuntu, Pop!_OS, Linux
+      # Mint, …) so apt tasks no longer silently skip on a distro we forgot to list.
+      when: ansible_facts['os_family'] == "Debian"
 
     - name: autoremove orphan packages (debian and ubuntu)
       tags: always
       ansible.builtin.apt:
         autoremove: true
         purge: true
-      when: ansible_facts['distribution'] in ["Debian", "Pop!_OS", "Ubuntu"]
+      # os_family covers every Debian-derivative (Debian, Ubuntu, Pop!_OS, Linux
+      # Mint, …) so apt tasks no longer silently skip on a distro we forgot to list.
+      when: ansible_facts['os_family'] == "Debian"
