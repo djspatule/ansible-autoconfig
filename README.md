@@ -556,10 +556,10 @@ Dotfiles are handled with:
 - `ansible-vault` + a copy-decrypt step for the few configs that contain secrets
 
 Plaintext packages live under `files/dotfiles/<package>/` mirroring the home
-layout, and are listed per host in `dotfiles_stow_packages`. The migrated set is
-`bash`, `starship`, `tmux`, `opencode`, `claude`, `nvim`, `git`, `gh`,
-`lazygit`, and the sanitized public `ssh` config. These are symlinked into
-`$HOME` by Stow.
+layout. The exact set applied to a machine is whatever its
+`dotfiles_stow_packages` lists (see the host's `host_vars/` file) — that list is
+the single source of truth, so this README does not re-enumerate it. Every
+package directory there is symlinked into `$HOME` by Stow.
 
 Stow runs with **`--no-folding`** on purpose. By default Stow "folds" a config
 directory that does not yet exist into a single directory symlink pointing into
