@@ -422,8 +422,8 @@
       - "--value={{ item.value }}"
       - "--type={{ item.type }}"
   loop:
-    - { key: host, value: "{{ nextcloud_redis_container_name }}", type: string }
-    - { key: port, value: "{{ nextcloud_redis_port }}", type: integer }
+    - {key: host, value: "{{ nextcloud_redis_container_name }}", type: string}
+    - {key: port, value: "{{ nextcloud_redis_port }}", type: integer}
   loop_control:
     label: "redis.{{ item.key }}"
   changed_when: false
@@ -443,9 +443,9 @@
       - "{{ item.key }}"
       - "--value={{ item.value }}"
   loop:
-    - { key: memcache.local, value: \OC\Memcache\APCu }
-    - { key: memcache.distributed, value: \OC\Memcache\Redis }
-    - { key: memcache.locking, value: \OC\Memcache\Redis }
+    - {key: memcache.local, value: \OC\Memcache\APCu}
+    - {key: memcache.distributed, value: \OC\Memcache\Redis}
+    - {key: memcache.locking, value: \OC\Memcache\Redis}
   loop_control:
     label: "{{ item.key }}"
   changed_when: false
@@ -549,15 +549,15 @@
       - "--value={{ item.value }}"
       - "--type={{ item.type | default('string') }}"
   loop:
-    - { key: mail_smtpmode, value: smtp }
-    - { key: mail_sendmailmode, value: smtp }
-    - { key: mail_smtphost, value: "{{ nextcloud_smtp_host }}" }
-    - { key: mail_smtpport, value: "{{ nextcloud_smtp_port }}", type: integer }
-    - { key: mail_smtpsecure, value: "{{ nextcloud_smtp_secure }}" }
-    - { key: mail_smtpauth, value: "{{ nextcloud_smtp_auth | ternary('true', 'false') }}", type: boolean }
-    - { key: mail_smtpname, value: "{{ nextcloud_smtp_name }}" }
-    - { key: mail_from_address, value: "{{ nextcloud_smtp_from_address }}" }
-    - { key: mail_domain, value: "{{ nextcloud_smtp_from_domain }}" }
+    - {key: mail_smtpmode, value: smtp}
+    - {key: mail_sendmailmode, value: smtp}
+    - {key: mail_smtphost, value: "{{ nextcloud_smtp_host }}"}
+    - {key: mail_smtpport, value: "{{ nextcloud_smtp_port }}", type: integer}
+    - {key: mail_smtpsecure, value: "{{ nextcloud_smtp_secure }}"}
+    - {key: mail_smtpauth, value: "{{ nextcloud_smtp_auth | ternary('true', 'false') }}", type: boolean}
+    - {key: mail_smtpname, value: "{{ nextcloud_smtp_name }}"}
+    - {key: mail_from_address, value: "{{ nextcloud_smtp_from_address }}"}
+    - {key: mail_domain, value: "{{ nextcloud_smtp_from_domain }}"}
   loop_control:
     label: "{{ item.key }}"
   changed_when: false
