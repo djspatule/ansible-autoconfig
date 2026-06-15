@@ -599,7 +599,7 @@ matches:
     replace: "Européen"
     word: true
     propagate_case: true
-# English
+  # English
   - trigger: "btw"
     replace: "by the way"
     word: true
@@ -613,12 +613,11 @@ matches:
     word: true
     propagate_case: true
 
-
   - trigger: "thx"
     replace: "thanks"
     word: true
     propagate_case: true
-# Job specific
+  # Job specific
   - trigger: "aaa"
     replace: "Lionel Arnaud, Biomemory, 3-5 impasse Reille, 75014 Paris"
     word: true
@@ -652,7 +651,7 @@ matches:
     replace: "Bonjour, Merci infiniment pour votre message mais je ne suis pas intéressé. Je vous prie de bien vouloir supprimer mon adresse e-mail de votre liste de destinataires. Vous en remerciant par avance, je vous souhaite une excellente journée. Bien à vous, Lionel"
     word: true
   - trigger: "ggg"
-    replace: "https://meet.google.com/zhy-vqgy-mfd"
+    replace: "https://meet.google.com/kmg-wjmd-qab"
     word: true
   - trigger: "merel"
     replace: "mise en relation"
@@ -672,13 +671,13 @@ matches:
     replace: "Draft or revise the message below. If it is part of a conversation, reply to the most recent message while taking into account my earlier messages when relevant. If it is a new outgoing message, use my instructions below to draft it from scratch. Match the intended tone, level of formality, and objective, but improve clarity, concision, and structure. Do not sound generic, corporate, or overly enthusiastic. Prefer one idea per sentence, one logical argument per paragraph, and explicit logical links whenever relevant (for example: therefore, however, thus, then, because). Do not repeat the same idea in different words. Aim for clean, rational, logical, and clear writing, whether for email or any other professional message. Infer the objective of the exchange and strengthen the draft when useful by adding missing clarifications, concrete next steps, or sharper phrasing. Stay precise and relatively brief unless the situation clearly requires more detail."
     word: true
 
-#   - trigger: "prompt"
-#     replace: "Consider the following context of my request: I am Lionel ARNAUD, Chief Operating Officer at Biomemory, a start-up founded in mid-2021 and currently employing 22 people. Biomemory \u2013 a key player in the DNA data storage space \u2013 is positioned at the crossroads of Biotechnology and IT. Its ambition is to help meet the climate challenge posed by data centers. Biomemory is developing a world-leading, petrol-free DNA synthesis and copy process based on synthetic biology, exploiting mechanisms refined over 4 billion years of evolution. Applying proprietary technologies, Biomemory can produce long, bio-sourced, biocompatible and bio-secure/bio-safe DNA fragments that can be stored as inert polymers for thousands of years without any energy input. Technology transfer agency SATT Lutech has granted Biomemory an exclusive worldwide licence to the two CNRS/Sorbonne University patents at the heart of this innovation. Biomemory since then patented its CBU technology. We have also also chose to work on utilizing our artificial DNA for the purpose of tracing and authenticating high-value products as an intermediary market for small native data volumes. We have one initial client in this area: SICPA, who wants to create secure inks containing DNA through an end-to-end approach encompassing DNA tag synthesis, sequencing kits based on Oxford Nanopore Technologies and software to match the tags in a database of products. Biomemory also considers adressing this tagging market through sales of DNA to major players in the DNA tagging ou general tagging field such as ADNAS, Haelixa, OLNICA, etc. Biomemory closed a Series A round in 12/2024 for 17M€ from French investors : Crédit Mutuel Innovation (CMI) as lead investor, Bpifrance and Blast (community of crowd investment) as main investors and several significantly smaller follwoers. Whil seed funding was aimed at solving the biotech challenges, the Series A aims at miniaturization, parallelization, automation, etc. to turn our 200m² of lab into a single data-center compatible appliance. \u201D"
-#     word: true
-#   - trigger: "promptf"
-#     replace: "Considérez le contexte suivant de ma demande : Je suis Lionel ARNAUD, Directeur des opérations chez Biomemory, une start-up fondée à la mi-2021 et employant actuellement 22 personnes. Biomemory – un acteur clé dans le domaine du stockage de données sur ADN – se situe à l'intersection de la biotechnologie et de l'informatique. Son ambition est de contribuer à relever le défi climatique posé par les centres de données. Biomemory développe un procédé de synthèse et de copie d'ADN de pointe, sans recours au pétrole, basé sur la biologie synthétique et exploitant des mécanismes affinés par plus de 4 milliards d'années d'évolution. Grâce à des technologies propriétaires, Biomemory est en mesure de produire de longs fragments d'ADN biosourcés, biocompatibles et bio-sécurisés/bio-sûrs, pouvant être stockés sous forme de polymères inertes pendant des milliers d'années sans apport énergétique. L’agence de transfert de technologie SATT Lutech a accordé à Biomemory une licence exclusive mondiale sur deux brevets du CNRS/Sorbonne Université, qui sont au cœur de cette innovation. Depuis, Biomemory a breveté sa technologie CBU. Nous avons également choisi de travailler sur l'utilisation de notre ADN artificiel pour le traçage et l'authentification de produits de grande valeur, comme un marché intermédiaire destiné à de petits volumes de données natives. Nous avons un premier client dans ce domaine : SICPA, qui souhaite créer des encres sécurisées contenant de l’ADN via une approche de bout en bout incluant la synthèse des balises ADN, des kits de séquençage basés sur la technologie Oxford Nanopore et un logiciel permettant de faire correspondre les balises avec une base de données de produits. Biomemory envisage également d’adresser ce marché du marquage par la vente d’ADN à des acteurs majeurs du domaine, comme ADNAS, Haelixa, OLNICA, etc. Biomemory a finalisé une levée de fonds de Série A en décembre 2024 pour un montant de 17 M€ auprès d’investisseurs français : Crédit Mutuel Innovation (CMI) en tant qu'investisseur principal, Bpifrance et Blast (une communauté d’investissement participatif) comme investisseurs principaux, ainsi que plusieurs autres investisseurs de taille plus modeste. Alors que le financement d’amorçage était destiné à résoudre les défis biotechnologiques, la Série A vise la miniaturisation, la parallélisation et l'automatisation, afin de transformer nos 200 m² de laboratoire en un seul appareil compatible avec les centres de données."
-#     word: true
-# Perso
+  #   - trigger: "prompt"
+  #     replace: "Consider the following context of my request: I am Lionel ARNAUD, Chief Operating Officer at Biomemory, a start-up founded in mid-2021 and currently employing 22 people. Biomemory \u2013 a key player in the DNA data storage space \u2013 is positioned at the crossroads of Biotechnology and IT. Its ambition is to help meet the climate challenge posed by data centers. Biomemory is developing a world-leading, petrol-free DNA synthesis and copy process based on synthetic biology, exploiting mechanisms refined over 4 billion years of evolution. Applying proprietary technologies, Biomemory can produce long, bio-sourced, biocompatible and bio-secure/bio-safe DNA fragments that can be stored as inert polymers for thousands of years without any energy input. Technology transfer agency SATT Lutech has granted Biomemory an exclusive worldwide licence to the two CNRS/Sorbonne University patents at the heart of this innovation. Biomemory since then patented its CBU technology. We have also also chose to work on utilizing our artificial DNA for the purpose of tracing and authenticating high-value products as an intermediary market for small native data volumes. We have one initial client in this area: SICPA, who wants to create secure inks containing DNA through an end-to-end approach encompassing DNA tag synthesis, sequencing kits based on Oxford Nanopore Technologies and software to match the tags in a database of products. Biomemory also considers adressing this tagging market through sales of DNA to major players in the DNA tagging ou general tagging field such as ADNAS, Haelixa, OLNICA, etc. Biomemory closed a Series A round in 12/2024 for 17M€ from French investors : Crédit Mutuel Innovation (CMI) as lead investor, Bpifrance and Blast (community of crowd investment) as main investors and several significantly smaller follwoers. Whil seed funding was aimed at solving the biotech challenges, the Series A aims at miniaturization, parallelization, automation, etc. to turn our 200m² of lab into a single data-center compatible appliance. \u201D"
+  #     word: true
+  #   - trigger: "promptf"
+  #     replace: "Considérez le contexte suivant de ma demande : Je suis Lionel ARNAUD, Directeur des opérations chez Biomemory, une start-up fondée à la mi-2021 et employant actuellement 22 personnes. Biomemory – un acteur clé dans le domaine du stockage de données sur ADN – se situe à l'intersection de la biotechnologie et de l'informatique. Son ambition est de contribuer à relever le défi climatique posé par les centres de données. Biomemory développe un procédé de synthèse et de copie d'ADN de pointe, sans recours au pétrole, basé sur la biologie synthétique et exploitant des mécanismes affinés par plus de 4 milliards d'années d'évolution. Grâce à des technologies propriétaires, Biomemory est en mesure de produire de longs fragments d'ADN biosourcés, biocompatibles et bio-sécurisés/bio-sûrs, pouvant être stockés sous forme de polymères inertes pendant des milliers d'années sans apport énergétique. L’agence de transfert de technologie SATT Lutech a accordé à Biomemory une licence exclusive mondiale sur deux brevets du CNRS/Sorbonne Université, qui sont au cœur de cette innovation. Depuis, Biomemory a breveté sa technologie CBU. Nous avons également choisi de travailler sur l'utilisation de notre ADN artificiel pour le traçage et l'authentification de produits de grande valeur, comme un marché intermédiaire destiné à de petits volumes de données natives. Nous avons un premier client dans ce domaine : SICPA, qui souhaite créer des encres sécurisées contenant de l’ADN via une approche de bout en bout incluant la synthèse des balises ADN, des kits de séquençage basés sur la technologie Oxford Nanopore et un logiciel permettant de faire correspondre les balises avec une base de données de produits. Biomemory envisage également d’adresser ce marché du marquage par la vente d’ADN à des acteurs majeurs du domaine, comme ADNAS, Haelixa, OLNICA, etc. Biomemory a finalisé une levée de fonds de Série A en décembre 2024 pour un montant de 17 M€ auprès d’investisseurs français : Crédit Mutuel Innovation (CMI) en tant qu'investisseur principal, Bpifrance et Blast (une communauté d’investissement participatif) comme investisseurs principaux, ainsi que plusieurs autres investisseurs de taille plus modeste. Alors que le financement d’amorçage était destiné à résoudre les défis biotechnologiques, la Série A vise la miniaturisation, la parallélisation et l'automatisation, afin de transformer nos 200 m² de laboratoire en un seul appareil compatible avec les centres de données."
+  #     word: true
+  # Perso
 
   - trigger: "aaap"
     replace: "Lionel Arnaud, 55 rue de Paradis, 75010 Paris"
@@ -695,7 +694,7 @@ matches:
     replace: "Do not agree with me for the sake of it. Actively test my assumptions, point out weak reasoning, flag cognitive biases, and prefer truth-seeking over validation. When my request relies on uncertain premises, say so clearly. Offer counterarguments, alternative interpretations, and edge cases when useful. Agreement should be earned through reasoning, not politeness."
     word: true
     propagate_case: true
-# Date/Time stamps
+  # Date/Time stamps
 
   # Print the current date
   - trigger: "ddd"
