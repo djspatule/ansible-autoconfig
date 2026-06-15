@@ -10,7 +10,7 @@ base_lazydocker_enabled: true
 workstation_enabled: true
 workstation_cli_enabled: true
 workstation_dotfiles_enabled: true
-workstation_espanso_enabled: false
+workstation_espanso_enabled: true
 
 dotfiles_stow_packages:
   - bash
@@ -28,6 +28,7 @@ dotfiles_stow_packages:
   - wireplumber
   - systemd
   - scripts
+  - espanso
 
 # Secret dotfiles deployed by copy-decrypt (not Stow). The vaulted source holds
 # the real SSH host aliases; the public ssh package only ships the sanitized

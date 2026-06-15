@@ -6,7 +6,7 @@ workstation_user: "{{ desktop_user | default('lion') }}"
 workstation_home: "/home/{{ workstation_user }}"
 
 # Sub-features are on by default once workstation_enabled is true, except
-# espanso which requires an explicit opt-in (AUR/source build on Arch).
+# espanso which requires an explicit opt-in (AUR build on Arch, see below).
 workstation_cli_enabled: true
 workstation_dotfiles_enabled: true
 workstation_espanso_enabled: false
@@ -43,9 +43,14 @@ workstation_cli_packages_by_family:
     - zip
     - zoxide
 
-# Espanso on Arch/Omarchy is intentionally not installed by default. It often
-# means AUR/source builds, so keep it as an explicit later opt-in.
-workstation_espanso_install_supported: false
+# Espanso is not in the Arch official repos; the Wayland build lives in the AUR
+# as espanso-wayland and is built with an AUR helper as the desktop user. The
+# install is a one-time compile (guarded on the binary already existing), so it
+# only pays the build cost on a fresh machine. An unattended build needs the
+# desktop user to sudo without a prompt (the helper calls pacman); on a
+# single-user Omarchy box that is the norm, otherwise run it once by hand.
+workstation_aur_helper: yay
+workstation_espanso_aur_package: espanso-wayland
 
 # Systemd user services to enable after dotfiles are deployed. Override in
 # host_vars to select which services are active on a given workstation.

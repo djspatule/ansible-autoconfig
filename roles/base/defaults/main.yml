@@ -34,6 +34,7 @@ base_packages_by_family:
       - yq
       - lazygit
       - zoxide
+      - pandoc
     snaps: [] # keep the [] for as long as this list is empty. Delete [] when you at at least one line.
       # - tldr
   Archlinux:
@@ -131,6 +132,11 @@ dotfiles_managed_paths:
     path: serverannah_mount.sh
   - package: scripts
     path: packages.sh
+  # espanso splits config and matches into separate subdirectories.
+  - package: espanso
+    path: .config/espanso/config/default.yml
+  - package: espanso
+    path: .config/espanso/match/base.yml
 
 # Secret dotfiles cannot use Stow: a symlink would expose the vault ciphertext to
 # the application instead of the real config. They are stored vault-encrypted in

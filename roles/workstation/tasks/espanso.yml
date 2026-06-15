@@ -1,9 +1,31 @@
 ---
-- name: Keep Espanso installation explicit on Arch/Omarchy
+# Espanso config is managed as a Stow dotfile (package: espanso). This file only
+# handles the binary, which on Arch comes from the AUR (espanso-wayland) and must
+# be built as the desktop user because makepkg refuses to run as root. The build
+# is guarded on the binary already existing, so repeat pulls are a no-op.
+- name: Require a supported OS family for espanso install
   ansible.builtin.assert:
     that:
-      - workstation_espanso_install_supported | default(false)
+      - ansible_facts.os_family == "Archlinux"
     fail_msg: >-
-      Espanso installation is intentionally disabled for now. On Arch/Omarchy it
-      can require AUR/source builds, which are slow and resource-heavy. Manage
-      config through dotfiles first; add a deliberate installer later.
+      Espanso auto-install is only wired for Arch/Omarchy (AUR: espanso-wayland).
+      On {{ ansible_facts.os_family }} install espanso by hand for now.
+
+- name: Check whether espanso is already installed
+  ansible.builtin.shell: command -v espanso
+  register: workstation_espanso_installed
+  changed_when: false
+  failed_when: false
+
+- name: Install espanso from the AUR (Wayland build)
+  ansible.builtin.command:
+    argv:
+      - "{{ workstation_aur_helper }}"
+      - -S
+      - --needed
+      - --noconfirm
+      - "{{ workstation_espanso_aur_package }}"
+  become: true
+  become_user: "{{ workstation_user }}"
+  when: workstation_espanso_installed.rc != 0
+  changed_when: true
