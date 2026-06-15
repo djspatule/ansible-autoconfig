@@ -1,0 +1,85 @@
+---
+# The kids role reproduces the *captured* baseline of the family kids' machine
+# (kidsbook, Linux Mint 22.3 XFCE). It is descriptive, not inventive: every value
+# here was read off the live machine on 2026-06-15 and is meant to recreate it
+# from scratch idempotently. Opt-in per host like every other role.
+kids_enabled: false
+
+# --- Accounts & groups --------------------------------------------------------
+# Two custom groups were created by hand on the machine. We pin their GIDs so a
+# rebuilt machine keeps the same numeric IDs (matters for any file shares / ACLs).
+#   parent  -> the trusted adult(s)
+#   gamers  -> everyone allowed to run games (all three accounts)
+kids_groups:
+  - {name: parent, gid: 2001}
+  - {name: gamers, gid: 2002}
+
+# Kid accounts are MANAGED (created if missing, group membership enforced) but we
+# never set their passwords here — this is a public repo. On a fresh machine the
+# passwords are set once by hand (or via a vaulted var if we ever choose to).
+kids_managed_users:
+  - {name: oscar, groups: [users, gamers], shell: /bin/bash}
+  - {name: romy, groups: [users, gamers], shell: /bin/bash}
+
+# daddy is the admin/bootstrap account (created at OS install, like `lion` on the
+# other hosts) so the role does NOT create it — it only ensures the right group
+# membership so parental tooling and games work.
+kids_admin_user: daddy
+kids_admin_extra_groups: [parent, gamers]
+
+# --- Parental control (timekpr-next) ------------------------------------------
+# timekpr-next is not in the Mint base repos; it ships from the upstream PPA.
+kids_timekpr_enabled: true
+kids_timekpr_packages: [timekpr-next]
+kids_timekpr_ppa: ppa:mjasnik/ppa
+kids_timekpr_service: timekpr.service
+kids_timekpr_main_conf_src: "{{ playbook_dir }}/files/kids/timekpr/timekpr.conf"
+kids_timekpr_config_src_dir: "{{ playbook_dir }}/files/kids/timekpr/config"
+# Per-user policy files to deploy (captured verbatim). daddy = unrestricted,
+# oscar/romy = 15 min weekdays / 30 min weekends, allowed 16-20h on school days.
+kids_timekpr_user_confs: [daddy, oscar, romy]
+
+# --- Applications (captured deliberate set, NOT the whole OS) ------------------
+# Curated out of `apt-mark showmanual` — review/adjust freely; these are the
+# learning + gaming apps actually installed on kidsbook.
+kids_apt_learning:
+  - gcompris-qt
+  - tuxmath
+  - tuxpaint
+  - tuxtype
+  - stellarium
+kids_apt_games:
+  - supertux
+  - supertuxkart
+  - frogatto
+  - abe
+  - crawl-tiles
+  - mrrescue
+  - numptyphysics
+  - sopwith
+  - thingy
+
+# Steam is a 32-bit package: enabling the i386 architecture is required first.
+kids_steam_enabled: true
+kids_steam_packages: [steam-installer]
+kids_gamemode_enabled: true
+kids_gamemode_packages: [gamemode]
+
+# Flatpak apps (from Flathub). The role ensures the flathub remote then installs.
+kids_flatpak_enabled: true
+kids_flatpak_remote_name: flathub
+kids_flatpak_remote_url: https://flathub.org/repo/flathub.flatpakrepo
+kids_flatpak_apps:
+  - com.endlessnetwork.aqueducts
+  - com.endlessnetwork.dragonsapprentice
+  - com.endlessnetwork.frogsquash
+  - com.endlessnetwork.missilemath
+  - com.endlessnetwork.passage
+  - com.endlessnetwork.whitehouse
+  - org.endlessos.Key
+  - edu.mit.Scratch
+  - org.gnome.Chess
+  - org.luanti.luanti
+  - com.shatteredpixel.shatteredpixeldungeon
+  - io.github.doukutsu_rs.doukutsu-rs
+  - com.revolutionarygamesstudio.ThriveLauncher

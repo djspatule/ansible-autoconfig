@@ -1,0 +1,41 @@
+---
+# Orchestrates the kids machine baseline. Flat and explicit, like the server role,
+# so each concern can be read and tag-tested on its own.
+- name: Ensure custom groups exist
+  ansible.builtin.group:
+    name: "{{ item.name }}"
+    gid: "{{ item.gid }}"
+    state: present
+  loop: "{{ kids_groups }}"
+  tags: [kids, kids_users]
+
+- name: Ensure managed kid accounts exist with their group membership
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    groups: "{{ item.groups }}"
+    append: true
+    shell: "{{ item.shell | default('/bin/bash') }}"
+    create_home: true
+    state: present
+  loop: "{{ kids_managed_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+  tags: [kids, kids_users]
+
+# daddy already exists (admin/bootstrap account) — only top up its group
+# membership, never recreate or touch its password.
+- name: Ensure the admin user is in the parental/gaming groups
+  ansible.builtin.user:
+    name: "{{ kids_admin_user }}"
+    groups: "{{ kids_admin_extra_groups }}"
+    append: true
+  tags: [kids, kids_users]
+
+- name: Set up timekpr-next parental controls
+  ansible.builtin.import_tasks: timekpr.yml
+  when: kids_timekpr_enabled | default(true)
+  tags: [kids, kids_timekpr]
+
+- name: Install learning and gaming applications
+  ansible.builtin.import_tasks: apps.yml
+  tags: [kids, kids_apps]

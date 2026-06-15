@@ -1,0 +1,5 @@
+---
+- name: Restart timekpr
+  ansible.builtin.systemd:
+    name: "{{ kids_timekpr_service }}"
+    state: restarted

@@ -1,0 +1,43 @@
+---
+# timekpr-next enforces per-user time limits. We reproduce the captured policy:
+# install the daemon from its PPA, drop the exact config files, then make sure the
+# daemon is running and has reloaded them.
+#
+# IMPORTANT: the config files become the source of truth. If a parent later tweaks
+# limits through the timekpr GUI, the next pull will revert them to the repo values
+# — change limits in files/kids/timekpr/ and push, the same as any other dotfile.
+- name: Add the timekpr-next PPA
+  ansible.builtin.apt_repository:
+    repo: "{{ kids_timekpr_ppa }}"
+    state: present
+    update_cache: true
+
+- name: Install timekpr-next
+  ansible.builtin.apt:
+    name: "{{ kids_timekpr_packages }}"
+    state: present
+
+- name: Deploy the global timekpr configuration
+  ansible.builtin.copy:
+    src: "{{ kids_timekpr_main_conf_src }}"
+    dest: /etc/timekpr/timekpr.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart timekpr
+
+- name: Deploy the per-user timekpr policy files
+  ansible.builtin.copy:
+    src: "{{ kids_timekpr_config_src_dir }}/timekpr.{{ item }}.conf"
+    dest: "/var/lib/timekpr/config/timekpr.{{ item }}.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ kids_timekpr_user_confs }}"
+  notify: Restart timekpr
+
+- name: Ensure the timekpr daemon is enabled and running
+  ansible.builtin.systemd:
+    name: "{{ kids_timekpr_service }}"
+    enabled: true
+    state: started
