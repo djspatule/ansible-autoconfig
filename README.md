@@ -44,8 +44,9 @@ ChatGPT's Codex (via opencode and pi.dev).
 objective is to have something that can be run easily on a new machine or not
 (idempotent) with:
 
-> sudo ansible-pull -U <https://github.com/djspatule/ansible-autoconfig.git> -C
-> main -d /opt/ansible-pull --vault-password-file ~/secret.txt
+```bash
+sudo ansible-pull -d /opt/ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git -i hosts local.yml --vault-password-file ~/secret.txt
+```
 
 The `-d /opt/ansible-pull` matters: run as `sudo`, ansible-pull otherwise clones
 into `/root/.ansible/pull/…` (mode 700), and the dotfiles `stow` step — which
@@ -593,8 +594,36 @@ ciphertext; instead Ansible copies them into place and decrypts on the way (see
 ansible-vault edit --vault-password-file ~/secret.txt files/dotfiles-secret/ssh/config.local
 ```
 
-GUI/Omarchy desktop config (Hyprland, Waybar, etc.) is intentionally **not**
-migrated yet: the workstation role stays CLI/TUI only for now.
+**Editing a managed dotfile.** After a pull the live file (e.g.
+`~/.config/espanso/match/base.yml`) is a symlink into `/opt/ansible-pull`, the
+**root-owned** pull checkout — so editing it in place fails as read-only
+(`E166` in nvim). That is by design. Always edit the **source** in your dev
+clone, then push and pull:
+
+```bash
+nvim ~/Documents/ansible-autoconfig/files/dotfiles/<pkg>/<path>
+cd ~/Documents/ansible-autoconfig && git commit -am "..." && git push
+sudo ansible-pull -d /opt/ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git -i hosts local.yml --vault-password-file ~/secret.txt
+```
+
+(Never `sudo`-edit the `/opt/ansible-pull` copy: it is untracked and the next
+pull overwrites it.)
+
+**Espanso** is managed here too (package `espanso`, config under
+`files/dotfiles/espanso/`). The binary is a special case: it is **not** in the
+Arch official repos, so the workstation role builds `espanso-wayland` from the
+**AUR** with `yay`, as the desktop user, guarded so it only compiles when the
+binary is missing (a one-time cost on a fresh machine). Because the AUR helper
+calls `pacman`, an **unattended** from-scratch build needs the desktop user to
+`sudo` without a prompt; on a single-user Omarchy box that is the norm.
+Otherwise the build is the one step that needs a hand — run `yay -S
+espanso-wayland` once and the next pull skips it. (`secret.txt` is the *vault*
+password, not a sudo password, and would not help here anyway — the prompt comes
+from `yay`'s internal `pacman` call, not from Ansible's `become`.)
+
+GUI/Omarchy desktop config beyond the migrated packages (parts of Hyprland,
+theme-specific bits) stays out for now; the workstation role is otherwise
+CLI/TUI focused.
 
 ### Pi-hole Source Of Truth
 
