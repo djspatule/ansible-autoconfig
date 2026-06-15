@@ -92,6 +92,8 @@ server_reverse_proxy_sites:
     basic_auth: true
   - hostname: cloud.dinnizer.com
     upstream: nextcloud:80
+  - hostname: www.dinnizer.com
+    upstream: dinnizer-website:80
 nextcloud_managed_users:
   - uid: lion
     display_name: lion
