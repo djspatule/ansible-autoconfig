@@ -90,6 +90,8 @@ dotfiles_stow_packages:
 dotfiles_managed_paths:
   - package: bash
     path: .bashrc
+  - package: bash
+    path: .inputrc
   - package: starship
     path: .config/starship.toml
   - package: tmux

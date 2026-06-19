@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-mountpoint="$HOME/mnt/freebox"
+mountpoint="${1:-$HOME/mnt/freebox}"
 remote=':smb,host=192.168.1.254,user=guest:/Disque dur'
 
 mkdir -p "$mountpoint"
@@ -16,7 +16,12 @@ if mountpoint -q "$mountpoint"; then
   exit 0
 fi
 
+if ! ls -d "$mountpoint" >/dev/null 2>&1; then
+  fusermount3 -uz "$mountpoint" 2>/dev/null || fusermount -uz "$mountpoint" 2>/dev/null || true
+fi
+
 exec rclone mount "$remote" "$mountpoint" \
   --dir-cache-time 10m \
   --vfs-cache-mode full \
+  --daemon \
   --network-mode

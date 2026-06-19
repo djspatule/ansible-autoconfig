@@ -159,8 +159,9 @@
 #   2. Skips if the path is already our Stow symlink (idempotent re-runs).
 #   3. Otherwise: saves a one-time backup as <path>.pre-stow-backup, then removes
 #      the original so Stow can place its symlink. The backup is never overwritten.
-# The bash/starship-specific tasks above are kept for readable git history;
-# this generic loop covers newer packages such as tmux, ssh, opencode.
+# The bashrc/starship-specific tasks above are kept for readable git history;
+# this generic loop covers all other managed paths, including newer files in
+# legacy packages such as bash/.inputrc.
 - name: Preserve unmanaged selected dotfiles before Stow takes over
   ansible.builtin.shell: |
     set -eu
@@ -204,7 +205,7 @@
   changed_when: "'CHANGED' in preserve_dotfiles.stdout"
   register: preserve_dotfiles
   when:
-    - item.package not in ['bash', 'starship']
+    - item.path not in ['.bashrc', '.config/starship.toml']
 
 # Stow remains the symlink engine, while Ansible decides which packages are safe
 # to apply on this host.

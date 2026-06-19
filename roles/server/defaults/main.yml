@@ -156,6 +156,14 @@ nextcloud_default_phone_region: ""           # ISO 3166-1 code, e.g. FR
 nextcloud_maintenance_window_start: ""       # UTC hour 0-23 for heavy daily jobs
 nextcloud_bruteforce_allowlist: []           # CIDRs exempt from brute-force throttle
 
+# Background jobs. Calendar subscriptions and many maintenance jobs only refresh
+# reliably when cron.php runs on a real schedule. Keep this host-level instead of
+# adding another container: systemd can directly call the existing app container.
+nextcloud_cron_enabled: true
+nextcloud_cron_timer_name: autoconfig-nextcloud-cron
+nextcloud_cron_on_calendar: "*:0/5"
+nextcloud_calendar_subscription_refresh_rate: PT6H
+
 server_frigate_enabled: false
 # Frigate is started as a migration skeleton first because the service depends on
 # host hardware details that differ between the raspi and serverannah.

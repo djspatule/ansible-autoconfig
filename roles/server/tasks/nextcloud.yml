@@ -507,6 +507,87 @@
     index_var: index
   changed_when: false
 
+# Calendar subscriptions, notifications, cleanup jobs, and app maintenance depend
+# on Nextcloud background jobs. The container image does not install a host timer,
+# so manage one explicitly with systemd.
+- name: Set Nextcloud background jobs to cron mode
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - background:cron
+  changed_when: false
+  when: nextcloud_cron_enabled
+
+- name: Set Nextcloud calendar subscription refresh rate
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - config:app:set
+      - dav
+      - calendarSubscriptionRefreshRate
+      - "--value={{ nextcloud_calendar_subscription_refresh_rate }}"
+  changed_when: false
+  when:
+    - nextcloud_cron_enabled
+    - nextcloud_calendar_subscription_refresh_rate | length > 0
+
+- name: Install Nextcloud cron systemd service
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/{{ nextcloud_cron_timer_name }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Run Nextcloud background jobs
+      Requires=docker.service
+      After=docker.service
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/bin/docker exec --user www-data {{ nextcloud_container_name }} php -f /var/www/html/cron.php
+  register: nextcloud_cron_service_unit
+  when: nextcloud_cron_enabled
+
+- name: Install Nextcloud cron systemd timer
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/{{ nextcloud_cron_timer_name }}.timer"
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Run Nextcloud background jobs on a schedule
+
+      [Timer]
+      OnCalendar={{ nextcloud_cron_on_calendar }}
+      Persistent=true
+
+      [Install]
+      WantedBy=timers.target
+  register: nextcloud_cron_timer_unit
+  when: nextcloud_cron_enabled
+
+- name: Ensure Nextcloud cron timer is enabled and running
+  ansible.builtin.systemd:
+    name: "{{ nextcloud_cron_timer_name }}.timer"
+    enabled: true
+    state: started
+    daemon_reload: "{{ nextcloud_cron_service_unit.changed or nextcloud_cron_timer_unit.changed }}"
+  when: nextcloud_cron_enabled
+
 # --- Outgoing email (SMTP) -----------------------------------------------------
 - name: Check whether the Nextcloud SMTP password file exists
   ansible.builtin.stat:
