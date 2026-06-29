@@ -507,6 +507,36 @@
     index_var: index
   changed_when: false
 
+- name: Check for stale Nextcloud brute-force system allowlist
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - config:system:get
+      - bruteforce.protection.allowlist
+  register: nextcloud_stale_bruteforce_system_allowlist
+  changed_when: false
+  failed_when: false
+
+- name: Remove stale Nextcloud brute-force system allowlist
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -u
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - config:system:delete
+      - bruteforce.protection.allowlist
+  when: nextcloud_stale_bruteforce_system_allowlist.rc == 0
+
 # Calendar subscriptions, notifications, cleanup jobs, and app maintenance depend
 # on Nextcloud background jobs. The container image does not install a host timer,
 # so manage one explicitly with systemd.

@@ -55,7 +55,7 @@
         server: local-docker
         container: pihole
         showStats: true
-        siteMonitor: http://pihole/admin/login
+        siteMonitor: http://pihole/admin/img/logo.svg
     - Caddy:
         icon: caddy.png
         href: https://homepage.dinnizer.com/
