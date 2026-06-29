@@ -25,7 +25,7 @@
         server: local-docker
         container: nextcloud
         showStats: true
-        siteMonitor: http://nextcloud/
+        siteMonitor: http://nextcloud/status.php
     - Frigate:
         icon: frigate.png
         href: https://192.168.1.100:8971/

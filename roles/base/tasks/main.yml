@@ -9,4 +9,6 @@
   when: base_starship_prompt_enabled | default(false)
 - import_tasks: dotfiles.yml
   when: base_dotfiles_enabled | default(false)
+  tags:
+    - dotfiles
 - import_tasks: autopull.yml

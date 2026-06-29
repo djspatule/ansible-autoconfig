@@ -498,9 +498,9 @@
       - "{{ nextcloud_container_name }}"
       - php
       - occ
-      - config:system:set
-      - bruteforce.protection.allowlist
-      - "{{ index | string }}"
+      - config:app:set
+      - bruteForce
+      - "whitelist_{{ index }}"
       - "--value={{ item }}"
   loop: "{{ nextcloud_bruteforce_allowlist }}"
   loop_control:
