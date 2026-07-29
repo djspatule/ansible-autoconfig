@@ -141,8 +141,9 @@
   when: item is match('^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:')
 
 # Docker can try to restart LAN-IP-bound containers before DHCP has restored the
-# address. This small systemd helper gives Pi-hole another start attempt after
-# network-online.target and waits for any explicit bind IP first.
+# address, and occasionally restore Pi-hole as running but detached from its
+# Docker network. This helper waits for the explicit bind IP, reconnects the
+# network if needed, then restarts Pi-hole so DNS has a working route.
 - name: Install Pi-hole network-online starter service
   ansible.builtin.copy:
     dest: /etc/systemd/system/autoconfig-pihole-start.service
@@ -162,7 +163,7 @@
       {% for bind_ip in pihole_bind_ips | default([]) | unique %}
       ExecStartPre=/bin/sh -c 'for i in $(seq 1 60); do ip -4 addr show | grep -q "{{ bind_ip }}/" && exit 0; sleep 2; done; exit 1'
       {% endfor %}
-      ExecStart=/usr/bin/docker start {{ pihole_container_name }}
+      ExecStart=/bin/sh -c '/usr/bin/docker network connect {{ pihole_network_name }} {{ pihole_container_name }} 2>/dev/null || true; /usr/bin/docker restart {{ pihole_container_name }}'
 
       [Install]
       WantedBy=multi-user.target
@@ -172,7 +173,7 @@
   ansible.builtin.systemd:
     name: autoconfig-pihole-start.service
     enabled: true
-    state: started
+    state: "{{ pihole_starter_unit.changed | ternary('restarted', 'started') }}"
     daemon_reload: "{{ pihole_starter_unit.changed }}"
 
 - name: Wait for Pi-hole gravity.db to be present
