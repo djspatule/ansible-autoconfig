@@ -6,6 +6,12 @@
     - server
     - server_docker
 
+- import_tasks: netplan.yml
+  when: server_netplan_enabled | default(false)
+  tags:
+    - server
+    - server_network
+
 - name: Install Docker LAN-only published port guard
   ansible.builtin.template:
     src: autoconfig-docker-lan-guard.sh.j2

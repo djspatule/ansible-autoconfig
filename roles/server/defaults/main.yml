@@ -17,6 +17,9 @@ server_docker_users:
 server_lan_cidrs:
   - 192.168.1.0/24
 server_lan_only_published_ports: []
+server_netplan_enabled: false
+server_netplan_file: /etc/netplan/00-installer-config.yaml
+server_netplan_config: ""
 
 server_homepage_enabled: false
 homepage_container_name: homepage

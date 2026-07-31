@@ -1,0 +1,29 @@
+---
+- name: Require server netplan config when network management is enabled
+  ansible.builtin.assert:
+    that:
+      - server_netplan_config | trim | length > 0
+    fail_msg: server_netplan_enabled is true but server_netplan_config is empty.
+
+- name: Install server netplan configuration
+  ansible.builtin.copy:
+    dest: "{{ server_netplan_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+    content: "{{ server_netplan_config }}"
+  register: server_netplan_copy
+
+- name: Validate server netplan configuration
+  ansible.builtin.command:
+    argv:
+      - netplan
+      - generate
+  changed_when: false
+
+- name: Apply server netplan configuration
+  ansible.builtin.command:
+    argv:
+      - netplan
+      - apply
+  when: server_netplan_copy.changed

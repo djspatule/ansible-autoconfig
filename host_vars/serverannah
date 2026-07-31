@@ -58,6 +58,27 @@ server_lan_only_published_ports:
   - 8971
   - 8554
   - 8555
+server_netplan_enabled: true
+server_netplan_config: |
+  # Managed by ansible-autoconfig.
+  network:
+    version: 2
+    ethernets:
+      enp1s0:
+        wakeonlan: true
+        match:
+          macaddress: a4:bb:6d:52:98:10
+        set-name: enp1s0
+        addresses:
+          - 192.168.1.100/24
+        routes:
+          - to: default
+            via: 192.168.1.254
+            metric: 100
+        nameservers:
+          addresses:
+            - 127.0.0.1
+            - 1.1.1.1
 server_reverse_proxy_enabled: true
 server_aumenuilya_enabled: true
 homepage_extra_allowed_hosts:
