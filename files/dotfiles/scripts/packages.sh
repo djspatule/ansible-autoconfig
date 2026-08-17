@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Idempotent: "--needed" skips packages that are already installed.
-# Default behavior also updates your system first (-Syu). Use --no-upgrade if you don't want that.
+# Idempotent personal package installer for Arch/Omarchy.
+# Default behavior updates first. Use --no-upgrade to install only.
 
 PKGS=(
   curl
@@ -27,17 +27,21 @@ PKGS=(
 )
 
 if ! command -v pacman >/dev/null; then
-  echo "Error: pacman not found (this script is for Arch/Omarchy)."
+  printf '%s\n' "Error: pacman not found (this script is for Arch/Omarchy)." >&2
   exit 1
 fi
 
 SUDO=""
 [[ $EUID -ne 0 ]] && SUDO="sudo"
 
-if [[ "${1-}" == "--no-upgrade" ]]; then
-  # Install only (no full system upgrade)
+if command -v omarchy >/dev/null; then
+  if [[ "${1-}" != "--no-upgrade" ]]; then
+    omarchy update
+  fi
+
+  omarchy pkg add "${PKGS[@]}"
+elif [[ "${1-}" == "--no-upgrade" ]]; then
   $SUDO pacman -S --needed "${PKGS[@]}"
 else
-  # Recommended on Arch: sync repos + full upgrade + install missing packages
   $SUDO pacman -Syu --needed "${PKGS[@]}"
 fi

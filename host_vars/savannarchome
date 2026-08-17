@@ -11,6 +11,7 @@ workstation_enabled: true
 workstation_cli_enabled: true
 workstation_dotfiles_enabled: true
 workstation_espanso_enabled: true
+omarchy_allow_ansible_package_installs: true
 
 dotfiles_stow_packages:
   - bash

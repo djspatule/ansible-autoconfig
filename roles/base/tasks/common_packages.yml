@@ -12,6 +12,24 @@
     base_cli_packages: "{{ base_packages_by_family[ansible_facts.os_family].cli }}"
     base_snap_packages: "{{ base_packages_by_family[ansible_facts.os_family].snaps }}"
 
+- name: Detect Omarchy before distro package installs
+  ansible.builtin.stat:
+    path: /usr/bin/omarchy
+  register: base_omarchy_binary
+  when: ansible_facts.os_family == "Archlinux"
+
+- name: Require explicit acknowledgement for Ansible package installs on Omarchy
+  ansible.builtin.assert:
+    that:
+      - omarchy_allow_ansible_package_installs | bool
+    fail_msg: >-
+      This host looks like Omarchy. Prefer `omarchy pkg add` and `omarchy update`
+      for app-level changes. Set omarchy_allow_ansible_package_installs: true only
+      for baseline packages that Ansible should manage intentionally.
+  when:
+    - ansible_facts.os_family == "Archlinux"
+    - base_omarchy_binary.stat.exists | default(false)
+
 - name: Install common CLI packages for all hosts
   ansible.builtin.package:
     name: "{{ base_cli_packages }}"

@@ -17,3 +17,4 @@
   loop: "{{ workstation_systemd_user_services }}"
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ (lookup('pipe', 'id -u ' ~ workstation_user)) }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ (lookup('pipe', 'id -u ' ~ workstation_user)) }}/bus"

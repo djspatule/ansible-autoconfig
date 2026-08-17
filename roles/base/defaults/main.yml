@@ -72,6 +72,7 @@ base_packages_by_family:
 #   dotfiles_stow_packages: [bash, starship, claude, ...]  # override if needed
 # For a group of similar hosts, set the default in group_vars/<group> instead.
 base_dotfiles_enabled: false
+omarchy_allow_ansible_package_installs: false
 dotfiles_user: "{{ desktop_user | default('lion') }}"
 dotfiles_home: "/home/{{ dotfiles_user }}"
 dotfiles_source_dir: "{{ playbook_dir }}/files/dotfiles"
@@ -126,10 +127,6 @@ dotfiles_managed_paths:
     path: .config/omarchy/shell.json
   - package: omarchy
     path: .config/omarchy/plugins/lion.workspaces
-  - package: waybar
-    path: .config/waybar/config.jsonc
-  - package: waybar
-    path: .config/waybar/style.css
   - package: wireplumber
     path: .config/wireplumber
   - package: systemd

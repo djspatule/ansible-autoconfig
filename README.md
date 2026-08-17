@@ -572,9 +572,10 @@ symlinks only the curated files, so app-written files stay local. The pre-stow
 alone instead of rebuilding it every run, which keeps pulls idempotent).
 
 Do not vendor machine-specific symlinks. Omarchy points some configs at the
-active theme (nvim `lua/plugins/theme.lua`, `btop` theme) via absolute symlinks
-into `~/.config/omarchy/current/`. Those are gitignored / left out; omarchy
-recreates them locally, and Stow `--no-folding` would (correctly) refuse them.
+active theme (for example nvim `lua/plugins/theme.lua` or btop theme files) via
+absolute symlinks into its local theme state. Those are gitignored / left out;
+omarchy recreates them locally, and Stow `--no-folding` would (correctly) refuse
+them.
 
 Note two deliberate boundaries:
 
