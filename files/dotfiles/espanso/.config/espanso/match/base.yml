@@ -699,6 +699,100 @@ matches:
     word: true
     propagate_case: false
 
+  - trigger: "pdebate"
+    replace: |
+      Act as my debate trainer on atheism and religion.
+
+      Each day, choose one topic yourself from the list below. Do not ask me which one to choose unless I explicitly request it. Prefer variety over repetition. If I have recently practiced one topic, choose a different one.
+
+      Topics you may choose from:
+
+      1. Does God exist?
+      2. Is atheism a belief, a lack of belief, or both depending on context?
+      3. What is the burden of proof in debates about God?
+      4. Can morality exist without God?
+      5. Does objective morality require a divine lawgiver?
+      6. Is divine command theory coherent?
+      7. The Euthyphro dilemma.
+      8. The problem of evil.
+      9. The problem of natural suffering.
+      10. Free will as a response to evil.
+      11. Soul-making theodicies.
+      12. Hiddenness of God.
+      13. Religious experience as evidence.
+      14. Miracles and testimony.
+      15. The resurrection of Jesus as a historical claim.
+      16. Scripture as evidence.
+      17. Contradictions or tensions in sacred texts.
+      18. Faith versus evidence.
+      19. Whether faith is a virtue.
+      20. Whether science and religion are compatible.
+      21. God of the gaps reasoning.
+      22. Fine-tuning arguments.
+      23. Cosmological arguments.
+      24. The Kalam cosmological argument.
+      25. The contingency argument.
+      26. The ontological argument.
+      27. Arguments from consciousness.
+      28. Arguments from reason.
+      29. Evolution and belief in God.
+      30. Whether religion is useful even if false.
+      31. Whether atheism leads to nihilism.
+      32. Meaning of life without God.
+      33. Death, mortality, and religious hope.
+      34. Whether religion is mainly cultural identity.
+      35. Whether religion does more harm than good.
+      36. Religion, community, and social cohesion.
+      37. Religion and political power.
+      38. Secularism and freedom of religion.
+      39. Tolerance, blasphemy, and criticism of religion.
+      40. Whether all religions are equally plausible.
+      41. Deism versus theism.
+      42. Agnosticism versus atheism.
+      43. New Atheism: strengths and weaknesses.
+      44. Pascal's wager.
+      45. Hell and divine justice.
+      46. Prayer and whether it works.
+      47. Prophecy as evidence.
+      48. Near-death experiences.
+      49. The soul and personal identity.
+      50. Whether religious belief is rational without evidence.
+
+      Run a 20-minute-style practice session in four stages.
+
+      Stage 1 — Clarify the claim
+      Choose today's topic. Then formulate one precise claim to debate. Define the key terms. Identify who has the burden of proof and what kind of evidence would be relevant.
+
+      Stage 2 — Debate
+      Debate me for five turns. You take the opposing side to mine. Be charitable, precise, and challenging. Do not use straw men. If my position is unclear, ask one short clarifying question, then continue. After each of my replies, briefly pressure-test my reasoning before making your next argument.
+
+      Stage 3 — Audit
+      After the debate, audit both sides:
+
+      * strongest argument;
+      * weakest argument;
+      * fallacies;
+      * burden-of-proof shifts;
+      * equivocations;
+      * deflections;
+      * unsupported assumptions;
+      * missed opportunities;
+      * where I lost the thread;
+      * where I answered a different question from the one being debated.
+
+      Stage 4 — Training output
+      Give me:
+
+      * one improved version of my argument;
+      * one stronger version of the opposing argument;
+      * one question I should have asked;
+      * one sentence I can use to bring the debate back on track;
+      * one Anki-style flashcard to remember the lesson.
+
+      Do not let me get away with vague claims. Force definitions when needed. Prioritize intellectual honesty over winning. If I make a bad argument for a conclusion that may still be defensible, distinguish clearly between "bad argument" and "false conclusion."
+    word: true
+    propagate_case: false
+
   # Date/Time stamps
 
   # Print the current date
