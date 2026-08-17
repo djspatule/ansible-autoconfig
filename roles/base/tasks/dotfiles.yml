@@ -41,6 +41,13 @@
       user). This usually means ansible-pull checked the repo out under /root. Run
       it against a shared, readable path, e.g. add: -d /opt/ansible-pull
 
+- name: Ensure stowed dotfile targets remain writable by the desktop user
+  ansible.builtin.file:
+    path: "{{ dotfiles_source_dir }}"
+    owner: "{{ dotfiles_user }}"
+    group: "{{ dotfiles_user }}"
+    recurse: true
+
 # NOTE: The bash and starship tasks below are legacy per-file tasks kept for
 # readable git history. The generic shell loop further down covers all newer
 # packages (tmux, ssh, opencode, claude, nvim, git, gh, ...).
@@ -241,6 +248,12 @@
 # (a symlink would hand the application ciphertext), so they are copied into place
 # instead. The copy module decrypts a vaulted source automatically as long as the
 # vault password is available (--vault-password-file or ansible.cfg).
+- name: Check whether the autoconfig vault password file is available
+  ansible.builtin.stat:
+    path: "{{ autoconfig_vault_password_file }}"
+  register: autoconfig_vault_password_file_stat
+  when: autoconfig_vault_password_file is defined and autoconfig_vault_password_file | length > 0
+
 - name: Ensure parent directories for secret dotfiles exist
   ansible.builtin.file:
     path: "{{ (dotfiles_home ~ '/' ~ item.dest) | dirname }}"
@@ -251,6 +264,7 @@
   loop: "{{ dotfiles_secret_files | default([]) }}"
   loop_control:
     label: "{{ item.dest }}"
+  when: autoconfig_vault_password_file_stat.stat.exists | default(false)
 
 - name: Deploy vault-encrypted dotfiles (decrypted into place)
   ansible.builtin.copy:
@@ -263,3 +277,4 @@
   loop_control:
     label: "{{ item.dest }}"
   no_log: true
+  when: autoconfig_vault_password_file_stat.stat.exists | default(false)

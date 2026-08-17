@@ -113,7 +113,19 @@ dotfiles_managed_paths:
   - package: lazygit
     path: .config/lazygit/config.yml
   - package: hypr
+    path: .config/hypr/autostart.lua
+  - package: hypr
+    path: .config/hypr/bindings.lua
+  - package: hypr
+    path: .config/hypr/hyprland.lua
+  - package: hypr
+    path: .config/hypr/monitors.lua
+  - package: hypr
     path: .config/hypr
+  - package: omarchy
+    path: .config/omarchy/shell.json
+  - package: omarchy
+    path: .config/omarchy/plugins/lion.workspaces
   - package: waybar
     path: .config/waybar/config.jsonc
   - package: waybar
@@ -170,4 +182,4 @@ autoconfig_timer_name: autoconfig-pull
 autoconfig_on_calendar: daily
 autoconfig_randomized_delay: 30m
 autoconfig_persistent: true
-autoconfig_vault_password_file: ""
+autoconfig_vault_password_file: "/home/{{ desktop_user | default('lion') }}/.ansible-vault-pass"

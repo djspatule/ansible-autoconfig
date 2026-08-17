@@ -32,9 +32,10 @@ export ANSIBLE_CONFIG="$repo_dir/ansible.cfg"
 # Build the argument list in the shell so the optional vault flag can be added
 # cleanly. Doing this with Jinja line-continuations is fragile; "set --" is not.
 set -- ansible-pull -U "$repo_url" -C "$branch" -d "$repo_dir"
-{% if autoconfig_vault_password_file %}
-set -- "$@" --vault-password-file "{{ autoconfig_vault_password_file }}"
-{% endif %}
+vault_password_file="{{ autoconfig_vault_password_file }}"
+if [ -n "$vault_password_file" ] && [ -r "$vault_password_file" ]; then
+  set -- "$@" --vault-password-file "$vault_password_file"
+fi
 set -- "$@" "$playbook"
 
 exec "$@"
