@@ -122,6 +122,8 @@ dotfiles_managed_paths:
   - package: hypr
     path: .config/hypr/monitors.lua
   - package: hypr
+    path: .config/hypr/input.lua
+  - package: hypr
     path: .config/hypr
   - package: omarchy
     path: .config/omarchy/shell.json
