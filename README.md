@@ -571,6 +571,12 @@ symlinks only the curated files, so app-written files stay local. The pre-stow
 "preserve" step is directory-aware to match (it leaves an already-managed dir
 alone instead of rebuilding it every run, which keeps pulls idempotent).
 
+Tmux plugins (tpm, tmux-resurrect, tmux-continuum) are **not** vendored. The
+shipped `tmux.conf` declares them via `set -g @plugin '…'` and bootstraps TPM;
+plugins are fetched on the first `prefix + I` inside tmux. Keep any local clones
+under `files/dotfiles/tmux/.config/tmux/plugins/` out of git (already in
+`.gitignore`).
+
 Do not vendor machine-specific symlinks. Omarchy points some configs at the
 active theme (for example nvim `lua/plugins/theme.lua` or btop theme files) via
 absolute symlinks into its local theme state. Those are gitignored / left out;
