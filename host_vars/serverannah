@@ -82,7 +82,9 @@ server_netplan_config: |
 server_reverse_proxy_enabled: true
 server_aumenuilya_enabled: true
 homepage_extra_allowed_hosts:
-  - 192.168.1.7:3000
+  # Caddy already adds X-Forwarded-Host on every request, so the public hostname
+  # is the only strictly required entry. The LAN IP stays as a fallback so the
+  # dashboard is reachable from the home network without going through DNS.
   - 192.168.1.100:3000
   - homepage.dinnizer.com
 server_reverse_proxy_auto_https: true

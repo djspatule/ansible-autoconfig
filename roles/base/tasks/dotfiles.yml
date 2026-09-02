@@ -51,8 +51,10 @@
 # NOTE: The bash and starship tasks below are legacy per-file tasks kept for
 # readable git history. The generic shell loop further down covers all newer
 # packages (tmux, ssh, opencode, claude, nvim, git, gh, ...).
-# TODO: these legacy tasks can be collapsed into the generic loop once the git
-# history value is no longer needed.
+# Intentionally kept (see docs/orchestrator/DECISIONS.md, 2026-06-15): the
+# bash/starship branches document why the bashrc/starship symlinks get
+# preserved-and-replaced on first run. Do not collapse into the generic loop
+# without re-capturing that rationale in the loop itself.
 - name: Check whether the existing bashrc is unmanaged
   ansible.builtin.stat:
     path: "{{ dotfiles_home }}/.bashrc"
