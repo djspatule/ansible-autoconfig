@@ -2,6 +2,12 @@
     # Keep admin disabled in this learning setup so the proxy has one obvious
     # configuration source: the Caddyfile managed by Ansible.
     admin off
+    # Always emit the access log so the fail2ban caddy-basic-auth jail has a
+    # file to tail. Per-site basic_auth blocks override the output format to
+    # JSON, but the file itself is created here regardless of traffic shape.
+    log {
+        output file {{ server_reverse_proxy_access_log }}
+    }
 {% if not server_reverse_proxy_auto_https %}
     # Stay on plain HTTP for VM and LAN tests. Real public domains can switch
     # this off and let Caddy manage certificates automatically.
