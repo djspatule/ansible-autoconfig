@@ -28,16 +28,12 @@
         siteMonitor: http://nextcloud/status.php
     - Frigate:
         icon: frigate.png
-        href: https://192.168.1.100:8971/
-        description: Local camera NVR
+        href: https://frigate.dinnizer.com/
+        description: Camera NVR (basic auth)
     - BentoPDF:
         icon: mdi-file-pdf-box
-        href: http://192.168.1.100:8080/
-        description: LAN-only PDF toolkit
-        server: local-docker
-        container: bentopdf
-        showStats: true
-        siteMonitor: http://bentopdf:8080/
+        href: https://pdf.dinnizer.com/
+        description: Family PDF toolkit (basic auth)
 
 - Infrastructure:
     - Homepage:
@@ -56,10 +52,3 @@
         container: pihole
         showStats: true
         siteMonitor: http://pihole/admin/img/logo.svg
-    - Caddy:
-        icon: caddy.png
-        href: https://homepage.dinnizer.com/
-        description: Public HTTPS reverse proxy
-        server: local-docker
-        container: server-reverse-proxy
-        showStats: true

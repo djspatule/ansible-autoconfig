@@ -30,9 +30,9 @@
 - Local Tools:
     - BentoPDF:
         - abbr: PDF
-          href: http://192.168.1.100:8080/
-          description: LAN-only PDF tools
+          href: https://pdf.dinnizer.com/
+          description: Family PDF tools (basic auth)
     - Frigate:
         - abbr: FR
-          href: https://192.168.1.100:8971/
-          description: Camera dashboard
+          href: https://frigate.dinnizer.com/
+          description: Camera dashboard (basic auth)
