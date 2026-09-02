@@ -13,9 +13,11 @@ if [[ -f ~/.local/share/omarchy/default/bash/rc ]]; then
   source ~/.local/share/omarchy/default/bash/rc
 fi
 
-# Machine-specific things (ssh shortcuts with IPs, tokens, per-host tweaks) go in
-# ~/.bashrc.local, which is sourced at the very end and never committed here.
-# Example to put there:  alias server='ssh lion@192.168.1.7'
+# ~/.bashrc.local is sourced at the very end and is itself a managed dotfile
+# (Stow symlink into the dotfiles repo). It carries the portable RSE helpers —
+# aliases, functions, and tweaks that are identical on every Omarchy host.
+# Put per-host tweaks you do NOT want in git (tokens, host IPs, ...) in a
+# sibling file like ~/.bashrc.local.secret and source it from there.
 
 #######################################################
 # FUNCTIONS (each guards on command availability, so they stay portable)

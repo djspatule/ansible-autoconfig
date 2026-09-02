@@ -92,6 +92,8 @@ dotfiles_managed_paths:
   - package: bash
     path: .bashrc
   - package: bash
+    path: .bashrc.local
+  - package: bash
     path: .inputrc
   - package: starship
     path: .config/starship.toml
