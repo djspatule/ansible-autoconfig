@@ -125,6 +125,15 @@ server_reverse_proxy_sites:
   - hostname: draw.dinnizer.com
     upstream: excalidraw:80
     basic_auth: true
+  - hostname: plex.dinnizer.com
+    upstream: plex:32400
+    basic_auth: true
+  - hostname: odoo.dinnizer.com
+    upstream: odoo:8069
+    basic_auth: true
+  - hostname: pihole.dinnizer.com
+    upstream: pihole:80
+    basic_auth: true
   - hostname: cloud.dinnizer.com
     upstream: nextcloud:80
   - hostname: www.dinnizer.com
