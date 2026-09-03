@@ -1,0 +1,139 @@
+---
+- name: Ensure Odoo root-managed directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ odoo_root_dir }}"
+
+- name: Ensure Odoo secret directory exists
+  ansible.builtin.file:
+    path: "{{ odoo_secret_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+# The Odoo image populates /var/lib/odoo and /mnt/extra-addons at runtime, so
+# let the container own those paths after first start.
+- name: Ensure Odoo runtime directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - "{{ odoo_app_dir }}"
+    - "{{ odoo_addons_dir }}"
+    - "{{ odoo_db_data_dir }}"
+
+- name: Check whether the Odoo DB password file exists
+  ansible.builtin.stat:
+    path: "{{ odoo_db_password_file }}"
+  register: odoo_db_password_file_stat
+  no_log: true
+
+- name: Generate the Odoo DB password on the target host
+  ansible.builtin.shell: "tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32"
+  register: odoo_db_password_generated
+  changed_when: true
+  when: not odoo_db_password_file_stat.stat.exists
+  no_log: true
+
+- name: Save the generated Odoo DB password
+  ansible.builtin.copy:
+    content: "{{ odoo_db_password_generated.stdout }}\n"
+    dest: "{{ odoo_db_password_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: not odoo_db_password_file_stat.stat.exists
+  no_log: true
+
+- name: Read the managed Odoo DB password
+  ansible.builtin.slurp:
+    src: "{{ odoo_db_password_file }}"
+  register: odoo_db_password_slurp
+  no_log: true
+
+- name: Load the managed Odoo DB password
+  ansible.builtin.set_fact:
+    odoo_db_password: "{{ odoo_db_password_slurp.content | b64decode | trim }}"
+  no_log: true
+
+- name: Ensure Odoo container network exists
+  community.docker.docker_network:
+    name: "{{ odoo_network_name }}"
+    state: present
+
+- name: Pull Odoo database image
+  community.docker.docker_image:
+    name: "{{ odoo_db_image }}"
+    source: pull
+    force_source: true
+  register: odoo_db_image_pull
+
+# PGDATA points inside the bind-mounted volume so Postgres 16+ uses the
+# version-specific path layout that lets pg_upgrade work between major releases.
+- name: Run Odoo database container
+  community.docker.docker_container:
+    name: "{{ odoo_db_container_name }}"
+    image: "{{ odoo_db_image }}"
+    state: started
+    recreate: "{{ odoo_db_image_pull.changed }}"
+    restart_policy: unless-stopped
+    networks:
+      - name: "{{ odoo_network_name }}"
+    volumes:
+      - "{{ odoo_db_data_dir }}:/var/lib/postgresql"
+    env:
+      POSTGRES_DB: "{{ odoo_db_name }}"
+      POSTGRES_USER: "{{ odoo_db_user }}"
+      POSTGRES_PASSWORD: "{{ odoo_db_password }}"
+      PGDATA: /var/lib/postgresql/data/pgdata
+  no_log: true
+
+- name: Wait for the Odoo database to become ready
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - "{{ odoo_db_container_name }}"
+      - pg_isready
+      - -U
+      - "{{ odoo_db_user }}"
+      - -d
+      - "{{ odoo_db_name }}"
+  register: odoo_db_ready
+  changed_when: false
+  retries: "{{ odoo_wait_retries }}"
+  delay: "{{ odoo_wait_delay }}"
+  until: odoo_db_ready.rc == 0
+
+- name: Pull Odoo application image
+  community.docker.docker_image:
+    name: "{{ odoo_image }}"
+    source: pull
+    force_source: true
+  register: odoo_image_pull
+
+- name: Run Odoo application container
+  community.docker.docker_container:
+    name: "{{ odoo_container_name }}"
+    image: "{{ odoo_image }}"
+    state: started
+    recreate: "{{ odoo_image_pull.changed }}"
+    restart_policy: unless-stopped
+    published_ports: "{{ odoo_published_ports }}"
+    networks:
+      - name: "{{ odoo_network_name }}"
+    volumes:
+      - "{{ odoo_app_dir }}:/var/lib/odoo"
+      - "{{ odoo_addons_dir }}:/mnt/extra-addons"
+    env:
+      HOST: "{{ odoo_db_container_name }}"
+      PORT: "5432"
+      USER: "{{ odoo_db_user }}"
+      PASSWORD: "{{ odoo_db_password }}"
+  no_log: true
