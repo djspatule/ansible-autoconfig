@@ -96,12 +96,12 @@ without implementing anything ('dry run')._
             service data (these paths are not in `backup_paths` yet)
     - [ ] timeshift back-up on SSD_512 for simple system-level checkpoints and
           restore points for serverannah internal storage only
-    - [ ] Odoo with small database stored on serverannah internal SSD under
+    - [x] Odoo with small database stored on serverannah internal SSD under
           /home
-    - [ ] Plex reading media from SSD_1TO
+    - [x] Plex reading media from SSD_1TO
     - [ ] Dictation app/server (voxtype, whisper, etc.) ? Need to be discussed
           before.
-    - [ ] Excalidraw docker (at draw.dinnizer.com, secured via caddy auth)
+    - [x] Excalidraw docker (at draw.dinnizer.com, secured via caddy auth)
     - [ ] have docker-compose to try new dockers easily (Tryton, ERPNext, Hermes
           agent, Odysseus by PewDiePie, etc.)
 - [x] **aumenuilya**:

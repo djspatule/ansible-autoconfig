@@ -89,6 +89,62 @@ dinnizer_wait_retries: 30
 dinnizer_wait_delay: 5
 dinnizer_cloudinary_url: ""
 
+server_excalidraw_enabled: false
+# Excalidraw is a static-client SPA served by an nginx-based image. The image's
+# default is port 80 inside the container; Caddy fronts it on draw.dinnizer.com
+# with basic auth.
+excalidraw_container_name: excalidraw
+excalidraw_image: excalidraw/excalidraw:latest
+excalidraw_network_name: autoconfig-services
+
+server_plex_enabled: false
+# Plex runs on linuxserver.io's image and exposes its web UI on 32400. We bind
+# that port to the LAN address only (no public exposure) so the family can use
+# the Plex Web client and the Plex mobile apps from inside the house. Remote
+# access via Plex.tv is intentionally NOT enabled: that requires a public HTTPS
+# route and would not respect Plex's own per-user auth anyway. The optional
+# PLEX_CLAIM token (https://plex.tv/claim) is read from a secret file when
+# present; leave the file absent for first-time setup, then claim via the LAN
+# web UI and start adding libraries.
+plex_container_name: plex
+plex_image: lscr.io/linuxserver/plex:latest
+plex_network_name: autoconfig-services
+plex_config_dir: /opt/plex/config
+plex_media_root: /mnt/SSD_1TO
+plex_secret_dir: /etc/ansible/secrets
+plex_claim_token_file: "{{ plex_secret_dir }}/plex-claim-token"
+plex_puid: "{{ (lookup('pipe', 'id -u ' ~ (dotfiles_user | default('lion'))) | trim | int) }}"
+plex_pgid: "{{ (lookup('pipe', 'id -g ' ~ (dotfiles_user | default('lion'))) | trim | int) }}"
+plex_timezone: Europe/Paris
+plex_published_ports:
+  - "192.168.1.100:32400:32400"
+
+server_odoo_enabled: false
+# Odoo runs on its own internal Postgres so we control the version independently
+# of the Dinnizer database. Postgres 15+ as requested; we ship 16-alpine.
+# Odoo data lives under /opt/odoo (system disk) since the README plans call for
+# the small Odoo DB on serverannah's internal storage. The Odoo web UI is bound
+# to the LAN address only — the Caddy reverse proxy is not in front because
+# Odoo's web client serves its own auth and many sub-routes that don't always
+# cooperate with a generic basic-auth gate.
+odoo_container_name: odoo
+odoo_image: odoo:17.0
+odoo_db_container_name: odoo-db
+odoo_db_image: postgres:16-alpine
+odoo_network_name: autoconfig-services
+odoo_root_dir: /opt/odoo
+odoo_app_dir: "{{ odoo_root_dir }}/app"
+odoo_addons_dir: "{{ odoo_root_dir }}/addons"
+odoo_db_data_dir: "{{ odoo_root_dir }}/db"
+odoo_secret_dir: /etc/ansible/secrets
+odoo_db_user: odoo
+odoo_db_name: odoo
+odoo_db_password_file: "{{ odoo_secret_dir }}/odoo-db-password"
+odoo_wait_retries: 30
+odoo_wait_delay: 5
+odoo_published_ports:
+  - "192.168.1.100:8069:8069"
+
 server_nextcloud_enabled: false
 # Nextcloud keeps app state and its internal data on the server disk. Larger
 # family storage can be exposed separately through nextcloud_external_mounts.

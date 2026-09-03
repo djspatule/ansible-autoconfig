@@ -1,0 +1,35 @@
+---
+- name: Ensure Excalidraw root-managed directory exists
+  ansible.builtin.file:
+    path: /opt/excalidraw
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Ensure Excalidraw container network exists
+  community.docker.docker_network:
+    name: "{{ excalidraw_network_name }}"
+    state: present
+
+- name: Pull Excalidraw image
+  community.docker.docker_image:
+    name: "{{ excalidraw_image }}"
+    source: pull
+    # Re-check the registry every run; recreate (below) only when a genuinely
+    # new image was pulled.
+    force_source: true
+  register: excalidraw_image_pull
+
+# Excalidraw is purely client-side state stored in the browser, so no host
+# volume is needed. The container is reachable only via the autoconfig-services
+# docker network where Caddy fronts it at draw.dinnizer.com.
+- name: Run Excalidraw container
+  community.docker.docker_container:
+    name: "{{ excalidraw_container_name }}"
+    image: "{{ excalidraw_image }}"
+    state: started
+    recreate: "{{ excalidraw_image_pull.changed }}"
+    restart_policy: unless-stopped
+    networks:
+      - name: "{{ excalidraw_network_name }}"

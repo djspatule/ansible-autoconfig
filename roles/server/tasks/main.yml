@@ -111,6 +111,24 @@
     - server
     - dinnizer
 
+- import_tasks: excalidraw.yml
+  when: server_excalidraw_enabled | default(false)
+  tags:
+    - server
+    - excalidraw
+
+- import_tasks: plex.yml
+  when: server_plex_enabled | default(false)
+  tags:
+    - server
+    - plex
+
+- import_tasks: odoo.yml
+  when: server_odoo_enabled | default(false)
+  tags:
+    - server
+    - odoo
+
 # Nextcloud and Frigate follow a two-phase pattern: the preflight task checks
 # hardware/storage availability and sets a fact; the main task only runs when
 # both the feature flag AND the preflight fact are true. This prevents the
