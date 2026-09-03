@@ -1,0 +1,102 @@
+---
+- name: Ensure Plex secret directory exists
+  ansible.builtin.file:
+    path: "{{ plex_secret_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+# Plex writes its config under /config and reads the media tree from /data.
+# Letting the container manage /config keeps permissions consistent with PUID.
+# /mnt/SSD_1TO is mounted read-only because Plex should never mutate the media
+# files themselves.
+- name: Ensure Plex config directory exists
+  ansible.builtin.file:
+    path: "{{ plex_config_dir }}"
+    state: directory
+    owner: "{{ plex_puid }}"
+    group: "{{ plex_pgid }}"
+    mode: "0755"
+
+- name: Check whether the Plex media root is mounted
+  ansible.builtin.command:
+    argv:
+      - findmnt
+      - --mountpoint
+      - "{{ plex_media_root }}"
+  register: plex_media_mount_check
+  changed_when: false
+  failed_when: false
+
+- name: Skip Plex when the configured media root is not mounted
+  ansible.builtin.debug:
+    msg: >-
+      Plex is enabled, but {{ plex_media_root }} is not an active mount.
+      Skipping Plex so the container does not start with an empty media tree
+      that would silently look complete.
+  when: plex_media_mount_check.rc != 0
+
+- name: Configure and run Plex when the media root is mounted
+  when: plex_media_mount_check.rc == 0
+  block:
+    - name: Check whether the Plex claim token file exists
+      ansible.builtin.stat:
+        path: "{{ plex_claim_token_file }}"
+      register: plex_claim_token_file_stat
+      no_log: true
+
+    - name: Read the Plex claim token
+      ansible.builtin.slurp:
+        src: "{{ plex_claim_token_file }}"
+      register: plex_claim_token_slurp
+      no_log: true
+      when: plex_claim_token_file_stat.stat.exists
+
+    - name: Resolve the Plex claim token value
+      ansible.builtin.set_fact:
+        plex_claim_token_value: "{{ plex_claim_token_slurp.content | b64decode | trim }}"
+      when: plex_claim_token_file_stat.stat.exists
+      no_log: true
+
+    - name: Default the Plex claim token to empty
+      ansible.builtin.set_fact:
+        plex_claim_token_value: ""
+      when: not plex_claim_token_file_stat.stat.exists
+
+    - name: Ensure Plex container network exists
+      community.docker.docker_network:
+        name: "{{ plex_network_name }}"
+        state: present
+
+    - name: Pull Plex image
+      community.docker.docker_image:
+        name: "{{ plex_image }}"
+        source: pull
+        force_source: true
+      register: plex_image_pull
+
+    # Bridge mode rather than host networking: host networking would put Plex
+    # outside the autoconfig-services docker network and break any future
+    # inter-container routing. Bridge mode with the LAN-bound published port
+    # above gives the family web + app access without any public exposure.
+    - name: Run Plex container
+      community.docker.docker_container:
+        name: "{{ plex_container_name }}"
+        image: "{{ plex_image }}"
+        state: started
+        recreate: "{{ plex_image_pull.changed }}"
+        restart_policy: unless-stopped
+        published_ports: "{{ plex_published_ports }}"
+        networks:
+          - name: "{{ plex_network_name }}"
+        env:
+          PUID: "{{ plex_puid | string }}"
+          PGID: "{{ plex_pgid | string }}"
+          TZ: "{{ plex_timezone }}"
+          VERSION: docker
+          PLEX_CLAIM: "{{ plex_claim_token_value }}"
+        volumes:
+          - "{{ plex_config_dir }}:/config"
+          - "{{ plex_media_root }}:/data:ro"
+      no_log: true
