@@ -18,15 +18,28 @@
     mode: "0700"
 
 # The Odoo image populates /var/lib/odoo and /mnt/extra-addons at runtime, so
-# let the container own those paths after first start.
+# the container's odoo user (UID 100, GID 101 inside the image) must own the
+# bind-mount paths. Without this the entrypoint fails to create .local/share/odoo
+# and Odoo returns 500 on the first request.
 - name: Ensure Odoo runtime directories exist
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
+    owner: "100"
+    group: "101"
+    mode: "0755"
   loop:
     - "{{ odoo_app_dir }}"
     - "{{ odoo_addons_dir }}"
-    - "{{ odoo_db_data_dir }}"
+
+# Postgres image manages its own PGDATA permissions when the directory is
+# empty; once initialised the ownership is already correct so an idempotent
+# re-run is a no-op.
+- name: Ensure Odoo database data directory exists
+  ansible.builtin.file:
+    path: "{{ odoo_db_data_dir }}"
+    state: directory
+    mode: "0755"
 
 - name: Check whether the Odoo DB password file exists
   ansible.builtin.stat:
@@ -137,3 +150,153 @@
       USER: "{{ odoo_db_user }}"
       PASSWORD: "{{ odoo_db_password }}"
   no_log: true
+
+# --- One-time database seeding -----------------------------------------------
+# Optional block: when server_odoo_seed_enabled is true and a zip archive is
+# present at odoo_seed_archive, import it into the Odoo database. Idempotent —
+# the block checks the Odoo ir_model_data table for existing rows and skips if
+# the DB is already populated. The archive is expected to be a `pg_dump` text
+# file (dump.sql at the root) plus an Odoo filestore/ directory tree, packed
+# with `zip`. Place the file on the target host (scp) before running ansible-pull.
+- name: Check whether the Odoo database is already populated
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - "{{ odoo_db_container_name }}"
+      - psql
+      - -U
+      - "{{ odoo_db_user }}"
+      - -d
+      - "{{ odoo_db_name }}"
+      - -tAc
+      - SELECT COUNT(*) FROM ir_model_data;
+  register: odoo_db_ir_model_data_count
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: Seed the Odoo database from a local archive when requested
+  when:
+    - server_odoo_seed_enabled | default(false) | bool
+    - odoo_db_ir_model_data_count.rc == 0
+    - odoo_db_ir_model_data_count.stdout | trim == '0'
+  block:
+    - name: Check whether the Odoo seed archive exists
+      ansible.builtin.stat:
+        path: "{{ odoo_seed_archive }}"
+      register: odoo_seed_archive_stat
+
+    - name: Fail clearly when the seed archive is missing but seeding is enabled
+      ansible.builtin.assert:
+        that:
+          - odoo_seed_archive_stat.stat.exists
+        fail_msg: >-
+          server_odoo_seed_enabled is true but {{ odoo_seed_archive }} is
+          missing on the target host. scp the archive there first, or set
+          server_odoo_seed_enabled: false in host_vars to skip this block.
+
+    - name: Ensure the seed extraction directory exists
+      ansible.builtin.file:
+        path: "{{ odoo_seed_extract_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0700"
+
+    - name: Extract the Odoo seed archive
+      ansible.builtin.unarchive:
+        src: "{{ odoo_seed_archive }}"
+        dest: "{{ odoo_seed_extract_dir }}"
+        remote_src: true
+        owner: root
+        group: root
+
+    - name: Stop the Odoo application container during the import
+      community.docker.docker_container:
+        name: "{{ odoo_container_name }}"
+        state: stopped
+
+    - name: Drop the existing Odoo database if present
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - "{{ odoo_db_container_name }}"
+          - dropdb
+          - -U
+          - "{{ odoo_db_user }}"
+          - --if-exists
+          - "{{ odoo_db_name }}"
+      changed_when: false
+      failed_when: false
+      no_log: true
+
+    - name: Recreate the empty Odoo database
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - "{{ odoo_db_container_name }}"
+          - createdb
+          - -U
+          - "{{ odoo_db_user }}"
+          - -O
+          - "{{ odoo_db_user }}"
+          - "{{ odoo_db_name }}"
+      no_log: true
+
+    # The dump is a plain pg_dump text file (uses \restrict). Stream it through
+    # psql with ON_ERROR_STOP=0 so a single bad statement does not abort the
+    # whole import — Odoo extensions like pg_trgm/unaccent/vector create
+    # concurrently and one already-existing object would otherwise fail loudly.
+    - name: Import the Odoo SQL dump into the database
+      ansible.builtin.shell: |
+        set -eu
+        docker exec -i "{{ odoo_db_container_name }}" \
+          psql -U "{{ odoo_db_user }}" -d "{{ odoo_db_name }}" -v ON_ERROR_STOP=0 \
+          < "{{ odoo_seed_extract_dir }}/dump.sql"
+      args:
+        executable: /bin/bash
+
+    # rsync handles the large tree quickly and is content-addressable, so
+    # re-running this block is a no-op when the filestore already matches.
+    # The trailing slash on the source and the explicit dest ensure we copy
+    # the contents of filestore/ into /opt/odoo/app/.local/share/odoo/filestore/odoo/.
+    # The Odoo container has already created /opt/odoo/app/.local/share/odoo/filestore
+    # on its first startup, so the parent directory exists and is owned by the
+    # Odoo user inside the container.
+    - name: Copy the Odoo filestore into the application data directory
+      ansible.posix.synchronize:
+        src: "{{ odoo_seed_extract_dir }}/filestore/"
+        dest: "{{ odoo_app_dir }}/.local/share/odoo/filestore/{{ odoo_db_name }}/"
+        delete: true
+        recursive: true
+        rsync_opts:
+          - "--chown=100:101"
+
+    - name: Restart the Odoo application container with the seeded database
+      community.docker.docker_container:
+        name: "{{ odoo_container_name }}"
+        state: started
+
+    - name: Record that the Odoo seed import completed
+      ansible.builtin.copy:
+        content: "{{ odoo_seed_archive }} {{ odoo_seed_archive_stat.stat.mtime }}\n"
+        dest: "{{ odoo_seed_marker_file }}"
+        owner: root
+        group: root
+        mode: "0644"
+
+# Informational when seeding is requested but the DB is already populated.
+- name: Note when the Odoo seed was skipped because the database is not empty
+  ansible.builtin.debug:
+    msg: >-
+      Odoo database {{ odoo_db_name }} already has data
+      ({{ odoo_db_ir_model_data_count.stdout | trim }} rows in ir_model_data),
+      skipping the seed import. To re-seed, drop the database (or set
+      server_odoo_seed_enabled: false) and re-run ansible-pull.
+  when:
+    - server_odoo_seed_enabled | default(false) | bool
+    - odoo_db_ir_model_data_count.rc == 0
+    - odoo_db_ir_model_data_count.stdout | trim != '0'

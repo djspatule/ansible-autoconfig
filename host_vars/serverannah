@@ -45,6 +45,10 @@ server_frigate_enabled: true
 server_excalidraw_enabled: true
 server_plex_enabled: true
 server_odoo_enabled: true
+# Seed Odoo from a dump archive placed at this path on the target host. The
+# playbook skips the import when the Odoo database already has data in
+# ir_model_data, so once the seed runs this can stay true safely.
+server_odoo_seed_enabled: true
 # Keep Pi-hole on the LAN address so systemd-resolved can continue to own the
 # host loopback resolver while household clients use serverannah directly.
 server_pihole_enabled: true

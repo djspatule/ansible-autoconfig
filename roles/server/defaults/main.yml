@@ -128,7 +128,7 @@ server_odoo_enabled: false
 # Odoo's web client serves its own auth and many sub-routes that don't always
 # cooperate with a generic basic-auth gate.
 odoo_container_name: odoo
-odoo_image: odoo:17.0
+odoo_image: odoo:19.0
 odoo_db_container_name: odoo-db
 odoo_db_image: postgres:16-alpine
 odoo_network_name: autoconfig-services
@@ -144,6 +144,18 @@ odoo_wait_retries: 30
 odoo_wait_delay: 5
 odoo_published_ports:
   - "192.168.1.100:8069:8069"
+
+# Optional one-time seeding of the Odoo database from a zip archive produced
+# by `pg_dump` plus the Odoo filestore. The archive is expected to contain
+# exactly: dump.sql at the root, and filestore/ as a directory tree. The
+# path is on the TARGET host (scp the file there first, or use synchronize
+# from the controller — see the playbook notes in odoo.yml). Idempotent: the
+# seed block detects an already-populated database via ir_model_data and
+# skips re-import.
+server_odoo_seed_enabled: false
+odoo_seed_archive: /opt/odoo/seed/dinnizer.dump.zip
+odoo_seed_extract_dir: /opt/odoo/seed/extract
+odoo_seed_marker_file: /opt/odoo/.seed-applied
 
 server_nextcloud_enabled: false
 # Nextcloud keeps app state and its internal data on the server disk. Larger
