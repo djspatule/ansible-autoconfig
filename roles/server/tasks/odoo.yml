@@ -160,7 +160,11 @@
 # a `pg_dump` text file (dump.sql at the root) plus an Odoo filestore/
 # directory tree, packed with `zip`. Place the file on the target host (scp)
 # before running ansible-pull.
-- name: Check whether the Odoo database is already populated
+
+# First probe: does the ir_model_data table exist in the public schema?
+# Done as a separate query so the second one (which would error on a missing
+# table) is only issued when the table is actually there.
+- name: Check whether the Odoo ir_model_data table exists
   ansible.builtin.command:
     argv:
       - docker
@@ -173,18 +177,47 @@
       - "{{ odoo_db_name }}"
       - -tAc
       - >-
-        SELECT (CASE WHEN to_regclass('public.ir_model_data') IS NULL THEN 0
-                     ELSE (SELECT count(*) FROM ir_model_data) END);
-  register: odoo_db_ir_model_data_count
+        SELECT EXISTS (SELECT 1 FROM pg_tables
+                      WHERE schemaname = 'public' AND tablename = 'ir_model_data');
+  register: odoo_db_ir_model_data_exists
   changed_when: false
   failed_when: false
   no_log: true
 
+- name: Count Odoo ir_model_data rows when the table exists
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - "{{ odoo_db_container_name }}"
+      - psql
+      - -U
+      - "{{ odoo_db_user }}"
+      - -d
+      - "{{ odoo_db_name }}"
+      - -tAc
+      - SELECT count(*) FROM ir_model_data;
+  register: odoo_db_ir_model_data_rows
+  changed_when: false
+  failed_when: false
+  no_log: true
+  when: odoo_db_ir_model_data_exists.stdout | trim == 't'
+
+# Resolve the final "is this DB populated?" flag in one place so the block's
+# `when:` reads cleanly and the skip-notice below can print the same number.
+- name: Resolve the Odoo database population state
+  ansible.builtin.set_fact:
+    odoo_db_populated: >-
+      {{ (odoo_db_ir_model_data_exists.stdout | trim == 't')
+         and (odoo_db_ir_model_data_rows.stdout | trim | int > 0) }}
+    odoo_db_ir_model_data_count_value: >-
+      {{ (odoo_db_ir_model_data_rows.stdout | trim)
+         if (odoo_db_ir_model_data_exists.stdout | trim == 't') else '0' }}
+
 - name: Seed the Odoo database from a local archive when requested
   when:
     - server_odoo_seed_enabled | default(false) | bool
-    - odoo_db_ir_model_data_count.rc == 0
-    - odoo_db_ir_model_data_count.stdout | trim == '0'
+    - not odoo_db_populated | default(true)
   block:
     - name: Check whether the Odoo seed archive exists
       ansible.builtin.stat:
@@ -297,10 +330,9 @@
   ansible.builtin.debug:
     msg: >-
       Odoo database {{ odoo_db_name }} already has data
-      ({{ odoo_db_ir_model_data_count.stdout | trim }} rows in ir_model_data),
+      ({{ odoo_db_ir_model_data_count_value }} rows in ir_model_data),
       skipping the seed import. To re-seed, drop the database (or set
       server_odoo_seed_enabled: false) and re-run ansible-pull.
   when:
     - server_odoo_seed_enabled | default(false) | bool
-    - odoo_db_ir_model_data_count.rc == 0
-    - odoo_db_ir_model_data_count.stdout | trim != '0'
+    - odoo_db_populated | default(false)
