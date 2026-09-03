@@ -300,9 +300,9 @@
     # re-running this block is a no-op when the filestore already matches.
     # The trailing slash on the source and the explicit dest ensure we copy
     # the contents of filestore/ into /opt/odoo/app/.local/share/odoo/filestore/odoo/.
-    # The Odoo container has already created /opt/odoo/app/.local/share/odoo/filestore
-    # on its first startup, so the parent directory exists and is owned by the
-    # Odoo user inside the container.
+    # --mkpath creates intermediate directories (the Odoo app container was
+    # stopped before this step, so /opt/odoo/app/.local/... does not yet exist
+    # on a fresh DB).
     - name: Copy the Odoo filestore into the application data directory
       ansible.posix.synchronize:
         src: "{{ odoo_seed_extract_dir }}/filestore/"
@@ -311,6 +311,7 @@
         recursive: true
         rsync_opts:
           - "--chown=100:101"
+          - "--mkpath"
 
     - name: Restart the Odoo application container with the seeded database
       community.docker.docker_container:
