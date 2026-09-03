@@ -17,7 +17,6 @@ dotfiles_stow_packages:
   - bash
   - starship
   - claude
-  - tmux
   - ssh
   - opencode
   - nvim

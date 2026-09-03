@@ -17,7 +17,3 @@ secret.txt
 
 # Omarchy manages this nvim theme pointer locally (machine-specific symlink)
 files/dotfiles/nvim/.config/nvim/lua/plugins/theme.lua
-
-# Tmux plugins (tpm, tmux-resurrect, tmux-continuum) are fetched on first
-# `prefix + I`, not vendored — keep any local clones out of git.
-files/dotfiles/tmux/.config/tmux/plugins/

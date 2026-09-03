@@ -162,7 +162,6 @@ nextcloud_bruteforce_allowlist:
 dotfiles_stow_packages:
   - bash
   - starship
-  - tmux
   - git
   - nvim
 

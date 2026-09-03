@@ -175,7 +175,7 @@ without implementing anything ('dry run')._
     - [x] migrate the first CLI/TUI dotfiles from the standalone
           `omarchy-dotfiles` repo into `files/dotfiles/`: `nvim`, `git`, `gh`
           config, `lazygit`, plus the existing
-          `bash`/`starship`/`tmux`/`ssh`/`opencode`. Stow runs with
+          `bash`/`starship`/`ssh`/`opencode`. Stow runs with
           `--no-folding` so app-written files (gh token, ssh keys, lock files)
           never land in the repo; validated idempotent (`changed=0`) on the VM.
     - [ ] keep migrating remaining CLI/TUI dotfiles as needed. Gotcha: omarchy
@@ -222,7 +222,7 @@ of the setup. Maintenance of the files need to be feasible and easy.
   <https://github.com/LearnLinuxTV/personal_ansible_desktop_configs/tree/main>
 - I’m writing this code also as an opportunity to learn about ansible,
   GNU/linux, neovim, opencode and other coding agents (and vibecoding in
-  general), tmux, git, networking, etc. Thus explain all the code, design
+  general), herdr, git, networking, etc. Thus explain all the code, design
   choices, structure, etc in that perspective...
 - I would ideally like to lay here the foundations of an auto-config ansible
   setup that will be still valid and usable in 20 years….(comment your code
@@ -571,11 +571,11 @@ symlinks only the curated files, so app-written files stay local. The pre-stow
 "preserve" step is directory-aware to match (it leaves an already-managed dir
 alone instead of rebuilding it every run, which keeps pulls idempotent).
 
-Tmux plugins (tpm, tmux-resurrect, tmux-continuum) are **not** vendored. The
-shipped `tmux.conf` declares them via `set -g @plugin '…'` and bootstraps TPM;
-plugins are fetched on the first `prefix + I` inside tmux. Keep any local clones
-under `files/dotfiles/tmux/.config/tmux/plugins/` out of git (already in
-`.gitignore`).
+Tmux was previously managed as a Stow dotfile but has been replaced by
+**herdr** on Omarchy, so the `tmux` package and its dotfile tree are gone.
+If you want tmux back on a Debian-only host, add `tmux` to
+`dotfiles_stow_packages` in that host's `host_vars/` and re-introduce the
+package list entry under `base_packages_by_family.Debian.cli`.
 
 Do not vendor machine-specific symlinks. Omarchy points some configs at the
 active theme (for example nvim `lua/plugins/theme.lua` or btop theme files) via

@@ -22,7 +22,6 @@ workstation_cli_packages_by_family:
     - jq
     - lazygit
     - neovim
-    - tmux
     - unzip
     - wl-clipboard
     - yq
@@ -36,7 +35,6 @@ workstation_cli_packages_by_family:
     - jq
     - lazygit
     - neovim
-    - tmux
     - unzip
     - wl-clipboard
     - yq

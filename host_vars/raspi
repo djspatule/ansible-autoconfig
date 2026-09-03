@@ -18,7 +18,6 @@ workstation_espanso_enabled: false
 dotfiles_stow_packages:
   - bash
   - starship
-  - tmux
   - nvim
   - git
   - gh
