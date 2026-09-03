@@ -154,10 +154,12 @@
 # --- One-time database seeding -----------------------------------------------
 # Optional block: when server_odoo_seed_enabled is true and a zip archive is
 # present at odoo_seed_archive, import it into the Odoo database. Idempotent —
-# the block checks the Odoo ir_model_data table for existing rows and skips if
-# the DB is already populated. The archive is expected to be a `pg_dump` text
-# file (dump.sql at the root) plus an Odoo filestore/ directory tree, packed
-# with `zip`. Place the file on the target host (scp) before running ansible-pull.
+# the block probes for the Odoo ir_model_data table (which exists in any
+# populated Odoo database, regardless of how it was initialised) and skips the
+# import when the table is present and non-empty. The archive is expected to be
+# a `pg_dump` text file (dump.sql at the root) plus an Odoo filestore/
+# directory tree, packed with `zip`. Place the file on the target host (scp)
+# before running ansible-pull.
 - name: Check whether the Odoo database is already populated
   ansible.builtin.command:
     argv:
@@ -170,7 +172,9 @@
       - -d
       - "{{ odoo_db_name }}"
       - -tAc
-      - SELECT COUNT(*) FROM ir_model_data;
+      - >-
+        SELECT (CASE WHEN to_regclass('public.ir_model_data') IS NULL THEN 0
+                     ELSE (SELECT count(*) FROM ir_model_data) END);
   register: odoo_db_ir_model_data_count
   changed_when: false
   failed_when: false
