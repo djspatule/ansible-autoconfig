@@ -246,6 +246,41 @@
   # unchanged rather than flag churn on every pull.
   changed_when: false
 
+# After Stow rebuilds the dotfile symlinks, Hyprland's inotify watcher can
+# surface a stale "cannot open ~/.config/hypr/hyprland.lua" overlay because
+# the per-file mtime churn during Stow's --restow can race with the live
+# compositor. Issuing `hyprctl reload` after Stow forces Hyprland to re-parse
+# the new tree and dismisses any error overlay that surfaced mid-sync.
+#
+# Best-effort only: this task must NEVER break a sync. It runs only when:
+#   - the hypr Stow package is in scope on this host, and
+#   - hyprctl is installed and on PATH, and
+#   - the command can reach a Hyprland instance (rc 0).
+# Anything else silently no-ops via `register` + `failed_when: false`.
+- name: Probe for hyprctl on the desktop user PATH
+  ansible.builtin.command:
+    argv: [command, -v, hyprctl]
+  register: base_dotfiles_hyprctl_probe
+  become: true
+  become_user: "{{ dotfiles_user }}"
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: "'hypr' in dotfiles_stow_packages"
+
+- name: Reload Hyprland after dotfiles sync to clear stale inotify overlays
+  ansible.builtin.command:
+    argv: [hyprctl, reload]
+  become: true
+  become_user: "{{ dotfiles_user }}"
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when:
+    - "'hypr' in dotfiles_stow_packages"
+    - base_dotfiles_hyprctl_probe is defined
+    - base_dotfiles_hyprctl_probe.rc | default(1) == 0
+
 # Secret dotfiles are stored vault-encrypted in the repo. Stow cannot manage them
 # (a symlink would hand the application ciphertext), so they are copied into place
 # instead. The copy module decrypts a vaulted source automatically as long as the
