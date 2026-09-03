@@ -27,3 +27,9 @@
       when: workstation_systemd_user_services | default([]) | length > 0
       tags:
         - workstation_systemd
+
+    - name: Seed Chromium New Tab Page defaults
+      ansible.builtin.import_tasks: chromium_defaults.yml
+      when: workstation_chromium_defaults_enabled | default(true)
+      tags:
+        - workstation_chromium

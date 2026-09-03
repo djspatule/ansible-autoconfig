@@ -55,3 +55,18 @@ workstation_espanso_aur_package: espanso-wayland
 # Systemd user services to enable after dotfiles are deployed. Override in
 # host_vars to select which services are active on a given workstation.
 workstation_systemd_user_services: []
+
+# Chromium New Tab Page seeding. First-run only: writes a minimal Preferences
+# file when Chromium has never been launched on this machine. Once Chromium
+# owns the profile it rewrites the file on every launch, so subsequent runs
+# never overwrite user changes. Override the URL in host_vars, or set
+# workstation_chromium_defaults_enabled: false to skip seeding entirely.
+workstation_chromium_defaults_enabled: true
+workstation_chromium_new_tab_url: "https://homepage.dinnizer.com"
+workstation_chromium_seeded_preferences:
+  homepage: "{{ workstation_chromium_new_tab_url }}"
+  homepage_is_newtab: false
+  session:
+    restore_on_startup: 5
+    startup_urls:
+      - "{{ workstation_chromium_new_tab_url }}"

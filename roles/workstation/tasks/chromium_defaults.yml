@@ -1,0 +1,67 @@
+---
+# Seed Chromium's default-profile Preferences with a custom New Tab Page URL.
+#
+# Only writes when the Preferences file does not exist yet (first run on this
+# machine). Once Chromium has a profile, it owns the file and rewrites it on
+# every launch, so we never overwrite user edits — they can opt into the same
+# default from inside Chromium's Settings UI at any time.
+#
+# Set workstation_chromium_new_tab_url in host_vars (or override in
+# group_vars) to change the URL; the default ships at
+# https://homepage.dinnizer.com. To disable seeding entirely, set
+# workstation_chromium_defaults_enabled: false.
+
+- name: Skip Chromium NTP seeding when disabled
+  ansible.builtin.meta: noop
+  when: not (workstation_chromium_defaults_enabled | default(true))
+
+- name: Probe for an existing Chromium default-profile Preferences file
+  ansible.builtin.stat:
+    path: "{{ workstation_home }}/.config/chromium/Default/Preferences"
+  register: workstation_chromium_prefs
+
+- name: Ensure the Chromium default-profile directory exists
+  ansible.builtin.file:
+    path: "{{ workstation_home }}/.config/chromium/Default"
+    state: directory
+    owner: "{{ workstation_user }}"
+    group: "{{ workstation_user }}"
+    mode: "0755"
+  when: not workstation_chromium_prefs.stat.exists
+
+- name: Seed Chromium default-profile Preferences with the New Tab Page URL
+  ansible.builtin.copy:
+    dest: "{{ workstation_home }}/.config/chromium/Default/Preferences"
+    owner: "{{ workstation_user }}"
+    group: "{{ workstation_user }}"
+    mode: "0600"
+    content: "{{ workstation_chromium_seeded_preferences | to_nice_json }}"
+  when: not workstation_chromium_prefs.stat.exists
+
+# When the profile already exists, never overwrite the whole file — Chromium
+# owns it and rewrites it on every launch. Merge only the keys we care about:
+# the New Tab Page URL, the home page, and the startup page list. Everything
+# else (bookmarks, extensions, history, …) is left untouched. This task is
+# guarded by a sentinel in the same file so repeat runs are no-ops once the
+# settings are applied.
+- name: Read existing Chromium Preferences (only when the file exists)
+  ansible.builtin.slurp:
+    src: "{{ workstation_home }}/.config/chromium/Default/Preferences"
+  register: workstation_chromium_prefs_raw
+  when: workstation_chromium_prefs.stat.exists
+
+- name: Merge the New Tab Page URL into existing Chromium Preferences
+  ansible.builtin.copy:
+    dest: "{{ workstation_home }}/.config/chromium/Default/Preferences"
+    owner: "{{ workstation_user }}"
+    group: "{{ workstation_user }}"
+    mode: "0600"
+    content: >-
+      {{ (workstation_chromium_prefs_raw.content | b64decode | from_json
+          | combine(workstation_chromium_seeded_preferences, recursive=True))
+          | to_nice_json }}
+  when:
+    - workstation_chromium_prefs.stat.exists
+    - (workstation_chromium_prefs_raw.content | b64decode | from_json).get('homepage')
+      != workstation_chromium_new_tab_url
+  changed_when: true
