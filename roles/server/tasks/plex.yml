@@ -85,7 +85,7 @@
         name: "{{ plex_container_name }}"
         image: "{{ plex_image }}"
         state: started
-        recreate: "{{ plex_image_pull.changed }}"
+        recreate: "{{ plex_image_pull.changed or plex_claim_token_file_stat.stat.exists }}"
         restart_policy: unless-stopped
         published_ports: "{{ plex_published_ports }}"
         networks:
@@ -100,3 +100,95 @@
           - "{{ plex_config_dir }}:/config"
           - "{{ plex_media_root }}:/data:ro"
       no_log: true
+
+# --- Library seeding ---------------------------------------------------
+# Wait for the first start to finish, then add the libraries declared in
+# plex_libraries via Plex's HTTP API. Idempotent: re-runs skip libraries
+# that already exist on the server. Plex writes the claim token into
+# Preferences.xml inside the config dir; once that file exists AND the
+# token is non-empty, the server is claimable and the API will accept it.
+- name: Wait for the Plex claim token to appear in Preferences.xml
+  ansible.builtin.shell:
+    cmd: |
+      set -eu
+      prefs="{{ plex_config_dir }}/Library/Application Support/Plex Media Server/Preferences.xml"
+      for i in $(seq 1 60); do
+        if [ -s "$prefs" ] && grep -q 'PlexOnlineToken="[^"]' "$prefs" 2>/dev/null; then
+          echo READY
+          exit 0
+        fi
+        sleep 2
+      done
+      echo TIMEOUT
+      exit 1
+  args:
+    executable: /bin/bash
+  register: plex_claim_wait
+  changed_when: false
+  until: plex_claim_wait.rc == 0 and plex_claim_wait.stdout | trim == 'READY'
+  retries: 1
+
+- name: Read the Plex claim token from Preferences.xml
+  ansible.builtin.shell:
+    cmd: |
+      set -eu
+      prefs="{{ plex_config_dir }}/Library/Application Support/Plex Media Server/Preferences.xml"
+      grep -oE 'PlexOnlineToken="[^"]+"' "$prefs" | head -1 | sed -E 's/^PlexOnlineToken="([^"]+)"$/\1/'
+  args:
+    executable: /bin/bash
+  register: plex_online_token_read
+  changed_when: false
+  no_log: true
+
+- name: Seed Plex libraries via the HTTP API
+  ansible.builtin.shell:
+    cmd: |
+      set -eu
+      token='{{ plex_online_token_read.stdout }}'
+      name='{{ item.name }}'
+      type='{{ item.type }}'
+      path='{{ item.path }}'
+      language='{{ item.language | default("fr") }}'
+      case "$type" in
+        movie)    num=1; agent=com.plexapp.agents.imdb;     scanner='Plex Movie Scanner' ;;
+        show)     num=2; agent=com.plexapp.agents.thetvdb;  scanner='Plex Series Scanner' ;;
+        artist)   num=8; agent=com.plexapp.agents.lastfm;   scanner='Plex Music Scanner' ;;
+        photo)    num=13; agent=com.plexapp.agents.none;    scanner='Plex Photo Scanner' ;;
+        comic)    num=4; agent=com.plexapp.agents.comicbook;scanner='Plex Comic Book Scanner' ;;
+        audiobook) num=10; agent=com.plexapp.agents.audiobook;scanner='Plex audiobook Scanner' ;;
+        *) echo "unknown type: $type" >&2; exit 2 ;;
+      esac
+      # Idempotency: list existing libraries and skip if name matches.
+      existing=$(curl -fsS -H "X-Plex-Token: $token" http://127.0.0.1:32400/library/sections \
+                  | grep -oE 'title="[^"]+"' | head -50)
+      if echo "$existing" | grep -qxF "title=\"$name\""; then
+        echo "exists: $name"
+        exit 0
+      fi
+      # Create the library.
+      section=$(curl -fsS -X POST \
+                  -H "X-Plex-Token: $token" \
+                  "http://127.0.0.1:32400/library/sections?type=$num&name=$(printf %s "$name" | sed 's/ /%20/g')&agent=$agent&scanner=$(printf %s "$scanner" | sed 's/ /%20/g')&language=$language")
+      section_id=$(echo "$section" | grep -oE 'id="[0-9]+"' | head -1 | tr -dc 0-9)
+      if [ -z "$section_id" ]; then
+        echo "failed to create section for $name" >&2
+        echo "$section" >&2
+        exit 3
+      fi
+      # Add the directory.
+      encpath=$(printf %s "$path" | jq -sRr @uri)
+      curl -fsS -X POST \
+        -H "X-Plex-Token: $token" \
+        "http://127.0.0.1:32400/library/sections/${section_id}/directories?path=${encpath}&location=1"
+      echo "created: $name (id=$section_id)"
+  args:
+    executable: /bin/bash
+  register: plex_seed_response
+  changed_when: "'created:' in plex_seed_response.stdout"
+  loop: "{{ plex_libraries }}"
+  loop_control:
+    label: "{{ item.name }} ({{ item.type }} -> {{ item.path }})"
+  when:
+    - plex_online_token_read.stdout | length > 0
+    - plex_libraries | length > 0
+        - plex_libraries | length > 0

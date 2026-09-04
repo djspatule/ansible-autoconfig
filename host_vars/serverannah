@@ -210,3 +210,31 @@ frigate_camera_path: /dev/video0
 frigate_devices:
   - /dev/video0:/dev/video0
   - /dev/dri/renderD128:/dev/dri/renderD128
+
+# Plex libraries seeded against /mnt/SSD_1TO via the container's /data bind
+# mount. The seed runs after the server is claimed and idempotent on re-runs.
+plex_libraries:
+  - name: Movies
+    type: movie
+    path: /data/Movies
+    language: fr
+  - name: TV Shows
+    type: show
+    path: /data/TV Shows
+    language: fr
+  - name: Music
+    type: artist
+    path: /data/Music
+    language: fr
+  - name: Photos
+    type: photo
+    path: /data/Pictures
+    language: fr
+  - name: Audiobooks
+    type: audiobook
+    path: /data/Books/Audiobooks
+    language: fr
+  - name: Comics
+    type: comic
+    path: /data/Books/Comics
+    language: fr

@@ -119,6 +119,19 @@ plex_timezone: Europe/Paris
 plex_published_ports:
   - "192.168.1.100:32400:32400"
 
+# Libraries to seed via the Plex HTTP API after the server is claimed. The
+# role waits for the claim token to land in Preferences.xml, then issues
+# a POST /library/sections for each entry. Idempotent: libraries whose
+# name already exists on the server are skipped. Each entry needs:
+#   name:  display name Plex will show
+#   type:  Plex library type — one of 'movie', 'show', 'artist', 'photo',
+#          'comic', 'audiobook'
+#   path:  absolute path INSIDE the container (the bind mount makes
+#          /mnt/SSD_1TO appear as /data; pass /data/Movies, not the
+#          host path)
+#   language: (optional) ISO 639-1 code used for metadata lookups
+plex_libraries: []
+
 server_odoo_enabled: false
 # Odoo runs on its own internal Postgres so we control the version independently
 # of the Dinnizer database. Postgres 15+ as requested; we ship 16-alpine.
