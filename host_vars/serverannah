@@ -213,6 +213,9 @@ frigate_devices:
 
 # Plex libraries seeded against /mnt/SSD_1TO via the container's /data bind
 # mount. The seed runs after the server is claimed and idempotent on re-runs.
+# Plex's POST /library/sections only accepts movie/show/artist/photo — comic
+# and audiobook libraries are skipped here; add them via Plex Web manually
+# if you want them.
 plex_libraries:
   - name: Movies
     type: movie
@@ -229,12 +232,4 @@ plex_libraries:
   - name: Photos
     type: photo
     path: /data/Pictures
-    language: fr
-  - name: Audiobooks
-    type: audiobook
-    path: /data/Books/Audiobooks
-    language: fr
-  - name: Comics
-    type: comic
-    path: /data/Books/Comics
     language: fr

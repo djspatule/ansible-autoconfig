@@ -149,14 +149,17 @@
       type='{{ item.type }}'
       path='{{ item.path }}'
       language='{{ item.language | default("fr") }}'
+      # Plex's POST /library/sections only accepts movie/show/artist/photo
+      # directly. Comic and audiobook libraries are a different flow (a
+      # comic book section is created as a photo sub-type on older versions,
+      # or via the /hubs/comics endpoint) — skip those for now and tell the
+      # operator to add them manually in Plex Web.
       case "$type" in
-        movie)    num=1; agent=com.plexapp.agents.imdb;     scanner='Plex Movie Scanner' ;;
-        show)     num=2; agent=com.plexapp.agents.thetvdb;  scanner='Plex Series Scanner' ;;
-        artist)   num=8; agent=com.plexapp.agents.lastfm;   scanner='Plex Music Scanner' ;;
-        photo)    num=13; agent=com.plexapp.agents.none;    scanner='Plex Photo Scanner' ;;
-        comic)    num=4; agent=com.plexapp.agents.comicbook;scanner='Plex Comic Book Scanner' ;;
-        audiobook) num=10; agent=com.plexapp.agents.audiobook;scanner='Plex audiobook Scanner' ;;
-        *) echo "unknown type: $type" >&2; exit 2 ;;
+        movie)  num=1;  agent=com.plexapp.agents.imdb;   scanner='Plex Movie Scanner' ;;
+        show)   num=2;  agent=com.plexapp.agents.thetvdb;scanner='Plex Series Scanner' ;;
+        artist) num=8;  agent=com.plexapp.agents.lastfm; scanner='Plex Music Scanner' ;;
+        photo)  num=13; agent=com.plexapp.agents.none;    scanner='Plex Photo Scanner' ;;
+        *) echo "skip: $type not supported via this API; add manually" >&2; exit 0 ;;
       esac
       existing=$(curl -fsS -H "X-Plex-Token: $token" "{{ plex_lan_ip | default('192.168.1.100') }}:32400/library/sections" \
                   | grep -oE 'title="[^"]+"' | head -50)
@@ -164,20 +167,20 @@
         echo "exists: $name"
         exit 0
       fi
+      encpath=$(printf %s "$path" | jq -sRr @uri)
       section=$(curl -fsS -X POST \
                   -H "X-Plex-Token: $token" \
-                  "{{ plex_lan_ip | default('192.168.1.100') }}:32400/library/sections?type=$num&name=$(printf %s "$name" | sed 's/ /%20/g')&agent=$agent&scanner=$(printf %s "$scanner" | sed 's/ /%20/g')&language=$language")
-      section_id=$(echo "$section" | grep -oE 'id="[0-9]+"' | head -1 | tr -dc 0-9)
-      if [ -z "$section_id" ]; then
-        echo "failed to create section for $name" >&2
-        echo "$section" >&2
+                  "{{ plex_lan_ip | default('192.168.1.100') }}:32400/library/sections?type=$num&name=$(printf %s "$name" | sed 's/ /%20/g')&agent=$agent&scanner=$(printf %s "$scanner" | sed 's/ /%20/g')&language=$language&location=${encpath}")
+      if echo "$section" | grep -qE '<MediaContainer[^>]*code="[0-9]+"'; then
+        echo "failed to create section for $name: $section" >&2
         exit 3
       fi
-      encpath=$(printf %s "$path" | jq -sRr @uri)
-      curl -fsS -X POST \
-        -H "X-Plex-Token: $token" \
-        "{{ plex_lan_ip | default('192.168.1.100') }}:32400/library/sections/${section_id}/directories?path=${encpath}&location=1"
-      echo "created: $name (id=$section_id)"
+      section_id=$(echo "$section" | grep -oE 'id="[0-9]+"' | head -1 | tr -dc 0-9)
+      if [ -z "$section_id" ]; then
+        echo "no section_id in response: $section" >&2
+        exit 3
+      fi
+      echo "created: $name (id=$section_id, type=$type, path=$path)"
   args:
     executable: /bin/bash
   register: plex_seed_response
