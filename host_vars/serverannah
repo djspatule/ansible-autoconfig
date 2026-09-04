@@ -115,25 +115,32 @@ server_reverse_proxy_sites:
   - hostname: homepage.dinnizer.com
     upstream: homepage:3000
     basic_auth: true
+    basic_auth_password_file: "{{ server_reverse_proxy_secret_dir }}/caddy-shared-password"
   - hostname: pdf.dinnizer.com
     upstream: bentopdf:8080
     basic_auth: true
+    basic_auth_password_file: "{{ server_reverse_proxy_secret_dir }}/caddy-shared-password"
   - hostname: frigate.dinnizer.com
     upstream: https://frigate:8971
     upstream_tls_insecure_skip_verify: true
     basic_auth: true
+    basic_auth_password_file: "{{ server_reverse_proxy_secret_dir }}/caddy-shared-password"
   - hostname: draw.dinnizer.com
     upstream: excalidraw:80
     basic_auth: true
+    basic_auth_password_file: "{{ server_reverse_proxy_secret_dir }}/caddy-shared-password"
   - hostname: plex.dinnizer.com
     upstream: plex:32400
     basic_auth: true
+    basic_auth_password_file: "{{ server_reverse_proxy_secret_dir }}/caddy-shared-password"
   - hostname: odoo.dinnizer.com
     upstream: odoo:8069
     basic_auth: true
+    basic_auth_password_file: "{{ server_reverse_proxy_secret_dir }}/caddy-shared-password"
   - hostname: pihole.dinnizer.com
     upstream: pihole:80
     basic_auth: true
+    basic_auth_password_file: "{{ server_reverse_proxy_secret_dir }}/caddy-shared-password"
   - hostname: cloud.dinnizer.com
     upstream: nextcloud:80
   - hostname: www.dinnizer.com
