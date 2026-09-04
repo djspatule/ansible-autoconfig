@@ -140,6 +140,10 @@
   changed_when: false
   no_log: true
 
+- name: Debug plex_libraries inside role
+  ansible.builtin.debug:
+    msg: "plex_libraries length = {{ plex_libraries | length }} | token stdout length = {{ plex_online_token_read.stdout | length }}"
+
 - name: Seed Plex libraries via the HTTP API
   ansible.builtin.shell:
     cmd: |
@@ -149,6 +153,8 @@
       type='{{ item.type }}'
       path='{{ item.path }}'
       language='{{ item.language | default("fr") }}'
+      echo "DEBUG plex_libraries length: $(echo '{{ plex_libraries | length }}')"
+      echo "DEBUG token len: ${#token}"
       case "$type" in
         movie)    num=1; agent=com.plexapp.agents.imdb;     scanner='Plex Movie Scanner' ;;
         show)     num=2; agent=com.plexapp.agents.thetvdb;  scanner='Plex Series Scanner' ;;
@@ -191,4 +197,3 @@
   when:
     - plex_online_token_read.stdout | length > 0
     - plex_libraries | length > 0
-        - plex_libraries | length > 0
