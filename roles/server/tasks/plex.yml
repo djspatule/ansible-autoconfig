@@ -140,6 +140,21 @@
   changed_when: false
   no_log: true
 
+- name: Wait for the Plex HTTP API to start serving requests
+  ansible.builtin.uri:
+    url: "{{ plex_lan_ip | default('192.168.1.100') }}:32400/library/sections"
+    headers:
+      X-Plex-Token: "{{ plex_online_token_read.stdout }}"
+    status_code: 200
+    validate_certs: false
+    timeout: 10
+  register: plex_api_health
+  until: plex_api_health.status | default(0) == 200
+  retries: 30
+  delay: 5
+  changed_when: false
+  when: plex_online_token_read.stdout | length > 0
+
 - name: Seed Plex libraries via the HTTP API
   ansible.builtin.shell:
     cmd: |
