@@ -158,29 +158,29 @@
         audiobook) num=10; agent=com.plexapp.agents.audiobook;scanner='Plex audiobook Scanner' ;;
         *) echo "unknown type: $type" >&2; exit 2 ;;
       esac
-      # Idempotency: list existing libraries and skip if name matches.
-      existing=$(curl -fsS -H "X-Plex-Token: $token" http://127.0.0.1:32400/library/sections \
+        # Idempotency: list existing libraries and skip if name matches.
+        existing=$(curl -fsS -H "X-Plex-Token: $token" "{{ plex_lan_ip | default('192.168.1.100') }}:32400/library/sections" \
                   | grep -oE 'title="[^"]+"' | head -50)
       if echo "$existing" | grep -qxF "title=\"$name\""; then
         echo "exists: $name"
         exit 0
       fi
-      # Create the library.
-      section=$(curl -fsS -X POST \
+        # Create the library.
+        section=$(curl -fsS -X POST \
                   -H "X-Plex-Token: $token" \
-                  "http://127.0.0.1:32400/library/sections?type=$num&name=$(printf %s "$name" | sed 's/ /%20/g')&agent=$agent&scanner=$(printf %s "$scanner" | sed 's/ /%20/g')&language=$language")
-      section_id=$(echo "$section" | grep -oE 'id="[0-9]+"' | head -1 | tr -dc 0-9)
-      if [ -z "$section_id" ]; then
-        echo "failed to create section for $name" >&2
-        echo "$section" >&2
-        exit 3
-      fi
-      # Add the directory.
-      encpath=$(printf %s "$path" | jq -sRr @uri)
-      curl -fsS -X POST \
-        -H "X-Plex-Token: $token" \
-        "http://127.0.0.1:32400/library/sections/${section_id}/directories?path=${encpath}&location=1"
-      echo "created: $name (id=$section_id)"
+                  "{{ plex_lan_ip | default('192.168.1.100') }}:32400/library/sections?type=$num&name=$(printf %s "$name" | sed 's/ /%20/g')&agent=$agent&scanner=$(printf %s "$scanner" | sed 's/ /%20/g')&language=$language")
+        section_id=$(echo "$section" | grep -oE 'id="[0-9]+"' | head -1 | tr -dc 0-9)
+        if [ -z "$section_id" ]; then
+          echo "failed to create section for $name" >&2
+          echo "$section" >&2
+          exit 3
+        fi
+        # Add the directory.
+        encpath=$(printf %s "$path" | jq -sRr @uri)
+        curl -fsS -X POST \
+          -H "X-Plex-Token: $token" \
+          "{{ plex_lan_ip | default('192.168.1.100') }}:32400/library/sections/${section_id}/directories?path=${encpath}&location=1"
+        echo "created: $name (id=$section_id)"
   args:
     executable: /bin/bash
   register: plex_seed_response
