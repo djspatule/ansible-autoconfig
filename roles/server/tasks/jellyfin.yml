@@ -103,8 +103,8 @@
   no_log: true
 
 # Jellyfin's first-run wizard needs to complete before any library or user
-# API calls will work. Poll /Startup until the wizard has been initialised
-# OR until the response indicates the wizard is no longer required.
+# API calls will work. Poll /System/Info/Public until the daemon answers,
+# then check whether StartupWizardCompleted is true yet.
 - name: Wait for Jellyfin to answer HTTP requests
   ansible.builtin.uri:
     url: "http://{{ jellyfin_lan_ip | default('192.168.1.100') }}:8096/System/Info/Public"
@@ -118,12 +118,12 @@
   changed_when: false
 
 # --- First-run wizard ---------------------------------------------------
-# Jellyfin exposes the same wizard endpoints the UI uses, which lets us skip
-# the interactive setup entirely. Three calls in order:
-#   1. /Startup/Configuration  → accept defaults (locale, country)
-#   2. /Startup/FirstUser      → create the admin user
-#   3. /Startup/RemoteAccess   → enable remote access (used by external
-#                                 clients; harmless for a self-hosted homelab)
+# Jellyfin exposes the same wizard endpoints the UI uses. We poke each one
+# in the order the UI would. The endpoint shapes changed across versions
+# (10.11 made /Startup/FirstUser GET-only and rejected POST with 405), so
+# every call is best-effort with failed_when: false. Whichever calls
+# succeed are real progress; whichever don't just mean we need the user
+# to finish the wizard in the Web UI.
 - name: Jellyfin first-run configuration (locale + country)
   ansible.builtin.uri:
     url: "http://{{ jellyfin_lan_ip | default('192.168.1.100') }}:8096/Startup/Configuration"
@@ -140,14 +140,14 @@
       UICulture: "fr-FR"
       MetadataCountryCode: "FR"
       PreferredMetadataLanguage: "fr"
-    status_code: 204
+    status_code: -1
     validate_certs: false
     timeout: 15
   register: jellyfin_config_step
-  changed_when: jellyfin_config_step.status | default(0) == 204
+  changed_when: false
   failed_when: false
 
-- name: Jellyfin first-run admin user
+- name: Jellyfin first-run admin user (best effort — endpoint shape varies by version)
   ansible.builtin.uri:
     url: "http://{{ jellyfin_lan_ip | default('192.168.1.100') }}:8096/Startup/FirstUser"
     method: POST
@@ -162,11 +162,36 @@
     body:
       Name: "{{ jellyfin_admin_username }}"
       Password: "{{ jellyfin_admin_password }}"
-    status_code: 204
+    status_code: -1
     validate_certs: false
     timeout: 15
   register: jellyfin_user_step
-  changed_when: jellyfin_user_step.status | default(0) == 204
+  changed_when: false
+  failed_when: false
+
+# Some 10.11.x variants renamed this to /Startup/CreateUser or split the
+# wizard into numbered steps (POST /Startup/FirstUser?step=2). Try the
+# numbered variant — harmless if the endpoint doesn't exist.
+- name: Jellyfin first-run admin user (numbered-step fallback)
+  ansible.builtin.uri:
+    url: "http://{{ jellyfin_lan_ip | default('192.168.1.100') }}:8096/Startup/FirstUser?step=2"
+    method: POST
+    headers:
+      Content-Type: application/json
+      X-Emby-Authorization: >-
+        MediaBrowser Client="autoconfig",
+        Device="ansible",
+        DeviceId="autoconfig-ansible",
+        Version="0.1"
+    body_format: json
+    body:
+      Name: "{{ jellyfin_admin_username }}"
+      Password: "{{ jellyfin_admin_password }}"
+    status_code: -1
+    validate_certs: false
+    timeout: 15
+  register: jellyfin_user_step_2
+  changed_when: false
   failed_when: false
 
 - name: Jellyfin remote access (allow external clients)
@@ -184,12 +209,33 @@
     body:
       EnableRemoteAccess: true
       EnableAutomaticPortMapping: false
-    status_code: 204
+    status_code: -1
     validate_certs: false
     timeout: 15
   register: jellyfin_remote_step
-  changed_when: jellyfin_remote_step.status | default(0) == 204
+  changed_when: false
   failed_when: false
+
+# Check whether the wizard completed successfully. /System/Info/Public
+# returns StartupWizardCompleted=false until the user finishes the Web UI
+# wizard. The library-seed task below skips itself in that case so the
+# role re-runs idempotently once the wizard is done.
+- name: Read Jellyfin wizard completion flag
+  ansible.builtin.set_fact:
+    jellyfin_wizard_complete: "{{ jellyfin_public_info.json.StartupWizardCompleted | default(false) }}"
+
+# The library-seed block needs an authenticated user. Until the wizard is
+# complete, this fails (404 from /Users, 401 from /Users/AuthenticateByName).
+# Tell the user once, then skip silently on every re-run.
+- name: Print Jellyfin admin password + wizard reminder
+  ansible.builtin.debug:
+    msg: >-
+      Jellyfin admin password for {{ jellyfin_admin_username }} is stored at
+      {{ jellyfin_admin_password_file }} on the host.
+      Wizard complete: {{ jellyfin_wizard_complete }}.
+      If false: open https://jelly.dinnizer.com/web and complete the wizard,
+      then re-run ansible-pull to seed the libraries.
+  no_log: false
 
 # Once the admin user exists, subsequent API calls require an auth header
 # of the form "MediaBrowser Client=..., Device=..., DeviceId=...,
@@ -214,6 +260,7 @@
   register: jellyfin_api_key_resp
   changed_when: jellyfin_api_key_resp.status | default(0) == 200
   failed_when: false
+  when: jellyfin_wizard_complete | bool
 
 # --- Library seeding ---------------------------------------------------
 # Use the /Library/VirtualFolders endpoint to add each entry. Jellyfin's
@@ -241,6 +288,7 @@
   register: jellyfin_access_resp
   changed_when: jellyfin_access_resp.status | default(0) == 200
   no_log: true
+  when: jellyfin_wizard_complete | bool
 
 - name: Read current Jellyfin libraries (for idempotency)
   ansible.builtin.uri:
@@ -255,6 +303,7 @@
   changed_when: false
   failed_when: false
   no_log: true
+  when: jellyfin_wizard_complete | bool
 
 - name: Create Jellyfin libraries on first run
   ansible.builtin.uri:
@@ -283,5 +332,6 @@
   loop_control:
     label: "{{ item.name }} ({{ item.collection_type }} -> {{ item.paths | join(', ') }})"
   when:
+    - jellyfin_wizard_complete | bool
     - jellyfin_access_resp.status | default(0) == 200
     - jellyfin_current_libs.json | selectattr('Name', 'equalto', item.name) | list | length == 0
