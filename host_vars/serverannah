@@ -131,8 +131,12 @@ server_reverse_proxy_sites:
     basic_auth_password_file: "{{ server_reverse_proxy_secret_dir }}/caddy-shared-password"
   - hostname: plex.dinnizer.com
     upstream: plex:32400
-    basic_auth: true
-    basic_auth_password_file: "{{ server_reverse_proxy_secret_dir }}/caddy-shared-password"
+    # No basic_auth: Plex clients (mobile, Web, Media Player) authenticate to
+    # the server via PlexOnlineToken, not Basic Auth. If Caddy's basic_auth
+    # gate runs first, Plex.tv concludes the server is unreachable and falls
+    # back to its relay, which requires Plex Pass. Plex.tv's own auth + the
+    # fact that plex.dinnizer.com is only advertised via the user's own
+    # Plex account is enough.
   - hostname: odoo.dinnizer.com
     upstream: odoo:8069
     basic_auth: true
