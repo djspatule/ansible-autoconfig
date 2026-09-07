@@ -299,10 +299,15 @@
     status_code: 200
     validate_certs: false
     timeout: 10
-  register: jellyfin_current_libs
+  register: jellyfin_current_libs_resp
   changed_when: false
   failed_when: false
   no_log: true
+  when: jellyfin_wizard_complete | bool
+
+- name: Set the current Jellyfin virtual folder list (idempotency base)
+  ansible.builtin.set_fact:
+    jellyfin_current_vfolders: "{{ jellyfin_current_libs_resp.json.Items | default([]) | rejectattr('IsFolder', 'defined') | list }}"
   when: jellyfin_wizard_complete | bool
 
 - name: Create Jellyfin libraries on first run
@@ -334,4 +339,4 @@
   when:
     - jellyfin_wizard_complete | bool
     - jellyfin_access_resp.status | default(0) == 200
-    - jellyfin_current_libs.json | selectattr('Name', 'equalto', item.name) | list | length == 0
+    - jellyfin_current_vfolders | selectattr('Name', 'equalto', item.name) | list | length == 0
