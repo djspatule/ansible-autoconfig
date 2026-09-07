@@ -311,27 +311,23 @@
   when: jellyfin_wizard_complete | bool
 
 - name: Create Jellyfin libraries on first run
+  # Jellyfin 10.11 expects Name / CollectionType / Paths / RefreshOptions
+  # as QUERY PARAMETERS on POST /Library/VirtualFolders, not in the JSON body.
+  # Same endpoint, same body schema documented at api.jellyfin.org, but
+  # the [FromQuery] binding on the controller in 10.11 means the body
+  # fields are ignored and a JSON body with the same field names just
+  # produces "The name field is required" — the deserializer sees an
+  # empty form.
   ansible.builtin.uri:
-    url: "http://{{ jellyfin_lan_ip | default('192.168.1.100') }}:8096/Library/VirtualFolders"
+    url: "http://{{ jellyfin_lan_ip | default('192.168.1.100') }}:8096/Library/VirtualFolders?Name={{ item.name | urlencode }}&CollectionType={{ item.collection_type }}&Paths={{ item.paths | join(',') | urlencode }}&RefreshOptions=true"
     method: POST
     headers:
-      Content-Type: application/json
       X-MediaBrowser-Token: "{{ jellyfin_access_resp.json.AccessToken | default('') }}"
-    body_format: json
-    body:
-      Name: "{{ item.name }}"
-      CollectionType: "{{ item.collection_type }}"
-      Paths: "{{ item.paths }}"
-      RefreshOptions:
-        ReplaceAllMetadata: true
-        ReplaceAllImages: true
-        EnableChapterImageExtraction: false
-        EnableInternetProviders: true
-    status_code: 200
+    status_code: 204
     validate_certs: false
     timeout: 30
   register: jellyfin_lib_create
-  changed_when: jellyfin_lib_create.status | default(0) == 200
+  changed_when: jellyfin_lib_create.status | default(0) == 204
   failed_when: false
   loop: "{{ jellyfin_libraries | default([]) }}"
   loop_control:
