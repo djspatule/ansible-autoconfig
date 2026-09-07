@@ -43,7 +43,7 @@ server_dinnizer_enabled: true
 server_nextcloud_enabled: true
 server_frigate_enabled: true
 server_excalidraw_enabled: true
-server_plex_enabled: true
+server_jellyfin_enabled: true
 server_odoo_enabled: true
 # Seed Odoo from a dump archive placed at this path on the target host. The
 # playbook skips the import when the Odoo database already has data in
@@ -67,6 +67,8 @@ server_lan_only_published_ports:
     - 8555
     - 32400
     - 8069
+    - 8096
+    - 8920
 server_netplan_enabled: true
 server_netplan_config: |
   # Managed by ansible-autoconfig.
@@ -129,14 +131,13 @@ server_reverse_proxy_sites:
     upstream: excalidraw:80
     basic_auth: true
     basic_auth_password_file: "{{ server_reverse_proxy_secret_dir }}/caddy-shared-password"
-  - hostname: plex.dinnizer.com
-    upstream: plex:32400
-    # No basic_auth: Plex clients (mobile, Web, Media Player) authenticate to
-    # the server via PlexOnlineToken, not Basic Auth. If Caddy's basic_auth
-    # gate runs first, Plex.tv concludes the server is unreachable and falls
-    # back to its relay, which requires Plex Pass. Plex.tv's own auth + the
-    # fact that plex.dinnizer.com is only advertised via the user's own
-    # Plex account is enough.
+  - hostname: jelly.dinnizer.com
+    upstream: "http://{{ jellyfin_lan_ip | default('192.168.1.100') }}:8096"
+    # No basic_auth: Jellyfin clients authenticate via username + password or
+    # an API key, neither of which is basic auth. A Caddy basic_auth gate here
+    # would block the Jellyfin Web UI's login POST and every API call, with
+    # no security benefit since Caddy's TLS already protects the channel and
+    # Jellyfin's own user database enforces auth.
   - hostname: odoo.dinnizer.com
     upstream: odoo:8069
     basic_auth: true
@@ -215,16 +216,29 @@ frigate_devices:
   - /dev/video0:/dev/video0
   - /dev/dri/renderD128:/dev/dri/renderD128
 
-# Plex libraries seeded against /mnt/SSD_1TO via the container's /data bind
-# mount. The seed runs after the server is claimed and idempotent on re-runs.
-# Plex's POST /library/sections only accepts movie/show/artist/photo — comic
-# and audiobook libraries are skipped here; add them via Plex Web manually
-# if you want them.
-plex_libraries:
+# Jellyfin libraries seeded against /mnt/SSD_1TO via the container's /data
+# bind mount. The seed runs after first-run setup completes and is idempotent
+# on re-runs (the API returns the existing library for a duplicate name).
+jellyfin_libraries:
   - name: Movies
-    type: movie
-    path: /data/Movies
-    language: fr
+    collection_type: movies
+    paths:
+      - /data/Movies
+    preferred_language: fr
+  - name: TV Shows
+    collection_type: tvshows
+    paths:
+      - /data/TV Shows
+    preferred_language: fr
+  - name: Music
+    collection_type: music
+    paths:
+      - /data/Music
+    preferred_language: fr
+  - name: Photos
+    collection_type: homevideos
+    paths:
+      - /data/Pictures
   - name: TV Shows
     type: show
     path: /data/TV Shows

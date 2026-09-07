@@ -97,40 +97,60 @@ excalidraw_container_name: excalidraw
 excalidraw_image: excalidraw/excalidraw:latest
 excalidraw_network_name: autoconfig-services
 
-server_plex_enabled: false
-# Plex runs on linuxserver.io's image and exposes its web UI on 32400. We bind
-# that port to the LAN address only (no public exposure) so the family can use
-# the Plex Web client and the Plex mobile apps from inside the house. Remote
-# access via Plex.tv is intentionally NOT enabled: that requires a public HTTPS
-# route and would not respect Plex's own per-user auth anyway. The optional
-# PLEX_CLAIM token (https://plex.tv/claim) is read from a secret file when
-# present; leave the file absent for first-time setup, then claim via the LAN
-# web UI and start adding libraries.
-plex_container_name: plex
-plex_image: lscr.io/linuxserver/plex:latest
-plex_network_name: autoconfig-services
-plex_config_dir: /opt/plex/config
-plex_media_root: /mnt/SSD_1TO
-plex_secret_dir: /etc/ansible/secrets
-plex_claim_token_file: "{{ plex_secret_dir }}/plex-claim-token"
-plex_puid: "{{ (lookup('pipe', 'id -u ' ~ (dotfiles_user | default('lion'))) | trim | int) }}"
-plex_pgid: "{{ (lookup('pipe', 'id -g ' ~ (dotfiles_user | default('lion'))) | trim | int) }}"
-plex_timezone: Europe/Paris
-plex_published_ports:
-  - "192.168.1.100:32400:32400"
+server_jellyfin_enabled: false
+# Jellyfin is a fully free, open-source media server. It replaces what Plex
+# was doing for us — but without the Plex Pass paywall and without the
+# claim-token dance. It exposes its web UI on 8096 (HTTP) and 8920 (HTTPS)
+# inside the container; we publish 8096 to the LAN so the family can hit
+# it from devices at home, and the public HTTPS path (media.dinnizer.com
+# via Caddy) fronts it from the outside.
+jellyfin_container_name: jellyfin
+jellyfin_image: lscr.io/linuxserver/jellyfin:latest
+jellyfin_network_name: autoconfig-services
+jellyfin_config_dir: /opt/jellyfin/config
+jellyfin_cache_dir: /opt/jellyfin/cache
+jellyfin_media_root: /mnt/SSD_1TO
+jellyfin_secret_dir: /etc/ansible/secrets
+jellyfin_admin_password_file: "{{ jellyfin_secret_dir }}/jellyfin-admin-password"
+jellyfin_admin_username: lion
+jellyfin_timezone: Europe/Paris
+jellyfin_puid: "{{ (lookup('pipe', 'id -u ' ~ (dotfiles_user | default('lion'))) | trim | int) }}"
+jellyfin_pgid: "{{ (lookup('pipe', 'id -g ' ~ (dotfiles_user | default('lion'))) | trim | int) }}"
+jellyfin_published_ports:
+  - "192.168.1.100:8096:8096"
+  - "192.168.1.100:8920:8920"
+jellyfin_api_key_file: "{{ jellyfin_config_dir }}/data/jellyfin-api.key"
 
-# Libraries to seed via the Plex HTTP API after the server is claimed. The
-# role waits for the claim token to land in Preferences.xml, then issues
-# a POST /library/sections for each entry. Idempotent: libraries whose
-# name already exists on the server are skipped. Each entry needs:
-#   name:  display name Plex will show
-#   type:  Plex library type — one of 'movie', 'show', 'artist', 'photo',
-#          'comic', 'audiobook'
-#   path:  absolute path INSIDE the container (the bind mount makes
-#          /mnt/SSD_1TO appear as /data; pass /data/Movies, not the
-#          host path)
-#   language: (optional) ISO 639-1 code used for metadata lookups
-plex_libraries: []
+# Libraries to create on first run (or to add idempotently on every run).
+# The role waits for the Jellyfin API to come up, then POSTs each library
+# if it doesn't already exist. Each entry needs:
+#   name:              display name in the Jellyfin UI
+#   collection_type:   one of 'movies', 'tvshows', 'music', 'musicvideos',
+#                      'homevideos', 'mixed', 'boxsets'
+#   paths:             list of container-internal paths (the bind mount makes
+#                      /mnt/SSD_1TO appear as /data inside the container, so
+#                      pass /data/Movies, not the host path)
+#   preferred_language (optional) ISO code for metadata lookups
+jellyfin_libraries:
+  - name: Movies
+    collection_type: movies
+    paths:
+      - /data/Movies
+    preferred_language: fr
+  - name: TV Shows
+    collection_type: tvshows
+    paths:
+      - /data/TV Shows
+    preferred_language: fr
+  - name: Music
+    collection_type: music
+    paths:
+      - /data/Music
+    preferred_language: fr
+  - name: Photos
+    collection_type: homevideos
+    paths:
+      - /data/Pictures
 
 server_odoo_enabled: false
 # Odoo runs on its own internal Postgres so we control the version independently

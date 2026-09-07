@@ -1,0 +1,287 @@
+---
+- name: Ensure Jellyfin secret directory exists
+  ansible.builtin.file:
+    path: "{{ jellyfin_secret_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+# Jellyfin runs as a fixed UID inside the linuxserver.io image (UID 1000 in
+# the jellyfin user account). Bind-mount the config and cache into the host
+# so the state survives image upgrades. /mnt/SSD_1TO is mounted read-only
+# because media files are not mutated by the server.
+- name: Ensure Jellyfin config directory exists
+  ansible.builtin.file:
+    path: "{{ jellyfin_config_dir }}"
+    state: directory
+    owner: "{{ jellyfin_puid | string }}"
+    group: "{{ jellyfin_pgid | string }}"
+    mode: "0755"
+
+- name: Ensure Jellyfin cache directory exists
+  ansible.builtin.file:
+    path: "{{ jellyfin_cache_dir }}"
+    state: directory
+    owner: "{{ jellyfin_puid | string }}"
+    group: "{{ jellyfin_pgid | string }}"
+    mode: "0755"
+
+# Generate the admin password on the target host on first run. Mode 0600
+# because it's the only credential into Jellyfin.
+- name: Check whether the Jellyfin admin password file exists
+  ansible.builtin.stat:
+    path: "{{ jellyfin_admin_password_file }}"
+  register: jellyfin_admin_password_file_stat
+  no_log: true
+
+- name: Generate the Jellyfin admin password on the target host
+  ansible.builtin.shell: "tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32"
+  register: jellyfin_admin_password_generated
+  changed_when: true
+  when: not jellyfin_admin_password_file_stat.stat.exists
+  no_log: true
+
+- name: Save the generated Jellyfin admin password
+  ansible.builtin.copy:
+    content: "{{ jellyfin_admin_password_generated.stdout }}\n"
+    dest: "{{ jellyfin_admin_password_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: not jellyfin_admin_password_file_stat.stat.exists
+  no_log: true
+
+- name: Read the managed Jellyfin admin password
+  ansible.builtin.slurp:
+    src: "{{ jellyfin_admin_password_file }}"
+  register: jellyfin_admin_password_read
+  no_log: true
+
+- name: Load the Jellyfin admin username and password
+  ansible.builtin.set_fact:
+    jellyfin_admin_username: "{{ jellyfin_admin_username }}"
+    jellyfin_admin_password: "{{ jellyfin_admin_password_read.content | b64decode | trim }}"
+  no_log: true
+
+- name: Ensure Jellyfin container network exists
+  community.docker.docker_network:
+    name: "{{ jellyfin_network_name }}"
+    state: present
+
+- name: Pull Jellyfin image
+  community.docker.docker_image:
+    name: "{{ jellyfin_image }}"
+    source: pull
+    force_source: true
+  register: jellyfin_image_pull
+
+# Jellyfin Honors the standard HTTP creds header for the Web UI. We bind
+# 8096/8920 to the LAN address so the family can hit Jellyfin from the home
+# network without going through the public DNS. Public access for the Jellyfin
+# web client goes through Caddy on 443 (jelly.dinnizer.com), which proxies to
+# jellyfin:8096 inside the docker network — Jellyfin clients then authenticate
+# via Jellyfin's own user DB, not via Caddy basic auth.
+- name: Run Jellyfin container
+  community.docker.docker_container:
+    name: "{{ jellyfin_container_name }}"
+    image: "{{ jellyfin_image }}"
+    state: started
+    recreate: "{{ jellyfin_image_pull.changed }}"
+    restart_policy: unless-stopped
+    published_ports: "{{ jellyfin_published_ports }}"
+    networks:
+      - name: "{{ jellyfin_network_name }}"
+    env:
+      PUID: "{{ jellyfin_puid | string }}"
+      PGID: "{{ jellyfin_pgid | string }}"
+      TZ: "{{ jellyfin_timezone }}"
+    volumes:
+      - "{{ jellyfin_config_dir }}:/config"
+      - "{{ jellyfin_cache_dir }}:/cache"
+      - "{{ jellyfin_media_root }}:/data:ro"
+  no_log: true
+
+# Jellyfin's first-run wizard needs to complete before any library or user
+# API calls will work. Poll /Startup until the wizard has been initialised
+# OR until the response indicates the wizard is no longer required.
+- name: Wait for Jellyfin to answer HTTP requests
+  ansible.builtin.uri:
+    url: "http://{{ jellyfin_lan_ip | default('192.168.1.100') }}:8096/System/Info/Public"
+    status_code: 200
+    validate_certs: false
+    timeout: 10
+  register: jellyfin_public_info
+  until: jellyfin_public_info.status | default(0) == 200
+  retries: 30
+  delay: 5
+  changed_when: false
+
+# --- First-run wizard ---------------------------------------------------
+# Jellyfin exposes the same wizard endpoints the UI uses, which lets us skip
+# the interactive setup entirely. Three calls in order:
+#   1. /Startup/Configuration  → accept defaults (locale, country)
+#   2. /Startup/FirstUser      → create the admin user
+#   3. /Startup/RemoteAccess   → enable remote access (used by external
+#                                 clients; harmless for a self-hosted homelab)
+- name: Jellyfin first-run configuration (locale + country)
+  ansible.builtin.uri:
+    url: "http://{{ jellyfin_lan_ip | default('192.168.1.100') }}:8096/Startup/Configuration"
+    method: POST
+    headers:
+      Content-Type: application/json
+      X-Emby-Authorization: >-
+        MediaBrowser Client="autoconfig",
+        Device="ansible",
+        DeviceId="autoconfig-ansible",
+        Version="0.1"
+    body_format: json
+    body:
+      UICulture: "fr-FR"
+      MetadataCountryCode: "FR"
+      PreferredMetadataLanguage: "fr"
+    status_code: 204
+    validate_certs: false
+    timeout: 15
+  register: jellyfin_config_step
+  changed_when: jellyfin_config_step.status | default(0) == 204
+  failed_when: false
+
+- name: Jellyfin first-run admin user
+  ansible.builtin.uri:
+    url: "http://{{ jellyfin_lan_ip | default('192.168.1.100') }}:8096/Startup/FirstUser"
+    method: POST
+    headers:
+      Content-Type: application/json
+      X-Emby-Authorization: >-
+        MediaBrowser Client="autoconfig",
+        Device="ansible",
+        DeviceId="autoconfig-ansible",
+        Version="0.1"
+    body_format: json
+    body:
+      Name: "{{ jellyfin_admin_username }}"
+      Password: "{{ jellyfin_admin_password }}"
+    status_code: 204
+    validate_certs: false
+    timeout: 15
+  register: jellyfin_user_step
+  changed_when: jellyfin_user_step.status | default(0) == 204
+  failed_when: false
+
+- name: Jellyfin remote access (allow external clients)
+  ansible.builtin.uri:
+    url: "http://{{ jellyfin_lan_ip | default('192.168.1.100') }}:8096/Startup/RemoteAccess"
+    method: POST
+    headers:
+      Content-Type: application/json
+      X-Emby-Authorization: >-
+        MediaBrowser Client="autoconfig",
+        Device="ansible",
+        DeviceId="autoconfig-ansible",
+        Version="0.1"
+    body_format: json
+    body:
+      EnableRemoteAccess: true
+      EnableAutomaticPortMapping: false
+    status_code: 204
+    validate_certs: false
+    timeout: 15
+  register: jellyfin_remote_step
+  changed_when: jellyfin_remote_step.status | default(0) == 204
+  failed_when: false
+
+# Once the admin user exists, subsequent API calls require an auth header
+# of the form "MediaBrowser Client=..., Device=..., DeviceId=...,
+# Token=<access-token-from-Users-AuthenticateByName>".
+- name: Jellyfin API key for service-to-service calls
+  ansible.builtin.uri:
+    url: "http://{{ jellyfin_lan_ip | default('192.168.1.100') }}:8096/Auth/Keys"
+    method: POST
+    headers:
+      Content-Type: application/json
+      X-Emby-Authorization: >-
+        MediaBrowser Client="autoconfig",
+        Device="ansible",
+        DeviceId="autoconfig-ansible",
+        Version="0.1"
+    body_format: json
+    body:
+      App: "ansible-autoconfig"
+    status_code: 200
+    validate_certs: false
+    timeout: 10
+  register: jellyfin_api_key_resp
+  changed_when: jellyfin_api_key_resp.status | default(0) == 200
+  failed_when: false
+
+# --- Library seeding ---------------------------------------------------
+# Use the /Library/VirtualFolders endpoint to add each entry. Jellyfin's
+# VirtualFolders API requires the user to be authenticated with an access
+# token; the simplest path after first-run is to authenticate by name and
+# harvest an AccessToken (short-lived, fine for the role run).
+- name: Jellyfin user access token for seeding
+  ansible.builtin.uri:
+    url: "http://{{ jellyfin_lan_ip | default('192.168.1.100') }}:8096/Users/AuthenticateByName"
+    method: POST
+    headers:
+      Content-Type: application/json
+      X-Emby-Authorization: >-
+        MediaBrowser Client="autoconfig",
+        Device="ansible",
+        DeviceId="autoconfig-ansible",
+        Version="0.1"
+    body_format: json
+    body:
+      Username: "{{ jellyfin_admin_username }}"
+      Pw: "{{ jellyfin_admin_password }}"
+    status_code: 200
+    validate_certs: false
+    timeout: 10
+  register: jellyfin_access_resp
+  changed_when: jellyfin_access_resp.status | default(0) == 200
+  no_log: true
+
+- name: Read current Jellyfin libraries (for idempotency)
+  ansible.builtin.uri:
+    url: "http://{{ jellyfin_lan_ip | default('192.168.1.100') }}:8096/Library/MediaFolders"
+    method: GET
+    headers:
+      X-MediaBrowser-Token: "{{ jellyfin_access_resp.json.AccessToken | default('') }}"
+    status_code: 200
+    validate_certs: false
+    timeout: 10
+  register: jellyfin_current_libs
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: Create Jellyfin libraries on first run
+  ansible.builtin.uri:
+    url: "http://{{ jellyfin_lan_ip | default('192.168.1.100') }}:8096/Library/VirtualFolders"
+    method: POST
+    headers:
+      Content-Type: application/json
+      X-MediaBrowser-Token: "{{ jellyfin_access_resp.json.AccessToken | default('') }}"
+    body_format: json
+    body:
+      Name: "{{ item.name }}"
+      CollectionType: "{{ item.collection_type }}"
+      Paths: "{{ item.paths }}"
+      RefreshOptions:
+        ReplaceAllMetadata: true
+        ReplaceAllImages: true
+        EnableChapterImageExtraction: false
+        EnableInternetProviders: true
+    status_code: 200
+    validate_certs: false
+    timeout: 30
+  register: jellyfin_lib_create
+  changed_when: jellyfin_lib_create.status | default(0) == 200
+  failed_when: false
+  loop: "{{ jellyfin_libraries | default([]) }}"
+  loop_control:
+    label: "{{ item.name }} ({{ item.collection_type }} -> {{ item.paths | join(', ') }})"
+  when:
+    - jellyfin_access_resp.status | default(0) == 200
+    - jellyfin_current_libs.json | selectattr('Name', 'equalto', item.name) | list | length == 0

@@ -98,7 +98,7 @@ without implementing anything ('dry run')._
           restore points for serverannah internal storage only
     - [x] Odoo with small database stored on serverannah internal SSD under
           /home
-    - [x] Plex reading media from SSD_1TO
+    - [x] Jellyfin reading media from SSD_1TO (Plex removed)
     - [ ] Dictation app/server (voxtype, whisper, etc.) ? Need to be discussed
           before.
     - [x] Excalidraw docker (at draw.dinnizer.com, secured via caddy auth)
@@ -237,7 +237,7 @@ of the setup. Maintenance of the files need to be feasible and easy.
   (on bare metal) an Nginx server to host 3 websites (including a complex
   wordpress) and more to come. It's also DNS Filtering with pi-hole (installed
   on bare metal). last, it's running multiple docker services such as frigate
-  for cameras, N8N, Odoo, bentopdf, Plex, Timeshift (to secure backups on 1
+   for cameras, N8N, Odoo, bentopdf, Jellyfin, Timeshift (to secure backups on 1
   master and 3 different external disks copies), Nextcloud (to manage my data
   and make it accessible to the whole family) and the like. For now, those
   functions are managed on a raspi 4B (192.168.1.100) that should be retired
@@ -669,71 +669,39 @@ Important host-specific values live in `host_vars/serverannah`, including:
 - `ansible-pull` may print a hostname-pattern warning during its internal git
   step; the actual playbook result matters more than that warning
 
-## Plex recovery playbook
+## Jellyfin notes
 
-If Plex Web shows libraries as gone / the server as "offline" or empty,
-work through this list before assuming data loss — the SQLite library
-DB on disk is almost never the culprit.
+Jellyfin replaces Plex in this setup. It is fully free, has no claim
+flow, no Plex Pass tier, and ships the same client apps (iOS, Android,
+Roku, smart TVs, web). Caddy on port 443 fronts `jelly.dinnizer.com`
+→ `jellyfin:8096` over the shared docker network.
 
-### Symptom: libraries disappeared from Plex Web
+### First-run setup was automated
 
-The PlexOnlineToken in
-`/opt/plex/config/Library/Application Support/Plex Media Server/Preferences.xml`
-has been cleared by plex.tv (most common cause: **the plex.tv account
-password was changed**, which invalidates all PlexOnlineTokens issued
-under the old password).
+The role runs the equivalent of the Jellyfin setup wizard via the same
+HTTP endpoints the UI uses, in this order:
 
-1. Open `http://192.168.1.100:32400/web` in a private/incognito window.
-2. Sign in with the current plex.tv credentials. Plex Web fetches a fresh
-   token from plex.tv and writes it to `Preferences.xml`.
-3. Reload the page; libraries come back (the SQLite DB on disk is
-   untouched by this dance).
+1. `POST /Startup/Configuration` → set UI culture / metadata country
+2. `POST /Startup/FirstUser` → create `{{ jellyfin_admin_username }}`
+   with a 32-char password generated on the host
+3. `POST /Startup/RemoteAccess` → enable remote access (clients use
+   the local LAN URL, but enabling this lets the official mobile apps
+   reach the server through Caddy)
+4. `POST /AuthenticateByName` → harvest an access token
+5. `POST /Library/VirtualFolders` → create each entry in
+   `jellyfin_libraries`
 
-### Symptom: sign-in via Plex Web doesn't restore the token
+All API calls are idempotent — re-running the role is a no-op once
+the wizard has run and the libraries exist.
 
-Sometimes Plex Web's silent refresh path fails (cookie cache, auth server
-propagation lag after a password change, etc.).
+### Admin password
 
-1. `ssh serverannah 'sudo docker restart plex'`
-2. Wait ~30 s, then redo step 1–3 above.
+Generated once on first run, stored at
+`{{ jellyfin_admin_password_file }}` (mode 0600). The role uses it to
+create the user and authenticate subsequent API calls. If you ever
+need to log in to Jellyfin Web, the password is there:
 
-### Symptom: nothing above works, token stays empty
-
-Drop a fresh claim token and force a re-claim. The libraries survive.
-
-1. Confirm you're signed in to `plex.tv` as the account that owns the
-   server (`djspatule@wanadoo.fr` per host_vars/serverannah).
-2. Get a token at `https://plex.tv/claim` (4-minute lifetime).
-3. `scp <token-file> serverannah:/etc/ansible/secrets/plex-claim-token`
-4. Stop Plex and wipe the local claim markers from `Preferences.xml`:
-   ```bash
-   ssh serverannah 'sudo docker stop plex && \
-     sudo sed -i -E "s/ PlexOnline(Token|Username|Mail)=\"[^\"]*\"//g" \
-       /opt/plex/config/Library/Application\ Support/Plex\ Media\ Server/Preferences.xml'
-   ```
-5. Re-create the container so the LSIO init script re-runs:
-   ```bash
-   ssh serverannah 'cd /opt/ansible-pull && \
-     sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git \
-       -C main -d /opt/ansible-pull -i hosts local.yml \
-       --vault-password-file ~/secret.txt --tags plex'
-   ```
-6. The init script calls `https://plex.tv/api/claim/exchange` with the
-   claim token; on success it writes the fresh `PlexOnlineToken` and
-   "Server claimed successfully" appears in `docker logs plex`.
-7. `rm /etc/ansible/secrets/plex-claim-token` after success.
-
-### Symptom: Plex shows "Not available outside your network"
-
-Caddy on port 443 already proxies `plex.dinnizer.com` → `plex:32400`,
-which IS publicly reachable. Plex clients still default to dialling the
-server's public IP on port 32400 directly — and port 32400 is **only**
-published to the LAN (`192.168.1.100:32400:32400`), not to `0.0.0.0`.
-
-Fix: the role pushes the public HTTPS URL into Plex's
-`customConnections` setting, which makes Plex Web on phones/tablets use
-the public hostname instead. If you see the offline message *after* the
-ansible-pull that adds this task, open `http://192.168.1.100:32400/web`
-once (LAN), sign in, then reload — Plex Web caches the custom URL on
-first successful auth.
+```bash
+ssh serverannah 'sudo cat /etc/ansible/secrets/jellyfin-admin-password'
+```
 
