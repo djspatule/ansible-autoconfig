@@ -336,3 +336,32 @@
     - jellyfin_wizard_complete | bool
     - jellyfin_access_resp.status | default(0) == 200
     - jellyfin_current_vfolders | selectattr('Name', 'equalto', item.name) | list | length == 0
+
+# The previous Plex-style block on serverannah used Movies as collection
+# type=movies (single path /data/Movies) and TV Shows as collection
+# type=show (/data/TV Shows). Jellyfin's PUT /Library/VirtualFolders
+# doesn't exist, so to migrate to the new schema we have to delete
+# the old library and recreate it. Best-effort — errors here mean the
+# library has already been migrated or the user removed it manually.
+- name: Prune Jellyfin libraries that have been renamed or retyped
+  ansible.builtin.uri:
+    url: "http://{{ jellyfin_lan_ip | default('192.168.1.100') }}:8096/Library/VirtualFolders?itemid={{ item.ItemId }}&refresh=false&Name={{ item.Name | urlencode }}"
+    method: DELETE
+    headers:
+      X-Emby-Authorization: "MediaBrowser Client=\"ansible\", Device=\"ansible\", DeviceId=\"ansible\", Version=\"0.1\", Token=\"{{ jellyfin_access_resp.json.AccessToken | default('') }}\""
+    status_code: 204
+    validate_certs: false
+    timeout: 30
+  register: jellyfin_lib_delete
+  changed_when: jellyfin_lib_delete.status | default(0) == 204
+  failed_when: false
+  loop: >-
+    {{ jellyfin_current_vfolders
+       | default([])
+       | reject('in', jellyfin_libraries | default([]) | map(attribute='name') | list)
+       | list }}
+  loop_control:
+    label: "delete {{ item.Name }}"
+  when:
+    - jellyfin_wizard_complete | bool
+    - jellyfin_access_resp.status | default(0) == 200

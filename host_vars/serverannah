@@ -219,11 +219,18 @@ frigate_devices:
 # Jellyfin libraries seeded against /mnt/SSD_1TO via the container's /data
 # bind mount. The seed runs after first-run setup completes and is idempotent
 # on re-runs (the API returns the existing library for a duplicate name).
+# Movies is intentionally `mixed` so the family-facing Movies tab on
+# jelly.dinnizer.com surfaces documentaries (/data/Docus) and comedy
+# (/data/Humour) alongside the proper movies — Plex did the same with
+# the Movies type=1 + Docus type=show split, but in Jellyfin the
+# matching UX is one combined view.
 jellyfin_libraries:
   - name: Movies
-    collection_type: movies
+    collection_type: mixed
     paths:
       - /data/Movies
+      - /data/Docus
+      - /data/Humour
     preferred_language: fr
   - name: TV Shows
     collection_type: tvshows
