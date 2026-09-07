@@ -305,6 +305,11 @@
   no_log: true
   when: jellyfin_wizard_complete | bool
 
+- name: Set the canonical Jellyfin library name list (for prune filter)
+  ansible.builtin.set_fact:
+    jellyfin_canonical_names: "{{ jellyfin_libraries | default([]) | map(attribute='name') | list }}"
+  when: jellyfin_wizard_complete | bool
+
 - name: Set the current Jellyfin virtual folder list (idempotency base)
   # /Library/MediaFolders returns the built-in "Playlists" virtual folder
   # alongside user-created libraries. Both report IsFolder=true so the
@@ -347,6 +352,13 @@
 # the old library and recreate it. Best-effort — errors here mean the
 # library has already been migrated or the user removed it manually.
 - name: Prune Jellyfin libraries that have been renamed or retyped
+  # Delete any virtual folder whose Name is not in jellyfin_libraries.
+  # Covers two failure modes:
+  #  1. Old Movies( type=movies) library still in the DB from when the
+  #     role set type=movies; now jellyfin_libraries has type=mixed so the
+  #     rename-and-retype is "delete old, create new".
+  #  2. Stray duplicates that previous runs of the role created while the
+  #     idempotency filter was wrong.
   ansible.builtin.uri:
     url: "http://{{ jellyfin_lan_ip | default('192.168.1.100') }}:8096/Library/VirtualFolders?itemid={{ item.Id }}&refresh=false&Name={{ item.Name | urlencode }}"
     method: DELETE
@@ -358,11 +370,7 @@
   register: jellyfin_lib_delete
   changed_when: jellyfin_lib_delete.status | default(0) == 204
   failed_when: false
-  loop: >-
-    {{ jellyfin_current_vfolders
-       | default([])
-       | reject('in', jellyfin_libraries | default([]) | map(attribute='name') | list)
-       | list }}
+  loop: "{{ jellyfin_current_vfolders | rejectattr('Name', 'in', jellyfin_canonical_names) | list }}"
   loop_control:
     label: "delete {{ item.Name }}"
   when:
