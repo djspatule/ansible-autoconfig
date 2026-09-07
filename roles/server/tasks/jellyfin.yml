@@ -306,8 +306,11 @@
   when: jellyfin_wizard_complete | bool
 
 - name: Set the current Jellyfin virtual folder list (idempotency base)
+  # /Library/MediaFolders returns the built-in "Playlists" virtual folder
+  # alongside user-created libraries. Both report IsFolder=true so the
+  # obvious filter doesn't work — match by name instead.
   ansible.builtin.set_fact:
-    jellyfin_current_vfolders: "{{ jellyfin_current_libs_resp.json.Items | default([]) | rejectattr('IsFolder', 'defined') | list }}"
+    jellyfin_current_vfolders: "{{ jellyfin_current_libs_resp.json.Items | default([]) | rejectattr('Name', 'equalto', 'Playlists') | list }}"
   when: jellyfin_wizard_complete | bool
 
 - name: Create Jellyfin libraries on first run
