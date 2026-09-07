@@ -216,20 +216,26 @@
 # network, so the public HTTPS path is the one clients should use.
 # Putting `https://plex.dinnizer.com` in customConnections makes Plex clients
 # honour that URL and stops them trying to dial the public IP:32400 directly.
-- name: Set Plex customConnections so remote clients use plex.dinnizer.com
-  ansible.builtin.uri:
-    url: "http://{{ plex_lan_ip | default('192.168.1.100') }}:32400/:/prefs"
-    method: PUT
-    headers:
-      X-Plex-Token: "{{ plex_online_token_read.stdout }}"
-      Content-Type: application/json
-    body_format: json
-    body:
-      customConnections: "{{ plex_custom_connections | default(['https://plex.dinnizer.com']) }}"
-    status_code: 200
-    validate_certs: false
-    timeout: 10
-  register: plex_custom_connections_set
-  changed_when: plex_custom_connections_set.status | default(0) == 200
-  failed_when: false
+#
+# Note: Plex's PUT /:/prefs HTTP endpoint silently ignores the customConnections
+# write on the linuxserver.io image (we tested — it returns 200 but the
+# value stays empty). Writing customConnections directly to Preferences.xml
+# and restarting Plex works reliably. The container restart is the trigger
+# that causes Plex to publish the new URL to plex.tv on next heartbeat.
+- name: Inject customConnections into Plex Preferences.xml
+  ansible.builtin.lineinfile:
+    path: "{{ plex_config_dir }}/Library/Application Support/Plex Media Server/Preferences.xml"
+    regexp: 'customConnections='
+    line: ' customConnections="{{ plex_custom_connections | default([\"https://plex.dinnizer.com\"]) | join(\",\") }}"'
+    insertbefore: ' AcceptedEULA='
+    state: present
+  register: plex_custom_connections_xml
   when: plex_online_token_read.stdout | length > 0
+
+- name: Restart Plex so the new customConnections is published to plex.tv
+  ansible.builtin.command:
+    cmd: docker restart plex
+  changed_when: true
+  when:
+    - plex_online_token_read.stdout | length > 0
+    - plex_custom_connections_xml is changed
