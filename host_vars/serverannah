@@ -239,15 +239,3 @@ jellyfin_libraries:
     collection_type: homevideos
     paths:
       - /data/Pictures
-  - name: TV Shows
-    type: show
-    path: /data/TV Shows
-    language: fr
-  - name: Music
-    type: artist
-    path: /data/Music
-    language: fr
-  - name: Photos
-    type: photo
-    path: /data/Pictures
-    language: fr
