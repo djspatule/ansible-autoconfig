@@ -376,3 +376,71 @@
   when:
     - jellyfin_wizard_complete | bool
     - jellyfin_access_resp.status | default(0) == 200
+
+# Safety net for duplicates that survived the API DELETE. Jellyfin's
+# /Library/VirtualFolders DELETE endpoint returns 204 even for items it
+# can't actually delete (CanDelete=false on system-managed collections);
+# those rows remain in BaseItems and reappear in the Web UI on next
+# refresh. The role now goes to the SQLite DB directly to clean those up.
+# Stops Jellyfin so it can't write its in-memory state back over the
+# changes, then restarts.
+- name: List remaining duplicate Jellyfin libraries via SQLite (post-API-prune)
+  ansible.builtin.command:
+    cmd: >-
+      sqlite3 {{ jellyfin_config_dir }}/data/data/jellyfin.db
+      "SELECT Id, Name FROM BaseItems
+       WHERE Type = 'MediaBrowser.Controller.Entities.CollectionFolder'
+         AND Name NOT IN ('Movies', 'TV Shows', 'Music', 'Photos', 'Playlists')"
+  register: jellyfin_db_orphans
+  changed_when: false
+  when: jellyfin_wizard_complete | bool
+
+- name: Stop Jellyfin before editing its database
+  ansible.builtin.command:
+    cmd: docker stop jellyfin
+  register: jellyfin_stopped
+  changed_when: true
+  when:
+    - jellyfin_wizard_complete | bool
+    - jellyfin_db_orphans.stdout_lines | default([]) | length > 0
+
+- name: Remove duplicate Jellyfin CollectionFolders via SQLite (direct DB)
+  ansible.builtin.command:
+    cmd: >-
+      sqlite3 {{ jellyfin_config_dir }}/data/data/jellyfin.db
+      "DELETE FROM AncestorIds WHERE ItemId IN
+        (SELECT Id FROM BaseItems
+         WHERE Type = 'MediaBrowser.Controller.Entities.CollectionFolder'
+           AND Name NOT IN ('Movies', 'TV Shows', 'Music', 'Photos', 'Playlists'));
+       DELETE FROM BaseItems
+       WHERE Type = 'MediaBrowser.Controller.Entities.CollectionFolder'
+         AND Name NOT IN ('Movies', 'TV Shows', 'Music', 'Photos', 'Playlists')"
+  register: jellyfin_db_delete
+  changed_when: true
+  when:
+    - jellyfin_wizard_complete | bool
+    - jellyfin_db_orphans.stdout_lines | default([]) | length > 0
+
+- name: Restart Jellyfin after DB cleanup
+  ansible.builtin.command:
+    cmd: docker start jellyfin
+  register: jellyfin_restarted
+  changed_when: true
+  when:
+    - jellyfin_wizard_complete | bool
+    - jellyfin_db_orphans.stdout_lines | default([]) | length > 0
+
+- name: Wait for Jellyfin to come back up after DB cleanup
+  ansible.builtin.uri:
+    url: "http://{{ jellyfin_lan_ip | default('192.168.1.100') }}:8096/System/Info/Public"
+    status_code: 200
+    validate_certs: false
+    timeout: 10
+  register: jellyfin_public_info_post
+  until: jellyfin_public_info_post.status | default(0) == 200
+  retries: 30
+  delay: 3
+  changed_when: false
+  when:
+    - jellyfin_wizard_complete | bool
+    - jellyfin_db_orphans.stdout_lines | default([]) | length > 0
