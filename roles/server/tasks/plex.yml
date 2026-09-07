@@ -206,3 +206,30 @@
   when:
     - plex_online_token_read.stdout | length > 0
     - plex_libraries | length > 0
+
+# --- Custom server access URLs --------------------------------------------
+# Tell Plex the public hostname(s) the server is reachable at. Without this,
+# Plex Web on phones/tablets (or any client outside the LAN) tries to dial
+# the server's public IP on port 32400 directly — which isn't reachable
+# because we only publish the LAN address. Caddy on port 443 already
+# terminates TLS and proxies plex.dinnizer.com -> plex:32400 on the docker
+# network, so the public HTTPS path is the one clients should use.
+# Putting `https://plex.dinnizer.com` in customConnections makes Plex clients
+# honour that URL and stops them trying to dial the public IP:32400 directly.
+- name: Set Plex customConnections so remote clients use plex.dinnizer.com
+  ansible.builtin.uri:
+    url: "http://{{ plex_lan_ip | default('192.168.1.100') }}:32400/:/prefs"
+    method: PUT
+    headers:
+      X-Plex-Token: "{{ plex_online_token_read.stdout }}"
+      Content-Type: application/json
+    body_format: json
+    body:
+      customConnections: "{{ plex_custom_connections | default(['https://plex.dinnizer.com']) }}"
+    status_code: 200
+    validate_certs: false
+    timeout: 10
+  register: plex_custom_connections_set
+  changed_when: plex_custom_connections_set.status | default(0) == 200
+  failed_when: false
+  when: plex_online_token_read.stdout | length > 0

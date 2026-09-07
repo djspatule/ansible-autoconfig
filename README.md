@@ -668,3 +668,72 @@ Important host-specific values live in `host_vars/serverannah`, including:
   cutover
 - `ansible-pull` may print a hostname-pattern warning during its internal git
   step; the actual playbook result matters more than that warning
+
+## Plex recovery playbook
+
+If Plex Web shows libraries as gone / the server as "offline" or empty,
+work through this list before assuming data loss — the SQLite library
+DB on disk is almost never the culprit.
+
+### Symptom: libraries disappeared from Plex Web
+
+The PlexOnlineToken in
+`/opt/plex/config/Library/Application Support/Plex Media Server/Preferences.xml`
+has been cleared by plex.tv (most common cause: **the plex.tv account
+password was changed**, which invalidates all PlexOnlineTokens issued
+under the old password).
+
+1. Open `http://192.168.1.100:32400/web` in a private/incognito window.
+2. Sign in with the current plex.tv credentials. Plex Web fetches a fresh
+   token from plex.tv and writes it to `Preferences.xml`.
+3. Reload the page; libraries come back (the SQLite DB on disk is
+   untouched by this dance).
+
+### Symptom: sign-in via Plex Web doesn't restore the token
+
+Sometimes Plex Web's silent refresh path fails (cookie cache, auth server
+propagation lag after a password change, etc.).
+
+1. `ssh serverannah 'sudo docker restart plex'`
+2. Wait ~30 s, then redo step 1–3 above.
+
+### Symptom: nothing above works, token stays empty
+
+Drop a fresh claim token and force a re-claim. The libraries survive.
+
+1. Confirm you're signed in to `plex.tv` as the account that owns the
+   server (`djspatule@wanadoo.fr` per host_vars/serverannah).
+2. Get a token at `https://plex.tv/claim` (4-minute lifetime).
+3. `scp <token-file> serverannah:/etc/ansible/secrets/plex-claim-token`
+4. Stop Plex and wipe the local claim markers from `Preferences.xml`:
+   ```bash
+   ssh serverannah 'sudo docker stop plex && \
+     sudo sed -i -E "s/ PlexOnline(Token|Username|Mail)=\"[^\"]*\"//g" \
+       /opt/plex/config/Library/Application\ Support/Plex\ Media\ Server/Preferences.xml'
+   ```
+5. Re-create the container so the LSIO init script re-runs:
+   ```bash
+   ssh serverannah 'cd /opt/ansible-pull && \
+     sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git \
+       -C main -d /opt/ansible-pull -i hosts local.yml \
+       --vault-password-file ~/secret.txt --tags plex'
+   ```
+6. The init script calls `https://plex.tv/api/claim/exchange` with the
+   claim token; on success it writes the fresh `PlexOnlineToken` and
+   "Server claimed successfully" appears in `docker logs plex`.
+7. `rm /etc/ansible/secrets/plex-claim-token` after success.
+
+### Symptom: Plex shows "Not available outside your network"
+
+Caddy on port 443 already proxies `plex.dinnizer.com` → `plex:32400`,
+which IS publicly reachable. Plex clients still default to dialling the
+server's public IP on port 32400 directly — and port 32400 is **only**
+published to the LAN (`192.168.1.100:32400:32400`), not to `0.0.0.0`.
+
+Fix: the role pushes the public HTTPS URL into Plex's
+`customConnections` setting, which makes Plex Web on phones/tablets use
+the public hostname instead. If you see the offline message *after* the
+ansible-pull that adds this task, open `http://192.168.1.100:32400/web`
+once (LAN), sign in, then reload — Plex Web caches the custom URL on
+first successful auth.
+
