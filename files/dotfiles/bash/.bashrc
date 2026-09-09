@@ -159,3 +159,10 @@ export TLDR_OPTIONS="${TLDR_OPTIONS:-both}"
 if [[ -f ~/.bashrc.local ]]; then
   . ~/.bashrc.local
 fi
+
+# opencode AI coding agent. The upstream install script
+# (https://opencode.ai/install) drops the binary at
+# ~/.opencode/bin/opencode and appends this line; committing it here makes the
+# path available without a local modification to the dotfiles checkout (which
+# would otherwise block ansible-pull from updating the repo).
+export PATH="${HOME}/.opencode/bin:${PATH}"
