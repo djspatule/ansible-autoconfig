@@ -102,8 +102,11 @@ alias ebrc="$EDITOR ~/.bashrc"
 alias hlp='less ~/.bashrc_help'
 alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
 
-# ansible-pull — identical on every managed host.
-alias ap='sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git --vault-password-file ~/secret.txt -C main'
+# ansible-pull — identical on every managed host. `-d /opt/ansible-pull` is
+# required because the role's Stow guard refuses to run when the checkout
+# lands under /root/.ansible/pull/<host> (root-owned, lion can't read it);
+# `local.yml` is the playbook to apply after the pull.
+alias ap='sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git --vault-password-file ~/secret.txt -C main -d /opt/ansible-pull local.yml'
 
 # opencode shortcuts.
 # `c`  — launch opencode locally (savannarchome runs against the workstation

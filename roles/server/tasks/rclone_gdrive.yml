@@ -59,9 +59,7 @@
     group: "{{ server_rclone_gdrive_user }}"
     mode: "0644"
 
-# Reload the user systemd manager so the unit file is visible, then enable
-# it (do not start — we want the user to start it explicitly after the OAuth
-# flow completes).
+# Reload the user systemd manager so the unit file is visible.
 - name: Reload the rclone gdrive systemd user manager
   ansible.builtin.systemd:
     daemon_reload: true
@@ -71,14 +69,21 @@
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ (lookup('pipe', 'id -u ' ~ server_rclone_gdrive_user)) }}"
 
-- name: Enable the rclone gdrive mount service
+# Start the mount whenever the remote is configured and authorized. Letting
+# ansible-pull own the lifecycle means the Google Drive Perso mount is up
+# after every pull (including timer-driven ones) — the user does not have
+# to remember to start it after every reboot or ansible-pull run. The
+# "remote not configured" warning task above already tells the user what to
+# do when this task is skipped because the remote is missing.
+- name: Ensure the rclone gdrive mount is active
   ansible.builtin.systemd:
     name: rclone-gdrive-mount.service
     enabled: true
-    state: stopped
+    state: started
     scope: user
   become: true
   become_user: "{{ server_rclone_gdrive_user }}"
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ (lookup('pipe', 'id -u ' ~ server_rclone_gdrive_user)) }}"
     DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ (lookup('pipe', 'id -u ' ~ server_rclone_gdrive_user)) }}/bus"
+  when: server_rclone_gdrive_remote + ':' in (server_rclone_gdrive_remotes.stdout_lines | default([]))
