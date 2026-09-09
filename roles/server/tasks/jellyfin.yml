@@ -130,7 +130,7 @@
     method: POST
     headers:
       Content-Type: application/json
-      X-Emby-Authorization: >-
+      Authorization: >-
         MediaBrowser Client="autoconfig",
         Device="ansible",
         DeviceId="autoconfig-ansible",
@@ -153,7 +153,7 @@
     method: POST
     headers:
       Content-Type: application/json
-      X-Emby-Authorization: >-
+      Authorization: >-
         MediaBrowser Client="autoconfig",
         Device="ansible",
         DeviceId="autoconfig-ansible",
@@ -178,7 +178,7 @@
     method: POST
     headers:
       Content-Type: application/json
-      X-Emby-Authorization: >-
+      Authorization: >-
         MediaBrowser Client="autoconfig",
         Device="ansible",
         DeviceId="autoconfig-ansible",
@@ -200,7 +200,7 @@
     method: POST
     headers:
       Content-Type: application/json
-      X-Emby-Authorization: >-
+      Authorization: >-
         MediaBrowser Client="autoconfig",
         Device="ansible",
         DeviceId="autoconfig-ansible",
@@ -240,25 +240,31 @@
 # Once the admin user exists, subsequent API calls require an auth header
 # of the form "MediaBrowser Client=..., Device=..., DeviceId=...,
 # Token=<access-token-from-Users-AuthenticateByName>".
+#
+# Jellyfin 12.0 dropped the legacy X-Emby-Authorization and X-MediaBrowser-Token
+# headers — both pre-auth challenge and post-auth calls now go through the
+# standard Authorization: MediaBrowser ... header (RFC 7235). The X-Emby form
+# returns 400 "Error processing request" with no body; X-MediaBrowser-Token
+# returns 401. Tested on serverannah against jellyfin/jellyfin:12.0.0.
 - name: Jellyfin API key for service-to-service calls
+  # /Auth/Keys in 12.0 expects the app name as a QUERY PARAMETER, not in the
+  # JSON body — sending {"App": "..."} returns 400 "The app field is required"
+  # because the controller's [FromQuery] binding is what populates the field.
   ansible.builtin.uri:
-    url: "http://{{ jellyfin_lan_ip | default('192.168.1.100') }}:8096/Auth/Keys"
+    url: "http://{{ jellyfin_lan_ip | default('192.168.1.100') }}:8096/Auth/Keys?app=ansible-autoconfig"
     method: POST
     headers:
       Content-Type: application/json
-      X-Emby-Authorization: >-
+      Authorization: >-
         MediaBrowser Client="autoconfig",
         Device="ansible",
         DeviceId="autoconfig-ansible",
         Version="0.1"
-    body_format: json
-    body:
-      App: "ansible-autoconfig"
-    status_code: 200
+    status_code: 204
     validate_certs: false
     timeout: 10
   register: jellyfin_api_key_resp
-  changed_when: jellyfin_api_key_resp.status | default(0) == 200
+  changed_when: jellyfin_api_key_resp.status | default(0) == 204
   failed_when: false
   when: jellyfin_wizard_complete | bool
 
@@ -273,7 +279,7 @@
     method: POST
     headers:
       Content-Type: application/json
-      X-Emby-Authorization: >-
+      Authorization: >-
         MediaBrowser Client="autoconfig",
         Device="ansible",
         DeviceId="autoconfig-ansible",
@@ -295,7 +301,7 @@
     url: "http://{{ jellyfin_lan_ip | default('192.168.1.100') }}:8096/Library/MediaFolders"
     method: GET
     headers:
-      X-MediaBrowser-Token: "{{ jellyfin_access_resp.json.AccessToken | default('') }}"
+      Authorization: 'MediaBrowser Token="{{ jellyfin_access_resp.json.AccessToken | default('''') }}"'
     status_code: 200
     validate_certs: false
     timeout: 10
@@ -330,7 +336,7 @@
     url: "http://{{ jellyfin_lan_ip | default('192.168.1.100') }}:8096/Library/VirtualFolders?Name={{ item.name | urlencode }}&CollectionType={{ item.collection_type }}&Paths={{ item.paths | join(',') | urlencode }}&RefreshOptions=true"
     method: POST
     headers:
-      X-MediaBrowser-Token: "{{ jellyfin_access_resp.json.AccessToken | default('') }}"
+      Authorization: 'MediaBrowser Token="{{ jellyfin_access_resp.json.AccessToken | default('''') }}"'
     status_code: 204
     validate_certs: false
     timeout: 30
@@ -363,7 +369,7 @@
     url: "http://{{ jellyfin_lan_ip | default('192.168.1.100') }}:8096/Library/VirtualFolders?itemid={{ item.Id }}&refresh=false&Name={{ item.Name | urlencode }}"
     method: DELETE
     headers:
-      X-Emby-Authorization: "MediaBrowser Client=\"ansible\", Device=\"ansible\", DeviceId=\"ansible\", Version=\"0.1\", Token=\"{{ jellyfin_access_resp.json.AccessToken | default('') }}\""
+      Authorization: 'MediaBrowser Token="{{ jellyfin_access_resp.json.AccessToken | default('''') }}"'
     status_code: 204
     validate_certs: false
     timeout: 30
