@@ -109,14 +109,17 @@ alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo
 alias ap='sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git --vault-password-file ~/secret.txt -C main -d /opt/ansible-pull local.yml'
 
 # opencode shortcuts.
-# `c`  — launch opencode locally (savannarchome runs against the workstation
-#        filesystem, serverannah runs against its own + the rclone-mounted
-#        Google Drive Perso).
-# `cx` — drive the homelab opencode server (ai.dinnizer.com) from anywhere with
-#        network reach: the phone on the home Wi-Fi, savannarchome on the LAN,
-#        or any host with a route to serverannah:4096 + the basic-auth password.
-alias c='opencode'
-alias cx='opencode attach http://serverannah:4096'
+# `c`  — left to Omarchy's default `opencode --auto` on Omarchy hosts. On
+#        non-Omarchy hosts (serverannah, etc.) this file is sourced last so
+#        it would shadow the default, which is why we deliberately do NOT
+#        redefine `c` here.
+# `ox` — drive the homelab opencode server (ai.dinnizer.com) from anywhere
+#        with network reach: the phone on the home Wi-Fi, savannarchome on
+#        the LAN, or any host with a route to serverannah:4096 + the basic
+#        auth password. The `ox` spelling matches Omarchy's letter-suffix
+#        convention (`cx` = claude, `cy` = codex) and avoids clobbering
+#        Omarchy's `cx` ("clear screen + claude --permission-mode auto").
+alias ox='opencode attach http://serverannah:4096'
 
 #######################################################
 # FUNCTIONS
