@@ -395,19 +395,18 @@ pihole_secret_dir: /etc/ansible/secrets
 pihole_web_password_file: "{{ pihole_secret_dir }}/pihole-web-password"
 pihole_timezone: Europe/Paris
 pihole_dns_listening_mode: "{{ pihole_mode_profiles[pihole_mode].dns_listening_mode }}"
-# Custom local DNS records — `/etc/pihole/custom.list` is the file Pi-hole
-# re-reads on every dnsmasq restart, so each item below becomes a hard A
-# record served to every LAN client pointing at Pi-hole (and forwarded to the
-# upstream resolvers for anything not listed here). Use for short names that
-# should resolve to a fixed homelab address (opencode server, the NAS,
-# reverse proxy, etc.) — DHCP-registered names from the dnsmasq DHCP side
-# coexist with these; if both register the same name, this list wins.
+# Custom local DNS records — Pi-hole v6 stores these in the
+# `[dns] hosts = [...]` array of /etc/pihole/pihole.toml. Each item becomes a
+# hard A record served to every LAN client pointing at Pi-hole. Use for
+# short names that should resolve to a fixed homelab address (the opencode
+# server, the NAS, the reverse proxy itself) — DHCP-registered names from
+# the dnsmasq DHCP side coexist with these; if both register the same
+# name, this list wins.
 #
 # Schema: list of dicts with `name` (FQDN or short hostname) and `ip`. Both
-# required. No support for CNAME / TXT / multiple A records per name here on
-# purpose — keep the schema flat so a typo in one entry is obvious in diff.
+# required. No support for CNAME / multiple A records per name on purpose —
+# keep the schema flat so a typo in one entry is obvious in diff.
 pihole_custom_dns_records: []
-pihole_custom_list_path: "{{ pihole_config_dir }}/custom.list"
 pihole_dns_upstreams:
   - 8.8.8.8
   - 8.8.4.4
