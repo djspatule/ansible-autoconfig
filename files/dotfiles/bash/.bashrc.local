@@ -118,12 +118,17 @@ alias ap='sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.g
 #        pointed at the homelab DNS resolver. Uses serverannah.lan (Pi-hole
 #        advertises the `lan` search domain) so the FQDN resolves uniformly
 #        from every LAN client; the IP fallback covers the rare case of a
-#        client with a non-Pi-hole DNS resolver. The `ox` spelling matches
-#        Omarchy's letter-suffix convention (`cx` = claude, `cy` = codex)
-#        and avoids clobbering Omarchy's `cx` ("clear screen + claude
+#        client with a non-Pi-hole DNS resolver. The password is read from
+#        ~/.opencode-server-password (mode 0600, NOT in git — copy it once
+#        from serverannah: scp serverannah:/etc/ansible/secrets/opencode-server-password
+#        ~/.opencode-server-password). OPENCODE_SERVER_PASSWORD env var and
+#        OPENCODE_SERVER_HOST override the file defaults. The `ox` spelling
+#        matches Omarchy's letter-suffix convention (`cx` = claude, `cy` =
+#        codex) and avoids clobbering Omarchy's `cx` ("clear screen + claude
 #        --permission-mode auto").
 ox_host="${OPENCODE_SERVER_HOST:-serverannah.lan}"
-alias ox="opencode attach http://${ox_host}:4096"
+ox_pw_file="${OPENCODE_SERVER_PASSWORD_FILE:-$HOME/.opencode-server-password}"
+alias ox='ox_pw=$( [[ -r "$ox_pw_file" ]] && cat "$ox_pw_file" ); OPENCODE_SERVER_PASSWORD="${OPENCODE_SERVER_PASSWORD:-$ox_pw}" OPENCODE_SERVER_USERNAME="${OPENCODE_SERVER_USERNAME:-lion}" exec opencode attach "http://${ox_host}:4096"'
 
 #######################################################
 # FUNCTIONS
