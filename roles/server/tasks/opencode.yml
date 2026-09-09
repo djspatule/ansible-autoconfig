@@ -1,0 +1,100 @@
+---
+# opencode AI coding agent, hosted natively on serverannah with its web UI
+# fronted by the existing Caddy reverse proxy (ai.dinnizer.com).
+#
+# Why native and not Docker: opencode reads its project tree directly from the
+# cwd of the launcher. The systemd user unit runs `cd` via ExecStart, so the
+# project scope is whatever directory we point it at (e.g. ~/Google Drive Perso
+# once the rclone mount is in place). A Docker wrapper would require bind-mount
+# gymnastics for every project — native is simpler and matches the docs.
+
+# The upstream install script (curl ... | bash) is idempotent — re-running it
+# updates to the latest version. We guard on the binary at its actual install
+# location (~/.opencode/bin/opencode — see server_opencode_binary), which keeps
+# the playbook quiet on subsequent runs.
+- name: Check whether opencode is already installed
+  ansible.builtin.stat:
+    path: "{{ server_opencode_binary }}"
+  register: server_opencode_binary_stat
+
+- name: Install opencode via the upstream install script
+  ansible.builtin.shell:
+    cmd: |
+      set -eu
+      curl -fsSL "{{ server_opencode_install_script_url }}" | bash
+    creates: "{{ server_opencode_binary }}"
+
+# Generate a dedicated HTTP basic-auth password for the opencode web UI. Caddy
+# gates the public hostname, but the in-app password is defense-in-depth: a LAN
+# device that reaches 4096 directly still hits basic auth. Storing it in
+# /etc/ansible/secrets (mode 0600) keeps the secret off the working tree and on
+# the same path the other Caddy basic_auth passwords already use.
+- name: Ensure the opencode server password file exists
+  ansible.builtin.stat:
+    path: "{{ server_opencode_password_file }}"
+  register: server_opencode_password_stat
+  no_log: true
+
+- name: Generate the opencode server basic auth password
+  ansible.builtin.shell:
+    cmd: |
+      set -eu
+      umask 077
+      tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32 > "{{ server_opencode_password_file }}"
+      chmod 0600 "{{ server_opencode_password_file }}"
+    creates: "{{ server_opencode_password_file }}"
+  no_log: true
+
+# Deploy the EnvironmentFile under the desktop user's home so the systemd user
+# unit (in files/dotfiles/systemd/.config/systemd/user/opencode-web.service) can
+# pick it up via `EnvironmentFile=%h/.opencode-server-password`. systemd reads
+# KEY=VALUE lines and exports them into the process environment, which is how
+# opencode consumes OPENCODE_SERVER_PASSWORD.
+- name: Read the opencode server password for templating
+  ansible.builtin.slurp:
+    src: "{{ server_opencode_password_file }}"
+  register: server_opencode_password_slurp
+  no_log: true
+
+- name: Install the opencode EnvironmentFile under the desktop user home
+  ansible.builtin.template:
+    src: opencode-env.j2
+    dest: "{{ server_opencode_user_home }}/.opencode-server-password"
+    owner: "{{ server_opencode_user }}"
+    group: "{{ server_opencode_user }}"
+    mode: "0600"
+  vars:
+    opencode_server_password: "{{ server_opencode_password_slurp.content | b64decode | trim }}"
+  no_log: true
+
+# Reload the user systemd manager so newly-stowed unit files are visible,
+# then enable+start the service. Mirrors the pattern in
+# roles/workstation/tasks/systemd_user.yml.
+- name: Deploy the opencode-web systemd user unit
+  ansible.builtin.template:
+    src: opencode-web.service.j2
+    dest: "{{ server_opencode_user_home }}/.config/systemd/user/opencode-web.service"
+    owner: "{{ server_opencode_user }}"
+    group: "{{ server_opencode_user }}"
+    mode: "0644"
+
+- name: Reload the opencode systemd user manager
+  ansible.builtin.systemd:
+    daemon_reload: true
+    scope: user
+  become: true
+  become_user: "{{ server_opencode_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ (lookup('pipe', 'id -u ' ~ server_opencode_user)) }}"
+
+- name: Enable and start the opencode web service
+  ansible.builtin.systemd:
+    name: opencode-web.service
+    enabled: true
+    state: started
+    scope: user
+  become: true
+  become_user: "{{ server_opencode_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ (lookup('pipe', 'id -u ' ~ server_opencode_user)) }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ (lookup('pipe', 'id -u ' ~ server_opencode_user)) }}/bus"

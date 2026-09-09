@@ -1,0 +1,84 @@
+---
+# rclone mount of the user's personal Google Drive, exposed at
+# ~/Google Drive Perso — the same path the savannarchome rclone_mount.sh uses.
+# opencode's @-search reads from its cwd, so the systemd user unit below is
+# what makes the cloud files searchable from the dashboard.
+#
+# Two-stage behaviour:
+#   1. The unit file is deployed via the systemd Stow package and enabled so
+#      the user can `systemctl --user start rclone-gdrive-mount` whenever they
+#      want it. The systemd unit has StartLimitBurst so an unauthorised remote
+#      does NOT crash-loop the host.
+#   2. The remote itself must be created interactively by the user with
+#      `rclone config` (OAuth dance, browser-based). Until that happens, the
+#      service unit exists but the mount will not start — and that is the
+#      desired state. We do NOT try to script the OAuth flow.
+
+# Idempotency guard: do nothing on hosts where the desktop user has not opted
+# in via server_rclone_gdrive_enabled.
+#
+# The mount-point directory is created by ExecStartPre in the systemd unit, so
+# we deliberately skip the ansible.builtin.file task here: on hosts where a
+# previous run left a half-bound mount or a placeholder, the explicit create
+# fails with EEXIST and breaks the rest of the chain. systemd guarantees the
+# directory is in place before rclone tries to mount.
+- name: Probe whether the rclone remote is already configured
+  ansible.builtin.command:
+    argv: [rclone, listremotes]
+  become: true
+  become_user: "{{ server_rclone_gdrive_user }}"
+  register: server_rclone_gdrive_remotes
+  changed_when: false
+  failed_when: false
+
+- name: Warn when the rclone Google Drive remote is not configured yet
+  ansible.builtin.debug:
+    msg: >-
+      rclone remote "{{ server_rclone_gdrive_remote }}" is not configured on
+      this host. Log into serverannah as {{ server_rclone_gdrive_user }} and
+      copy the rclone.conf from a machine that already has it authorised:
+        scp <source>:/home/{{ server_rclone_gdrive_user }}/.config/rclone/rclone.conf \
+            serverannah:/home/{{ server_rclone_gdrive_user }}/.config/rclone/rclone.conf
+      (rclone OAuth tokens are tied to the Google account, not the host —
+      once authorised on one machine the config file copies cleanly.) Then:
+        sudo chmod 600 /home/{{ server_rclone_gdrive_user }}/.config/rclone/rclone.conf
+        sudo chown {{ server_rclone_gdrive_user }}:{{ server_rclone_gdrive_user }} \
+            /home/{{ server_rclone_gdrive_user }}/.config/rclone/rclone.conf
+        systemctl --user daemon-reload
+        systemctl --user start rclone-gdrive-mount.service
+  when: server_rclone_gdrive_remote + ':' not in (server_rclone_gdrive_remotes.stdout_lines | default([]))
+
+# Deploy the systemd user unit directly (rather than relying on the Stow
+# systemd package) so this role stays runnable even when the base dotfiles
+# task is skipped — the user can run --tags rclone_gdrive in isolation.
+- name: Deploy the rclone gdrive systemd user unit
+  ansible.builtin.template:
+    src: rclone-gdrive-mount.service.j2
+    dest: "{{ server_rclone_gdrive_user_home }}/.config/systemd/user/rclone-gdrive-mount.service"
+    owner: "{{ server_rclone_gdrive_user }}"
+    group: "{{ server_rclone_gdrive_user }}"
+    mode: "0644"
+
+# Reload the user systemd manager so the unit file is visible, then enable
+# it (do not start — we want the user to start it explicitly after the OAuth
+# flow completes).
+- name: Reload the rclone gdrive systemd user manager
+  ansible.builtin.systemd:
+    daemon_reload: true
+    scope: user
+  become: true
+  become_user: "{{ server_rclone_gdrive_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ (lookup('pipe', 'id -u ' ~ server_rclone_gdrive_user)) }}"
+
+- name: Enable the rclone gdrive mount service
+  ansible.builtin.systemd:
+    name: rclone-gdrive-mount.service
+    enabled: true
+    state: stopped
+    scope: user
+  become: true
+  become_user: "{{ server_rclone_gdrive_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ (lookup('pipe', 'id -u ' ~ server_rclone_gdrive_user)) }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ (lookup('pipe', 'id -u ' ~ server_rclone_gdrive_user)) }}/bus"

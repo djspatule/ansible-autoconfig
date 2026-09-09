@@ -133,6 +133,10 @@ dotfiles_managed_paths:
     path: .config/systemd/user/audio-policy.service
   - package: systemd
     path: .config/systemd/user/freebox-mount.service
+  - package: systemd
+    path: .config/systemd/user/opencode-web.service
+  - package: systemd
+    path: .config/systemd/user/rclone-gdrive-mount.service
   - package: scripts
     path: audio_policy.sh
   - package: scripts

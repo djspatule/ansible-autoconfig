@@ -10,6 +10,12 @@
       tags:
         - workstation_cli
 
+    - name: Configure the host firewall
+      ansible.builtin.import_tasks: firewall.yml
+      when: workstation_firewall_enabled | default(true)
+      tags:
+        - workstation_firewall
+
     - name: Apply workstation dotfiles
       ansible.builtin.import_tasks: dotfiles.yml
       when: workstation_dotfiles_enabled | default(true)

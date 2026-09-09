@@ -1,0 +1,42 @@
+---
+# The ufw rules on this box used to be hand-typed, so a fresh install (or a
+# `ufw reset`) silently lost them. KDE Connect was the symptom: the daemon was
+# running and listening on 1716 but the default deny-incoming policy dropped the
+# phone's UDP discovery broadcast and its TCP connect-back, so no device was
+# ever detected on a network where both machines could ping each other.
+- name: Install ufw
+  ansible.builtin.package:
+    name: ufw
+    state: present
+
+- name: Enable ufw with a default deny-incoming policy
+  community.general.ufw:
+    state: enabled
+    policy: deny
+    direction: incoming
+
+- name: Allow outgoing traffic
+  community.general.ufw:
+    policy: allow
+    direction: outgoing
+
+# Application profiles (/etc/ufw/applications.d/*) are preferred over raw port
+# numbers: the package owns the port range, so an upstream change follows along.
+- name: Allow ufw application profiles
+  community.general.ufw:
+    rule: allow
+    name: "{{ item }}"
+  loop: "{{ workstation_ufw_app_profiles }}"
+
+# No `comment:` here on purpose. These rules already exist un-commented from the
+# manual `ufw allow` era, and ufw treats the comment as part of the rule
+# identity: adding one would make ufw re-add a duplicate on every run instead of
+# reporting "Skipping adding existing rule".
+- name: Allow ufw port rules
+  community.general.ufw:
+    rule: allow
+    port: "{{ item.port }}"
+    proto: "{{ item.proto }}"
+  loop: "{{ workstation_ufw_port_rules }}"
+  loop_control:
+    label: "{{ item.port }}/{{ item.proto }}"

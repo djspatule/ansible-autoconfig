@@ -19,6 +19,10 @@ backup_paths:
   - /opt/homepage/config
   - /opt/reverse-proxy
   - /opt/dinnizer
+  # opencode sessions live under the desktop user's XDG data home. Backing
+  # them up keeps the conversation history and project state across provider
+  # changes and reinstalls.
+  - /home/lion/.local/share/opencode
 backup_database_dumps:
   - name: aumenuilya
     container: aumenuilya-db
@@ -92,6 +96,8 @@ server_netplan_config: |
             - 1.1.1.1
 server_reverse_proxy_enabled: true
 server_aumenuilya_enabled: true
+server_opencode_enabled: true
+server_rclone_gdrive_enabled: true
 homepage_extra_allowed_hosts:
   # Caddy already adds X-Forwarded-Host on every request, so the public hostname
   # is the only strictly required entry. The LAN IP stays as a fallback so the
@@ -150,6 +156,14 @@ server_reverse_proxy_sites:
     upstream: nextcloud:80
   - hostname: www.dinnizer.com
     upstream: dinnizer-website:80
+  - hostname: ai.dinnizer.com
+    upstream: "http://{{ opencode_lan_ip | default('192.168.1.100') }}:4096"
+    # Same shared Caddy basic-auth as the other admin dashboards (pdf.dinnizer.com,
+    # draw.dinnizer.com, etc.). Defense-in-depth: the opencode systemd unit also
+    # exports OPENCODE_SERVER_PASSWORD from a user-only EnvironmentFile, so even
+    # a LAN device that reaches 4096 directly still hits basic auth.
+    basic_auth: true
+    basic_auth_password_file: "{{ server_reverse_proxy_secret_dir }}/caddy-shared-password"
 nextcloud_managed_users:
   - uid: lion
     display_name: lion
@@ -197,6 +211,12 @@ dotfiles_stow_packages:
   - starship
   - git
   - nvim
+  # opencode + systemd: opencode ships its config (.config/opencode/opencode.json),
+  # and the systemd package ships the opencode-web.service + rclone-gdrive-mount.service
+  # user units that the server role enables. Without these the dotfile stow would
+  # deploy the binary's config but leave the units unmanaged.
+  - opencode
+  - systemd
 
 # Storage stays simple: ship the target fstab as a normal file and copy it.
 server_manage_fstab: true
@@ -206,6 +226,15 @@ server_fstab_src: "{{ playbook_dir }}/files/serverannah/etc/fstab"
 # specific to this machine.
 server_timeshift_enabled: true
 timeshift_device_uuid: ed895069-ac77-4a4b-89c3-78bed9aeff22
+
+# opencode web listens on the LAN address so the dashboard is reachable from
+# Caddy (which sits on the host's docker bridge). The router only forwards
+# 80/443 publicly, so a LAN-only bind keeps port 4096 unreachable from outside
+# the home network even if the router is misconfigured. The systemd unit also
+# exports OPENCODE_SERVER_PASSWORD from a user-only EnvironmentFile as
+# defense-in-depth.
+opencode_lan_ip: 192.168.1.100
+server_opencode_lan_ip: 192.168.1.100
 
 nextcloud_public_url: https://cloud.dinnizer.com
 aumenuilya_backup_root: /mnt/SSD_1TO/BackUp/Mimi/AuMenuIlYA

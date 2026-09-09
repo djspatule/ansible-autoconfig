@@ -1,0 +1,29 @@
+[Unit]
+Description=rclone mount of {{ server_rclone_gdrive_remote }} into %h
+Documentation=https://rclone.org/commands/rclone_mount/
+# rclone exits immediately if the remote has never been authorised. Allow that
+# on first-run so a fresh `rclone config` flow does not crash-loop the unit;
+# the next start (after the user finishes `rclone config`) succeeds.
+StartLimitIntervalSec=60
+StartLimitBurst=10
+
+[Service]
+Type=simple
+# notify requires rclone >= 1.55; the distro package is newer than that on
+# every supported family, so simple is sufficient. ExecStartPre creates the
+# mount point so the user's first run never errors on a missing directory.
+ExecStartPre=/usr/bin/install -d -m 0755 "{{ server_rclone_gdrive_mount_point }}"
+# Double-quote both the remote name and the mount point so the space inside
+# "Google Drive Perso" survives systemd's word-splitting. The trailing colon
+# is required by rclone to mark the path as a remote name (otherwise rclone
+# interprets the argument as a local path).
+ExecStart=/usr/bin/rclone mount \
+    --cache-dir %h/.cache/rclone \
+    {{ server_rclone_gdrive_options | join(' ') }} \
+    "{{ server_rclone_gdrive_remote }}:" "{{ server_rclone_gdrive_mount_point }}"
+ExecStop=/usr/bin/fusermount3 -uz "{{ server_rclone_gdrive_mount_point }}"
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

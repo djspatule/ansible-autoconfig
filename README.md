@@ -314,6 +314,16 @@ Run locally against the active inventory:
 sudo ansible-playbook -i hosts --limit serverannah local.yml
 ```
 
+> Note: `host_vars/serverannah` sets `ansible_connection: local` so the daily
+> `ansible-pull` timer (which runs as root directly on the box) can apply the
+> config without an SSH round-trip. When you run `ansible-playbook` from a
+> laptop, override that to a real SSH session — otherwise every task silently
+> runs on the laptop, not on the server:
+>
+> ```bash
+> sudo ansible-playbook -i hosts --limit serverannah local.yml -e ansible_connection=ssh
+> ```
+
 Run with `ansible-pull` on the target machine:
 
 ```bash

@@ -105,6 +105,16 @@ alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo
 # ansible-pull — identical on every managed host.
 alias ap='sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git --vault-password-file ~/secret.txt -C main'
 
+# opencode shortcuts.
+# `c`  — launch opencode locally (savannarchome runs against the workstation
+#        filesystem, serverannah runs against its own + the rclone-mounted
+#        Google Drive Perso).
+# `cx` — drive the homelab opencode server (ai.dinnizer.com) from anywhere with
+#        network reach: the phone on the home Wi-Fi, savannarchome on the LAN,
+#        or any host with a route to serverannah:4096 + the basic-auth password.
+alias c='opencode'
+alias cx='opencode attach http://serverannah:4096'
+
 #######################################################
 # FUNCTIONS
 #######################################################

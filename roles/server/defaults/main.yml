@@ -487,3 +487,51 @@ timeshift_schedule:
 timeshift_keep_monthly: "2"
 timeshift_keep_weekly: "3"
 timeshift_keep_daily: "5"
+
+# opencode: AI coding agent with a built-in web UI (opencode web). Hosted natively
+# on serverannah so its sessions live on the same disk as the homelab services
+# and benefit from the existing Borg backup set (see backup_paths).
+#
+# Bound to the LAN address (not 0.0.0.0) so the port is unreachable from outside
+# the home network even if the router accidentally forwards it — the public
+# hostname only exists behind Caddy on 443. The systemd user unit exports
+# OPENCODE_SERVER_PASSWORD (basic auth) so a stray LAN device cannot just open
+# the dashboard without the shared Caddy password.
+server_opencode_enabled: false
+# The upstream install script (https://opencode.ai/install) ignores
+# OPENCODE_INSTALL_DIR on most recent versions and defaults to
+# `~/.opencode/bin/opencode`. Tracking the real install location keeps the
+# systemd unit's ExecStart in sync with where the binary actually lands.
+server_opencode_install_script_url: https://opencode.ai/install
+server_opencode_user_home: "/home/{{ server_opencode_user }}"
+server_opencode_binary: "{{ server_opencode_user_home }}/.opencode/bin/opencode"
+server_opencode_port: 4096
+# Bind on the LAN IP only. Caddy reaches it via 192.168.1.100:4096 from inside
+# the container network — same pattern as Jellyfin (see Caddyfile.j2 sites).
+server_opencode_lan_ip: 192.168.1.100
+server_opencode_user: "{{ dotfiles_user | default(desktop_user | default('lion')) }}"
+server_opencode_server_username: lion
+server_opencode_secret_dir: /etc/ansible/secrets
+server_opencode_password_file: "{{ server_opencode_secret_dir }}/opencode-server-password"
+
+# rclone Google Drive mount: the same remote that lives on savannarchome
+# (Google Drive Perso) is mounted under the desktop user's home, so opencode's
+# @-file search picks up the cloud files. The systemd user unit guards against
+# the user accidentally logging out (the mount would die with the shell that
+# started it).
+#
+# `server_rclone_gdrive_enabled: true` only deploys the service; the mount
+# itself waits until the user has run `rclone config` once to authorise the
+# remote. Until then, the service starts and rclone exits cleanly with a clear
+# message, so it never bricks the host.
+server_rclone_gdrive_enabled: false
+server_rclone_gdrive_remote: "Google Drive Perso"
+server_rclone_gdrive_mount_point: "{{ server_opencode_user_home }}/Google Drive Perso"
+server_rclone_gdrive_user: "{{ server_opencode_user }}"
+server_rclone_gdrive_user_home: "/home/{{ server_rclone_gdrive_user }}"
+server_rclone_gdrive_options:
+  - --drive-skip-shortcuts
+  - --vfs-cache-mode
+  - full
+  - --vfs-cache-max-age
+  - 72h

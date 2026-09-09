@@ -9,6 +9,10 @@ hl.on("hyprland.start", function()
   hl.exec_cmd("[workspace 6 silent] " .. o.launch("nautilus"))
   hl.exec_cmd(o.launch('bash "$HOME/rclone_mount.sh"'))
   hl.exec_cmd(o.launch('bash "$HOME/serverannah_mount.sh"'))
-  hl.exec_cmd(o.launch("kdeconnectd"))
+  -- Only the tray indicator is launched here. kdeconnectd is already started by
+  -- /etc/xdg/autostart/org.kde.kdeconnect.daemon.desktop (uwsm turns XDG
+  -- autostart entries into app-org.kde.kdeconnect.daemon@autostart.service).
+  -- Launching it a second time raced the first instance for UDP/TCP 1716 and
+  -- left a half-initialised daemon that could not discover devices.
   hl.exec_cmd(o.launch("kdeconnect-indicator"))
 end)

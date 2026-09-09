@@ -10,6 +10,23 @@ workstation_home: "/home/{{ workstation_user }}"
 workstation_cli_enabled: true
 workstation_dotfiles_enabled: true
 workstation_espanso_enabled: false
+workstation_firewall_enabled: true
+
+# ufw rules for a LAN workstation. Prefer an application profile shipped by the
+# package over a hard-coded port range; KDEConnect resolves to 1714:1764 on both
+# tcp and udp (see /etc/ufw/applications.d/kdeconnect), which KDE Connect needs
+# for UDP discovery broadcasts and the TCP connect-back from the phone.
+workstation_ufw_app_profiles:
+  - KDEConnect
+
+workstation_ufw_port_rules:
+  - port: "22"
+    proto: tcp
+  # LocalSend (file transfer to phones/tablets) needs 53317 on both protocols.
+  - port: "53317"
+    proto: tcp
+  - port: "53317"
+    proto: udp
 
 # Arch/Omarchy and Debian (trixie+) CLI/TUI tooling. Debian names differ where
 # noted: github-cli -> gh, fd -> fd-find (binary is fdfind on Debian).

@@ -173,6 +173,18 @@
     - server
     - aumenuilya
 
+- import_tasks: opencode.yml
+  when: server_opencode_enabled | default(false)
+  tags:
+    - server
+    - opencode
+
+- import_tasks: rclone_gdrive.yml
+  when: server_rclone_gdrive_enabled | default(false)
+  tags:
+    - server
+    - rclone_gdrive
+
 - import_tasks: reverse_proxy.yml
   when: server_reverse_proxy_enabled | default(false)
   tags:
