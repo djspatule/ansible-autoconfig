@@ -57,6 +57,18 @@ server_odoo_seed_enabled: true
 # host loopback resolver while household clients use serverannah directly.
 server_pihole_enabled: true
 pihole_policy_import_enabled: true
+
+# Pi-hole local DNS records — short names every LAN client resolves via
+# 192.168.1.100 (Pi-hole). Lets every device on the homelab refer to the
+# homelab services by name without depending on /etc/hosts being in sync.
+# serverannah itself (the Pi-hole host) is listed for completeness so reverse
+# SSH tunnels, Caddy backends, and the opencode TUI all resolve identically
+# on every host.
+pihole_custom_dns_records:
+  - name: serverannah
+    ip: 192.168.1.100
+  - name: ai.dinnizer.com
+    ip: 192.168.1.100
 pihole_mode: production
 pihole_dns_listening_mode: ALL
 pihole_published_ports:

@@ -33,6 +33,38 @@
     state: directory
     mode: "0755"
 
+# Custom local DNS records. Pi-hole re-reads custom.list on every dnsmasq
+# restart, so we render it once and trigger a container restart only when the
+# content actually changes (skipping the restart on every ansible-pull).
+- name: Render Pi-hole custom.list from pihole_custom_dns_records
+  ansible.builtin.template:
+    src: custom.list.j2
+    dest: "{{ pihole_custom_list_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  register: pihole_custom_list_render
+  when: pihole_custom_dns_records | length > 0
+
+# Touch an empty custom.list even when the host opted out, so dnsmasq never
+# complains about a missing file after a fresh container pull.
+- name: Ensure an empty Pi-hole custom.list exists
+  ansible.builtin.copy:
+    dest: "{{ pihole_custom_list_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+    content: ""
+    force: false
+  when: pihole_custom_dns_records | length == 0
+
+- name: Restart Pi-hole after custom.list change
+  community.docker.docker_container:
+    name: "{{ pihole_container_name }}"
+    state: started
+    restart: true
+  when: pihole_custom_list_render is defined and pihole_custom_list_render.changed | bool
+
 - name: Ensure Pi-hole hosts directory exists
   ansible.builtin.file:
     path: "{{ pihole_config_dir }}/hosts"
