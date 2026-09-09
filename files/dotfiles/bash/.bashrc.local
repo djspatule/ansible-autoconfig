@@ -113,13 +113,17 @@ alias ap='sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.g
 #        non-Omarchy hosts (serverannah, etc.) this file is sourced last so
 #        it would shadow the default, which is why we deliberately do NOT
 #        redefine `c` here.
-# `ox` — drive the homelab opencode server (ai.dinnizer.com) from anywhere
-#        with network reach: the phone on the home Wi-Fi, savannarchome on
-#        the LAN, or any host with a route to serverannah:4096 + the basic
-#        auth password. The `ox` spelling matches Omarchy's letter-suffix
-#        convention (`cx` = claude, `cy` = codex) and avoids clobbering
-#        Omarchy's `cx` ("clear screen + claude --permission-mode auto").
-alias ox='opencode attach http://serverannah:4096'
+# `ox` — drive the homelab opencode server from anywhere with LAN reach:
+#        the phone on the home Wi-Fi, savannarchome on the LAN, or any host
+#        pointed at the homelab DNS resolver. Uses serverannah.lan (Pi-hole
+#        advertises the `lan` search domain) so the FQDN resolves uniformly
+#        from every LAN client; the IP fallback covers the rare case of a
+#        client with a non-Pi-hole DNS resolver. The `ox` spelling matches
+#        Omarchy's letter-suffix convention (`cx` = claude, `cy` = codex)
+#        and avoids clobbering Omarchy's `cx` ("clear screen + claude
+#        --permission-mode auto").
+ox_host="${OPENCODE_SERVER_HOST:-serverannah.lan}"
+alias ox="opencode attach http://${ox_host}:4096"
 
 #######################################################
 # FUNCTIONS
