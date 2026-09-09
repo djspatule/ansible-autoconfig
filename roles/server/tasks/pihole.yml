@@ -44,12 +44,27 @@
   ansible.builtin.set_fact:
     pihole_custom_dns_records_toml: >-
       [{% for record in pihole_custom_dns_records %}"{{ record.ip }} {{ record.name }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+# Pi-hole has two `hosts = [...]` arrays — one under [dns] for local A records
+# and one under [dhcp] for static DHCP leases. We slice the file at the [dns]
+# section boundary so the regex only matches inside [dns], and use Python
+# directly (ansible.builtin.replace has no DOTALL flag exposed).
 - name: Replace the [dns] hosts line in pihole.toml
-  ansible.builtin.replace:
-    path: "{{ pihole_config_dir }}/pihole.toml"
-    regexp: '^(\s*hosts\s*=\s*)\[.*?\](\s*###.*)?$'
-    replace: '\1{{ pihole_custom_dns_records_toml }}\2'
+  ansible.builtin.command:
+    cmd: >-
+      python3 -c "
+      import re, pathlib;
+      p = pathlib.Path('{{ pihole_config_dir }}/pihole.toml');
+      c = p.read_text();
+      i, j = c.find('[dns]'), c.find('[dhcp]', c.find('[dns]'));
+      new = re.sub(
+        r'(\s*hosts\s*=\s*)\[.*?\](\s*###.*)?$',
+        r'\1{{ pihole_custom_dns_records_toml }}\2',
+        c[i:j], count=1, flags=re.DOTALL | re.MULTILINE
+      );
+      p.write_text(c[:i] + new + c[j:])
+      "
   register: pihole_custom_dns_records_render
+  changed_when: pihole_custom_dns_records_render.rc == 0
   when: pihole_custom_dns_records | length > 0
 
 - name: Signal pihole-FTL to reload its config
