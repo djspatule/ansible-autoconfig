@@ -15,13 +15,20 @@ url_file='{{ heartbeat_url_file }}'
 # Absent file means the watchdog is simply not armed on this host. That is a
 # normal state, not an error — exit quietly so the calling unit stays green.
 [ -r "$url_file" ] || exit 0
-url="$(cat "$url_file")"
-[ -n "$url" ] || exit 0
 
-# Failure is deliberately non-fatal and quiet-ish: an outage at the monitoring
-# provider must not fail the pull it is only observing. The journal line is
-# enough to notice a heartbeat that has been failing for a while.
-if ! curl -fsS --max-time {{ heartbeat_timeout_seconds }} -o /dev/null "$url"; then
-  logger -t autoconfig-heartbeat -- "heartbeat ping failed"
-  exit 0
-fi
+# One URL per line, so a host can report to more than one watcher. That is not
+# redundancy for its own sake: an internal monitor (Uptime Kuma) catches a timer
+# that stopped firing, but cannot report its own host being down; an external one
+# (healthchecks.io) catches the whole machine going away. Blank lines and #
+# comments are skipped so the file can explain itself.
+#
+# Failure is deliberately non-fatal: an outage at a monitoring provider must not
+# fail the pull it is only observing. Each URL is tried independently, so one
+# dead endpoint does not stop the others.
+while IFS= read -r url || [ -n "$url" ]; do
+  case "$url" in ''|'#'*) continue ;; esac
+  if ! curl -fsS --max-time {{ heartbeat_timeout_seconds }} -o /dev/null "$url"; then
+    logger -t autoconfig-heartbeat -- "heartbeat ping failed for ${url%%\?*}"
+  fi
+done < "$url_file"
+exit 0

@@ -13,7 +13,7 @@ hl.unbind("SUPER + SHIFT + W")
 o.bind("SUPER + SHIFT + W", "Typora", { launch = "typora --enable-wayland-ime" })
 
 hl.unbind("SUPER + SHIFT + C")
-o.bind("SUPER + SHIFT + C", "Calculator", "omacalc")
+o.bind("SUPER + SHIFT + C", "Calculator", { launch = "omacalc" })
 o.bind("SUPER + SHIFT + H", "Email", { webapp = "https://app.hey.com" })
 
 hl.unbind("SUPER + SHIFT + S")
