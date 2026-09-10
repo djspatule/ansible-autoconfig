@@ -133,10 +133,11 @@ dotfiles_managed_paths:
     path: .config/systemd/user/audio-policy.service
   - package: systemd
     path: .config/systemd/user/freebox-mount.service
-  - package: systemd
-    path: .config/systemd/user/opencode-web.service
-  - package: systemd
-    path: .config/systemd/user/rclone-gdrive-mount.service
+  # opencode-web.service and rclone-gdrive-mount.service are deliberately absent:
+  # the server role templates those two units with the host's LAN IP and port, so
+  # the systemd Stow package does not ship them and there is nothing for Stow to
+  # collide with. Listing them here made this task rename the role's own unit to
+  # .pre-stow-backup on every run, which the server role then re-templated.
   - package: scripts
     path: audio_policy.sh
   - package: scripts
