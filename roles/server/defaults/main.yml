@@ -205,10 +205,19 @@ jellyfin_libraries:
       - /data/Pictures
 
 # Uptime Kuma: external checks of the public sites, certs and DNS.
-# Pinned to the v1 major on purpose — v2 changed the storage backend, so an
-# unpinned upgrade would migrate the database with no way back.
+#
+# Pinned to a MAJOR tag, not :latest, and that is the whole point. This role
+# pulls with force_source and recreates the container whenever the image digest
+# moves, so :latest would let a major release land unattended at 00:00. Uptime
+# Kuma's v1 -> v2 upgrade rewrites its database in place and has no clean
+# downgrade — recovery means restoring a backup. Nobody should meet that at
+# midnight without having chosen it.
+#
+# ":2" still keeps it current: every v2 patch and minor arrives automatically on
+# the nightly pull. Only a major bump is deliberate, and it is a one-line change
+# here after taking a snapshot of uptime_kuma_data_dir.
 server_uptime_kuma_enabled: false
-uptime_kuma_image: louislam/uptime-kuma:1
+uptime_kuma_image: louislam/uptime-kuma:2
 uptime_kuma_container_name: uptime-kuma
 uptime_kuma_network_name: autoconfig-services
 uptime_kuma_data_dir: /opt/uptime-kuma
