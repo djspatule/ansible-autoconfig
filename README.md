@@ -116,7 +116,7 @@ anyone (human or agent) changing this repo.
 - [Linting](#linting) — local lint + the rendered-template test harness
 - [Testing On A VM](#testing-on-a-vm)
 - [Storage Model](#storage-model) · [Disaster Recovery](#disaster-recovery) · [Off-Site Backups](#off-site-backups)
-- [Dead-Man's Switch](#dead-mans-switch) · [Dotfiles Model](#dotfiles-model) · [Pi-hole Source Of Truth](#pi-hole-source-of-truth)
+- [Adding A New Public Site](#adding-a-new-public-site) · [Dead-Man's Switch](#dead-mans-switch) · [Dotfiles Model](#dotfiles-model) · [Pi-hole Source Of Truth](#pi-hole-source-of-truth)
 - [Serverannah Notes](#serverannah-notes) · [Conventions](#conventions-for-future-changes) · [Known Reality](#known-reality)
 
 ## Credits and lineage
@@ -171,10 +171,10 @@ tells me when one of them stops".
 
 - [~] **Dead-man's switch** — mechanism implemented, needs a ping URL.
       `OnFailure=` catches a run that *fails*; it structurally cannot catch a
-      timer that never fires at all. Set `heartbeat_pull_url` to a URL from any
-      service that alerts on a *missing* ping. See
-      [Dead-Man's Switch](#dead-mans-switch) for why this is deliberately not
-      built on ntfy.
+      timer that never fires at all. Two ways to arm it, one of which needs no
+      signup because Uptime Kuma is already running — see
+      [Dead-Man's Switch](#dead-mans-switch), which also records why this is
+      deliberately *not* built on ntfy.
 - [x] **Off-site backup copy** — implemented. The Borg repo (~6 GB) mirrors to
       Google Drive after every `borg compact`. See
       [Off-Site Backups](#off-site-backups).
@@ -780,6 +780,45 @@ rclone sync 'Google Drive Perso:backups/borg/serverannah' /tmp/borg-restore
 BORG_PASSPHRASE=... borg list /tmp/borg-restore
 ```
 
+### Adding A New Public Site
+
+Order matters, and getting it wrong costs an hour. **Create the DNS record
+first, then add the site to `server_reverse_proxy_sites`.**
+
+Caddy requests a certificate as soon as a hostname appears in its config. If the
+name does not resolve publicly yet, Let's Encrypt fails the challenge with
+`NXDOMAIN`, and CertMagic backs off with a growing retry interval — it will
+recover on its own, but not quickly, and in the meantime the site answers with a
+TLS `internal error` rather than anything readable. After enough production
+failures CertMagic also starts trying the Let's Encrypt *staging* endpoint,
+whose certificates browsers do not trust, which makes the symptom look worse
+than it is.
+
+If you already added the site before the DNS record, restart the proxy once the
+record resolves publicly:
+
+```bash
+docker restart server-reverse-proxy
+```
+
+That clears the backoff and the certificate is issued within a minute or so.
+Verify it is a *production* certificate, not staging:
+
+```bash
+curl -sv https://newsite.example.com/ 2>&1 | grep -iE "issuer:|expire date"
+# issuer: C=US; O=Let's Encrypt; ...   <- good
+# issuer: ... (STAGING) ...            <- still on staging, restart again
+```
+
+One more trap on the LAN: Pi-hole caches the `NXDOMAIN` from before the record
+existed, so the new name keeps failing *from inside the house* long after it
+works everywhere else. `pihole restartdns` may not clear a negative entry;
+restarting the container does:
+
+```bash
+docker restart pihole
+```
+
 ### Dead-Man's Switch
 
 `OnFailure=` reports a job that ran and failed. It cannot report a job that
@@ -798,10 +837,38 @@ Two details matter. `ExecStartPost` runs only when `ExecStart` succeeded, so a
 failed run does not refresh the heartbeat. The leading `-` makes the ping
 non-fatal, so an outage at the monitoring provider cannot fail the pull itself.
 
-Set `heartbeat_pull_url` (empty disables it) to a ping URL from any service whose
-job is detecting the *absence* of a signal — healthchecks.io, Cronitor and
-Better Stack all have free tiers. It is a capability URL: anyone holding it can
-suppress your alerts, so keep it in host vars, not here.
+#### Setting it up
+
+`heartbeat_pull_url` is empty by default, which disables the ping. Put a URL in
+it and the watchdog arms itself on the next run. There are two options, and they
+cover *different* failures:
+
+**Option A — Uptime Kuma "Push" monitor.** No signup, no third party; it is
+already running at `status.dinnizer.com`.
+
+1. In Uptime Kuma: **+ Add New Monitor** → Monitor Type **Push**
+2. Name it (e.g. *serverannah nightly pull*), set **Heartbeat Interval** to
+   `93600` seconds (26 hours — the nightly job plus margin)
+3. Save. It shows a **Push URL** like `https://status.dinnizer.com/api/push/AbC123`
+4. Put that in `host_vars/serverannah` as `heartbeat_pull_url: "https://…"`
+5. Set its notification to the existing ntfy topic
+
+Catches: the timer being masked, disabled, erroring before it starts, or the pull
+silently not running. **Cannot** catch the whole machine being down — Uptime Kuma
+would be down with it.
+
+**Option B — an external service** (healthchecks.io, Cronitor, Better Stack; all
+have free tiers). Create a free account, add a check with a ~26 hour period,
+copy its ping URL into the same variable.
+
+Catches everything Option A does **plus** the box being off, unplugged, or
+cut off from the internet — because the watcher is not in the house.
+
+Running both is reasonable: point `heartbeat_pull_url` at Option B and add
+Option A as a second monitor, since a push URL is just a URL.
+
+Either way it is a **capability URL** — anyone holding it can silence the alarm
+by pinging it themselves. Keep it in host vars, never in this public repo.
 
 **Why this is not built on ntfy**, despite the ntfy documentation describing
 exactly this pattern (schedule a message, cancel it on each successful run, let
