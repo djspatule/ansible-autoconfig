@@ -144,7 +144,7 @@ def plan_monitors(site: dict) -> list[dict]:
     return monitors
 
 
-def ensure_ntfy_notification(api, topic: str, base_url: str, name: str) -> None:
+def ensure_ntfy_notification(api, topic: str, base_url: str, name: str) -> int | None:
     """Create the ntfy notification and attach it to every monitor.
 
     `applyExisting=True` is what makes this worth automating: it wires the
@@ -158,11 +158,17 @@ def ensure_ntfy_notification(api, topic: str, base_url: str, name: str) -> None:
     # would double every alert rather than fix anything.
     for existing in api.get_notifications():
         if existing.get("type") == "ntfy" or "ntfy" in str(existing.get("name", "")).lower():
-            print(f"  ntfy notification already present: '{existing.get('name')}' (id={existing['id']})")
-            print("    leaving it alone — check 'Default enabled' + 'Apply on all existing monitors'")
-            print("    in its settings if the monitors are not attached to it")
-            return
-    api.add_notification(
+            nid = existing["id"]
+            print(f"  ntfy notification already present: '{existing.get('name')}' (id={nid})")
+            # A notification created by hand defaults to isDefault=False, which
+            # means monitors created later silently do NOT inherit it. That is
+            # the quiet version of having no alerting at all, so force it on.
+            if not existing.get("isDefault"):
+                api.edit_notification(nid, isDefault=True, applyExisting=True)
+                print("    set as default so new monitors inherit it")
+            return nid
+    return None
+    result = api.add_notification(
         name=name,
         type="ntfy",
         isDefault=True,
@@ -173,6 +179,7 @@ def ensure_ntfy_notification(api, topic: str, base_url: str, name: str) -> None:
         ntfyAuthenticationMethod="none",
     )
     print(f"  created notification '{name}' and applied it to all monitors")
+    return result.get("id")
 
 
 def main() -> int:
@@ -210,10 +217,12 @@ def main() -> int:
     try:
         api.login(username, password)
 
+        notification_id = None
         if not args.skip_notification:
             topic = read_secret(NTFY_TOPIC_FILE)
             if topic:
-                ensure_ntfy_notification(api, topic, args.ntfy_base_url, args.notification_name)
+                notification_id = ensure_ntfy_notification(
+                    api, topic, args.ntfy_base_url, args.notification_name)
             else:
                 print(f"  note: no ntfy topic at {NTFY_TOPIC_FILE}; skipping notification setup",
                       file=sys.stderr)
@@ -234,6 +243,19 @@ def main() -> int:
             api.add_monitor(type="http", **m)
             print(f"  created  {m['name']}")
             created += 1
+        # isDefault only covers monitors created *after* it was set, and
+        # applyExisting is a one-shot at write time, so neither helps a monitor
+        # created in between. Sweep every monitor at the end instead: an alert
+        # nobody receives is indistinguishable from no monitoring at all.
+        if notification_id is not None:
+            attached = 0
+            for mon in api.get_monitors():
+                if notification_id not in (mon.get("notificationIDList") or []):
+                    api.edit_monitor(mon["id"], notificationIDList=[notification_id])
+                    attached += 1
+            if attached:
+                print(f"  attached the ntfy notification to {attached} monitor(s)")
+
         print(f"\n{created} created, {replaced} replaced, {skipped} unchanged, {len(plans)} total")
     finally:
         api.disconnect()

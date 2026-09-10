@@ -1,6 +1,4 @@
 {
-  "theme": "dark",
-  "effortLevel": "medium",
   "permissions": {
     "defaultMode": "auto"
   },
@@ -27,5 +25,8 @@
         ]
       }
     ]
-  }
+  },
+  "effortLevel": "medium",
+  "theme": "dark",
+  "autoCompactEnabled": true
 }
