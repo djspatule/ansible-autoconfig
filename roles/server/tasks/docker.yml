@@ -18,6 +18,23 @@
     name: "{{ server_docker_packages }}"
     state: present
 
+# Docker defaults to an *unbounded* json-file log per container. With 18
+# containers and no cap, serverannah had accumulated 946 MB of logs (frigate
+# alone at 650 MB) on a root filesystem with ~53 GB free, and nothing would ever
+# reclaim it. A single container in a crash-restart loop can fill the disk
+# overnight, which takes Postgres, MariaDB, Caddy and the Borg dump step down
+# together. Cap it globally rather than per-container so a service added later
+# inherits the limit instead of having to remember it.
+- name: Configure the Docker daemon
+  ansible.builtin.copy:
+    content: "{{ server_docker_daemon_config | to_nice_json }}\n"
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: "0644"
+  register: server_docker_daemon_config_file
+  notify: Restart docker
+
 - name: Ensure Docker service is enabled and running
   ansible.builtin.service:
     name: docker
