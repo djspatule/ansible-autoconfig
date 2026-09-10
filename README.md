@@ -116,7 +116,7 @@ anyone (human or agent) changing this repo.
 - [Linting](#linting) — local lint + the rendered-template test harness
 - [Testing On A VM](#testing-on-a-vm)
 - [Storage Model](#storage-model) · [Disaster Recovery](#disaster-recovery) · [Off-Site Backups](#off-site-backups)
-- [Adding A New Public Site](#adding-a-new-public-site) · [Dead-Man's Switch](#dead-mans-switch) · [Dotfiles Model](#dotfiles-model) · [Pi-hole Source Of Truth](#pi-hole-source-of-truth)
+- [Adding A New Public Site](#adding-a-new-public-site) · [Seeding Uptime Kuma Monitors](#seeding-uptime-kuma-monitors) · [Dead-Man's Switch](#dead-mans-switch) · [Dotfiles Model](#dotfiles-model) · [Pi-hole Source Of Truth](#pi-hole-source-of-truth)
 - [Serverannah Notes](#serverannah-notes) · [Conventions](#conventions-for-future-changes) · [Known Reality](#known-reality)
 
 ## Credits and lineage
@@ -818,6 +818,51 @@ restarting the container does:
 ```bash
 docker restart pihole
 ```
+
+### Seeding Uptime Kuma Monitors
+
+Uptime Kuma 1.x has **no REST API for monitors** — `/api/monitors` returns the
+single-page-app shell, not data. Everything goes over socket.io, so there is no
+supported CLI, and nothing to drive from Ansible.
+
+`scripts/seed-uptime-kuma.py` therefore uses the unofficial `uptime-kuma-api`
+library, and is deliberately a **one-shot seeder rather than config
+management**. That distinction matters: an upstream change to an unofficial API
+breaking a tool you run by hand costs you ten minutes, while the same change
+inside the nightly `ansible-pull` would break every host at once. Re-running is
+safe — existing monitors are left untouched — but it will not reconcile or
+remove monitors you have since edited. **The UI stays the source of truth for
+monitors; this just saves the initial clicking.**
+
+Monitors are generated from `server_reverse_proxy_sites` in host_vars — the same
+list Caddy's config is rendered from — so a site cannot be proxied and silently
+unmonitored.
+
+```bash
+# See the plan without touching anything (needs no credentials, no network):
+./scripts/seed-uptime-kuma.py --dry-run
+
+# Apply it, from serverannah:
+sudo KUMA_USERNAME=admin KUMA_PASSWORD='...' sh scripts/seed-uptime-kuma.sh
+```
+
+The wrapper runs the seeder in a throwaway container **on the shared Docker
+network**, talking to `http://uptime-kuma:3001` directly. Pointing it at
+`https://status.dinnizer.com` instead would mean satisfying Caddy's basic auth
+during the socket.io handshake *and* sending the Kuma admin password across the
+public internet to reach a service on the same machine. Credentials can also go
+in `/etc/ansible/secrets/uptime-kuma-credentials` (two lines: user, password)
+instead of the environment.
+
+**Basic-auth'd sites are monitored through their auth**, using the shared Caddy
+password. Without that, a monitor only ever sees Caddy's `401` and would report
+green while the application behind the gate was dead. Where the password is not
+readable the seeder says so and falls back to accepting the `401` — which still
+proves DNS, TLS and Caddy are alive, but nothing beyond them.
+
+Redirect-only hosts (`aumenuilya.fr`, `www.tabletop-timer.com`) are checked with
+redirect-following **off**: they are healthy when they redirect, and following
+would silently test the target instead, hiding a broken redirect.
 
 ### Dead-Man's Switch
 
