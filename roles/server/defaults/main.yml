@@ -376,6 +376,10 @@ fail2ban_caddy_basic_auth_maxretry: 5
 fail2ban_caddy_basic_auth_findtime: 10m
 fail2ban_caddy_basic_auth_bantime: 1h
 
+# Hard cap on one Borg run so a hung dump or a stalled repo lock becomes a
+# failure (which notifies) instead of an eternally "activating" unit.
+backup_timeout: 4h
+
 server_backup_enabled: false
 backup_packages_by_family:
   Debian:

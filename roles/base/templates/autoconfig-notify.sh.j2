@@ -1,0 +1,37 @@
+#!/bin/sh
+# Managed by Ansible (roles/base). Do not edit on the host.
+#
+# usage: autoconfig-notify <title> <priority> [body...]
+#
+# One notification bus for every managed host. Timers wire themselves to it with
+# OnFailure=, so a unit that fails now reaches a phone instead of dying quietly
+# in the journal — which is exactly how the nightly ansible-pull stayed broken
+# for a day without anyone noticing.
+set -eu
+
+title=${1:?usage: autoconfig-notify <title> <priority> [body]}
+priority=${2:-default}
+shift 2 2>/dev/null || shift 1
+body=${*:-"(no detail supplied)"}
+host="$(hostname)"
+
+# Always record locally first. If the network or the notification service is the
+# thing that is broken, the journal is still a better record than nothing, and
+# this line is what `journalctl -t autoconfig-notify` shows.
+logger -t autoconfig-notify -- "[$priority] $title: $body" 2>/dev/null || true
+
+topic_file='{{ notify_topic_file }}'
+[ -r "$topic_file" ] || exit 0
+topic="$(cat "$topic_file")"
+[ -n "$topic" ] || exit 0
+
+# --fail so an HTTP error is a non-zero exit, --max-time so a hung notification
+# endpoint can never wedge the unit that called us. Failure here is deliberately
+# not fatal: a broken notifier must not turn a warning into a second failure.
+curl -fsS --max-time {{ notify_timeout_seconds }} \
+  -H "Title: $host: $title" \
+  -H "Priority: $priority" \
+  -H "Tags: warning" \
+  -d "$body" \
+  "{{ notify_base_url }}/$topic" >/dev/null 2>&1 \
+  || logger -t autoconfig-notify -- "failed to deliver notification for: $title"

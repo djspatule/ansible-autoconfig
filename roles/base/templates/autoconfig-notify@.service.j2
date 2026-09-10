@@ -1,0 +1,10 @@
+[Unit]
+Description=Send a failure notification for %i
+# Ordering only: never make the notifier a dependency of the thing it reports on.
+After=network-online.target
+
+[Service]
+Type=oneshot
+# %i is the failed unit name, passed by OnFailure=autoconfig-notify@%n.service.
+# The journal tail gives enough context to triage from a phone without SSHing in.
+ExecStart=/bin/sh -c '/usr/local/sbin/autoconfig-notify "%i failed" high "$(journalctl -u %i -n {{ notify_journal_lines }} --no-pager 2>&1 | tail -c {{ notify_body_max_bytes }})"'

@@ -1,0 +1,84 @@
+---
+# A single notification path shared by every managed host.
+#
+# The gap this closes: the nightly ansible-pull failed and nobody knew for a
+# day, because a failed oneshot unit is completely silent. Borg backups had the
+# same problem. OnFailure= on those units now routes through here.
+#
+# Transport is ntfy: a topic is a shared secret in the URL, so a long random
+# topic on the public server needs no account and no container, and still
+# reaches every phone in the house. Self-host later by pointing notify_base_url
+# elsewhere — but keep in mind a self-hosted notifier cannot tell you that its
+# own host is down.
+- name: Ensure the notification secret directory exists
+  ansible.builtin.file:
+    path: "{{ notify_topic_file | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Check whether the notification topic already exists
+  ansible.builtin.stat:
+    path: "{{ notify_topic_file }}"
+  register: notify_topic_stat
+
+# Generated on the host, like every other secret in this repo, so nothing
+# sensitive is ever committed. The topic name IS the credential on ntfy.sh, so
+# it needs real entropy, not a guessable hostname.
+- name: Generate the notification topic
+  ansible.builtin.shell: |
+    set -eu
+    umask 077
+    printf 'autoconfig-%s-%s\n' \
+      '{{ inventory_hostname }}' \
+      "$(tr -dc 'a-zA-Z0-9' </dev/urandom | head -c 32)" \
+      > '{{ notify_topic_file }}'
+  when: not notify_topic_stat.stat.exists
+  changed_when: true
+
+- name: Secure the notification topic file
+  ansible.builtin.file:
+    path: "{{ notify_topic_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Install the notification helper
+  ansible.builtin.template:
+    src: autoconfig-notify.sh.j2
+    dest: /usr/local/sbin/autoconfig-notify
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install the failure-notification unit template
+  ansible.builtin.template:
+    src: autoconfig-notify@.service.j2
+    dest: /etc/systemd/system/autoconfig-notify@.service
+    owner: root
+    group: root
+    mode: "0644"
+  register: notify_unit_template
+
+- name: Reload systemd after installing the notification unit
+  ansible.builtin.systemd:
+    daemon_reload: true
+  when: notify_unit_template.changed
+
+- name: Read the notification topic so the operator can subscribe
+  ansible.builtin.slurp:
+    src: "{{ notify_topic_file }}"
+  register: notify_topic_content
+  when: notify_show_subscribe_hint | bool
+
+# Printed rather than stored anywhere shareable: the operator needs the URL once
+# to subscribe a phone, and it must not end up in the public repo.
+- name: Show how to subscribe to this host's notifications
+  ansible.builtin.debug:
+    msg: >-
+      Subscribe to {{ inventory_hostname }} alerts at
+      {{ notify_base_url }}/{{ notify_topic_content.content | b64decode | trim }}
+      (open it in the ntfy app or a browser). Test with:
+      sudo /usr/local/sbin/autoconfig-notify "test" default "hello"
+  when: notify_show_subscribe_hint | bool

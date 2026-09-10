@@ -189,3 +189,20 @@ autoconfig_on_calendar: daily
 autoconfig_randomized_delay: 30m
 autoconfig_persistent: true
 autoconfig_vault_password_file: "/home/{{ desktop_user | default('lion') }}/.ansible-vault-pass"
+
+# Failure notifications (roles/base/tasks/notify.yml). Off by default so a new
+# host does not start emitting alerts before anyone has subscribed to them.
+notify_enabled: false
+notify_base_url: https://ntfy.sh
+notify_topic_file: /etc/ansible/secrets/notify-topic
+notify_timeout_seconds: 20
+notify_journal_lines: 40
+# ntfy caps a message body; keep well under it so a long traceback still sends.
+notify_body_max_bytes: 3500
+# Prints the subscribe URL in the run output. Harmless on a laptop run, but the
+# topic is a credential, so set it false once every phone is subscribed.
+notify_show_subscribe_hint: true
+
+# Hard cap on a single ansible-pull run. The serverannah run takes ~5 minutes;
+# 45 lets a slow dist-upgrade finish while still catching a genuine hang.
+autoconfig_pull_timeout: 45min

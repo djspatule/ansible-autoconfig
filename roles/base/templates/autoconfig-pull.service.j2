@@ -2,7 +2,16 @@
 Description=Run Ansible pull for autoconfig
 Wants=network-online.target
 After=network-online.target
+{% if notify_enabled | default(false) %}
+# A failed oneshot is otherwise completely silent: this unit broke for a day and
+# nothing said so. Route failures to the shared notifier.
+OnFailure=autoconfig-notify@%n.service
+{% endif %}
 
 [Service]
 Type=oneshot
 ExecStart=/usr/local/bin/autoconfig-pull
+# Neither git nor apt has an internal timeout here, so a hung fetch would leave
+# the unit "activating" forever — which never triggers OnFailure and looks
+# exactly like a run that is merely slow. Cap it so a hang becomes a failure.
+TimeoutStartSec={{ autoconfig_pull_timeout }}

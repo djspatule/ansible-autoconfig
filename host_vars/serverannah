@@ -9,6 +9,11 @@ autoconfig_playbook: local.yml
 # Dotfiles enabled; dotfiles_stow_packages below is intentionally overridden to
 # the server subset. Add packages here individually as they mature.
 base_dotfiles_enabled: true
+# Failure notifications. Nothing on this box could report a problem before:
+# the nightly pull broke for a day in silence. The topic is generated on the
+# host into /etc/ansible/secrets/notify-topic and printed once by the run so a
+# phone can subscribe.
+notify_enabled: true
 server_fail2ban_enabled: true
 fail2ban_caddy_basic_auth_enabled: true
 server_backup_enabled: true
