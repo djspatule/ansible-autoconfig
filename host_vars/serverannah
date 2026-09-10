@@ -36,12 +36,6 @@ backup_paths:
   # The Borg repo is encrypted, so this is safe to include — the one thing that
   # must stay outside is the Borg passphrase itself.
   - /etc/ansible/secrets
-  # Odoo runs a real business. app/ and addons/ carry the customisations; the
-  # database is dumped separately below. db/ is a live Postgres data directory
-  # and is deliberately NOT restored from this copy — use the dump.
-  - /opt/odoo/app
-  - /opt/odoo/addons
-  - /opt/odoo/seed
   # Jellyfin users, watch state and the seeded libraries.
   - /opt/jellyfin/config
   - /opt/game-timer/site
@@ -66,16 +60,6 @@ backup_database_dumps:
     database: dinnizer_production
     user: dinnizer
     password_file: /etc/ansible/secrets/dinnizer-db-password
-  # Odoo had NO dump at all, despite being the business-critical database here.
-  # /opt/odoo/db on disk is a live Postgres data directory: copying it while the
-  # server is running yields a torn, possibly unrecoverable snapshot. A dump is
-  # the only consistent backup, and without it the Odoo filestore is useless.
-  - name: odoo
-    engine: postgres
-    container: odoo-db
-    database: odoo
-    user: odoo
-    password_file: /etc/ansible/secrets/odoo-db-password
 server_homepage_enabled: true
 # Read-only Docker socket proxy, so Homepage never sees the raw socket.
 server_docker_socket_proxy_enabled: true
@@ -92,11 +76,6 @@ server_nextcloud_enabled: true
 server_frigate_enabled: true
 server_excalidraw_enabled: true
 server_jellyfin_enabled: true
-server_odoo_enabled: true
-# Seed Odoo from a dump archive placed at this path on the target host. The
-# playbook skips the import when the Odoo database already has data in
-# ir_model_data, so once the seed runs this can stay true safely.
-server_odoo_seed_enabled: true
 # Keep Pi-hole on the LAN address so systemd-resolved can continue to own the
 # host loopback resolver while household clients use serverannah directly.
 server_pihole_enabled: true
@@ -127,7 +106,6 @@ server_lan_only_published_ports:
   - 8554
   - 8555
   - 32400
-  - 8069
   - 8096
   - 8920
 server_netplan_enabled: true
@@ -201,10 +179,6 @@ server_reverse_proxy_sites:
     # would block the Jellyfin Web UI's login POST and every API call, with
     # no security benefit since Caddy's TLS already protects the channel and
     # Jellyfin's own user database enforces auth.
-  - hostname: odoo.dinnizer.com
-    upstream: odoo:8069
-    basic_auth: true
-    basic_auth_password_file: "{{ server_reverse_proxy_secret_dir }}/caddy-shared-password"
   - hostname: pihole.dinnizer.com
     upstream: pihole:80
     basic_auth: true

@@ -96,8 +96,11 @@ without implementing anything ('dry run')._
             service data (these paths are not in `backup_paths` yet)
     - [ ] timeshift back-up on SSD_512 for simple system-level checkpoints and
           restore points for serverannah internal storage only
-    - [x] Odoo with small database stored on serverannah internal SSD under
-          /home
+    - [x] ~~Odoo with small database stored on serverannah internal SSD~~ —
+          **decommissioned Sept 2026**. The accounting features that made it
+          worthwhile are not in the free edition, so the hosted Odoo stays in
+          use instead. Role, defaults, host vars, Caddy site and containers all
+          removed.
     - [x] Jellyfin reading media from SSD_1TO (Plex removed)
     - [ ] Dictation app/server (voxtype, whisper, etc.) ? Need to be discussed
           before.
@@ -237,7 +240,7 @@ of the setup. Maintenance of the files need to be feasible and easy.
   (on bare metal) an Nginx server to host 3 websites (including a complex
   wordpress) and more to come. It's also DNS Filtering with pi-hole (installed
   on bare metal). last, it's running multiple docker services such as frigate
-   for cameras, N8N, Odoo, bentopdf, Jellyfin, Timeshift (to secure backups on 1
+   for cameras, N8N, bentopdf, Jellyfin, Timeshift (to secure backups on 1
   master and 3 different external disks copies), Nextcloud (to manage my data
   and make it accessible to the whole family) and the like. For now, those
   functions are managed on a raspi 4B (192.168.1.100) that should be retired
