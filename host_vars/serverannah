@@ -41,6 +41,14 @@ backup_database_dumps:
     user: dinnizer
     password_file: /etc/ansible/secrets/dinnizer-db-password
 server_homepage_enabled: true
+# Read-only Docker socket proxy, so Homepage never sees the raw socket.
+server_docker_socket_proxy_enabled: true
+# Bind the dashboard to the LAN address rather than 0.0.0.0. Caddy reaches it
+# over the shared Docker network by name, so nothing needs the world-bound port;
+# this keeps the direct-LAN fallback documented below without exposing an
+# unauthenticated dashboard on every interface.
+homepage_published_ports:
+  - "192.168.1.100:3000:3000"
 server_bentopdf_enabled: true
 server_game_timer_enabled: true
 server_dinnizer_enabled: true
@@ -76,6 +84,7 @@ pihole_published_ports:
   - "192.168.1.100:53:53/udp"
   - "192.168.1.100:8089:80"
 server_lan_only_published_ports:
+  - 3000
   - 8089
   - 8080
   - 8971

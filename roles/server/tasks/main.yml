@@ -93,6 +93,16 @@
     - server
     - backup
 
+# Must precede Homepage: Homepage's docker.yaml points at this proxy by service
+# name, so the proxy has to exist before Homepage starts reading from it.
+- name: Deploy the filtered Docker socket proxy
+  ansible.builtin.import_tasks: docker_socket_proxy.yml
+  when: server_docker_socket_proxy_enabled | default(false)
+  tags:
+    - server
+    - server_docker
+    - docker_socket_proxy
+
 - name: Deploy Homepage
   ansible.builtin.import_tasks: homepage.yml
   when: server_homepage_enabled | default(false)

@@ -24,6 +24,12 @@ server_docker_daemon_config:
 
 server_docker_users:
   - "{{ dotfiles_user | default(desktop_user | default('lion')) }}"
+# Protocols the LAN-only guard filters. Frigate publishes 8555 on both TCP and
+# UDP (WebRTC), so filtering TCP alone left a real hole.
+server_lan_only_protocols:
+  - tcp
+  - udp
+
 server_lan_cidrs:
   - 192.168.1.0/24
 server_lan_only_published_ports: []
@@ -32,6 +38,24 @@ server_netplan_file: /etc/netplan/00-installer-config.yaml
 server_netplan_config: ""
 
 server_homepage_enabled: false
+# Filtered read-only Docker socket proxy (see tasks/docker_socket_proxy.yml).
+# Everything defaults to denied; only the endpoints Homepage reads are enabled,
+# and POST stays 0 so nothing behind the proxy can create or exec a container.
+server_docker_socket_proxy_enabled: false
+server_docker_socket_proxy_image: ghcr.io/tecnativa/docker-socket-proxy:0.3.0
+server_docker_socket_proxy_container_name: docker-socket-proxy
+server_docker_socket_proxy_network_name: autoconfig-services
+server_docker_socket_proxy_port: 2375
+server_docker_socket_proxy_env:
+  CONTAINERS: "1"
+  SERVICES: "0"
+  TASKS: "0"
+  IMAGES: "0"
+  NETWORKS: "0"
+  VOLUMES: "0"
+  INFO: "0"
+  POST: "0"
+
 homepage_container_name: homepage
 homepage_image: ghcr.io/gethomepage/homepage:latest
 homepage_root_dir: /opt/homepage
@@ -39,6 +63,12 @@ homepage_config_dir: /opt/homepage/config
 homepage_source_dir: "{{ role_path }}/../../files/homepage/opt/homepage/"
 homepage_network_name: autoconfig-services
 homepage_port: 3000
+# Published ports for the Homepage container. Override in host_vars to bind the
+# LAN address instead of 0.0.0.0 — Caddy reaches Homepage over the shared Docker
+# network by service name, so the published port is only for direct LAN access
+# and never needs to be world-bound.
+homepage_published_ports:
+  - "{{ homepage_port }}:3000"
 homepage_allowed_hosts:
   - "{{ inventory_hostname }}:{{ homepage_port }}"
   - "{{ ansible_hostname | default(inventory_hostname) }}:{{ homepage_port }}"

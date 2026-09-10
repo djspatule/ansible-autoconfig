@@ -37,12 +37,15 @@
     state: started
     recreate: "{{ homepage_image_pull.changed }}"
     restart_policy: unless-stopped
-    published_ports:
-      - "{{ homepage_port }}:3000"
+    published_ports: "{{ homepage_published_ports }}"
     networks:
       - name: "{{ homepage_network_name }}"
     volumes:
+      # The raw /var/run/docker.sock bind is deliberately gone: it was mounted
+      # read-write into a public-facing dashboard, which made any RCE in
+      # Homepage a full host compromise. Container status now comes from the
+      # filtered read-only proxy (tasks/docker_socket_proxy.yml), reached over
+      # the shared Docker network and configured in files/homepage/.../docker.yaml.
       - "{{ homepage_config_dir }}:/app/config"
-      - /var/run/docker.sock:/var/run/docker.sock
     env:
       HOMEPAGE_ALLOWED_HOSTS: "{{ (homepage_allowed_hosts + homepage_extra_allowed_hosts) | unique | join(',') }}"
