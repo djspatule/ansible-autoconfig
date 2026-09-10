@@ -12,8 +12,24 @@ server_docker_packages_by_family:
       - python-docker
 # Falls back through dotfiles_user → desktop_user → 'lion' to stay consistent
 # with whichever variable the calling host actually defines.
+# Docker daemon configuration. The log caps are the important part: json-file
+# is unbounded by default, so 10m x 3 files per container bounds total container
+# log growth at roughly 540 MB across the current 18 services instead of letting
+# it grow until the root filesystem fills.
+server_docker_daemon_config:
+  log-driver: json-file
+  log-opts:
+    max-size: 10m
+    max-file: "3"
+
 server_docker_users:
   - "{{ dotfiles_user | default(desktop_user | default('lion')) }}"
+# Protocols the LAN-only guard filters. Frigate publishes 8555 on both TCP and
+# UDP (WebRTC), so filtering TCP alone left a real hole.
+server_lan_only_protocols:
+  - tcp
+  - udp
+
 server_lan_cidrs:
   - 192.168.1.0/24
 server_lan_only_published_ports: []
@@ -22,6 +38,24 @@ server_netplan_file: /etc/netplan/00-installer-config.yaml
 server_netplan_config: ""
 
 server_homepage_enabled: false
+# Filtered read-only Docker socket proxy (see tasks/docker_socket_proxy.yml).
+# Everything defaults to denied; only the endpoints Homepage reads are enabled,
+# and POST stays 0 so nothing behind the proxy can create or exec a container.
+server_docker_socket_proxy_enabled: false
+server_docker_socket_proxy_image: ghcr.io/tecnativa/docker-socket-proxy:0.3.0
+server_docker_socket_proxy_container_name: docker-socket-proxy
+server_docker_socket_proxy_network_name: autoconfig-services
+server_docker_socket_proxy_port: 2375
+server_docker_socket_proxy_env:
+  CONTAINERS: "1"
+  SERVICES: "0"
+  TASKS: "0"
+  IMAGES: "0"
+  NETWORKS: "0"
+  VOLUMES: "0"
+  INFO: "0"
+  POST: "0"
+
 homepage_container_name: homepage
 homepage_image: ghcr.io/gethomepage/homepage:latest
 homepage_root_dir: /opt/homepage
@@ -29,6 +63,12 @@ homepage_config_dir: /opt/homepage/config
 homepage_source_dir: "{{ role_path }}/../../files/homepage/opt/homepage/"
 homepage_network_name: autoconfig-services
 homepage_port: 3000
+# Published ports for the Homepage container. Override in host_vars to bind the
+# LAN address instead of 0.0.0.0 — Caddy reaches Homepage over the shared Docker
+# network by service name, so the published port is only for direct LAN access
+# and never needs to be world-bound.
+homepage_published_ports:
+  - "{{ homepage_port }}:3000"
 homepage_allowed_hosts:
   - "{{ inventory_hostname }}:{{ homepage_port }}"
   - "{{ ansible_hostname | default(inventory_hostname) }}:{{ homepage_port }}"
@@ -151,44 +191,6 @@ jellyfin_libraries:
     collection_type: homevideos
     paths:
       - /data/Pictures
-
-server_odoo_enabled: false
-# Odoo runs on its own internal Postgres so we control the version independently
-# of the Dinnizer database. Postgres 15+ as requested; we ship 16-alpine.
-# Odoo data lives under /opt/odoo (system disk) since the README plans call for
-# the small Odoo DB on serverannah's internal storage. The Odoo web UI is bound
-# to the LAN address only — the Caddy reverse proxy is not in front because
-# Odoo's web client serves its own auth and many sub-routes that don't always
-# cooperate with a generic basic-auth gate.
-odoo_container_name: odoo
-odoo_image: odoo:19.0
-odoo_db_container_name: odoo-db
-odoo_db_image: postgres:16-alpine
-odoo_network_name: autoconfig-services
-odoo_root_dir: /opt/odoo
-odoo_app_dir: "{{ odoo_root_dir }}/app"
-odoo_addons_dir: "{{ odoo_root_dir }}/addons"
-odoo_db_data_dir: "{{ odoo_root_dir }}/db"
-odoo_secret_dir: /etc/ansible/secrets
-odoo_db_user: odoo
-odoo_db_name: odoo
-odoo_db_password_file: "{{ odoo_secret_dir }}/odoo-db-password"
-odoo_wait_retries: 30
-odoo_wait_delay: 5
-odoo_published_ports:
-  - "192.168.1.100:8069:8069"
-
-# Optional one-time seeding of the Odoo database from a zip archive produced
-# by `pg_dump` plus the Odoo filestore. The archive is expected to contain
-# exactly: dump.sql at the root, and filestore/ as a directory tree. The
-# path is on the TARGET host (scp the file there first, or use synchronize
-# from the controller — see the playbook notes in odoo.yml). Idempotent: the
-# seed block detects an already-populated database via ir_model_data and
-# skips re-import.
-server_odoo_seed_enabled: false
-odoo_seed_archive: /opt/odoo/seed/dinnizer.dump.zip
-odoo_seed_extract_dir: /opt/odoo/seed/extract
-odoo_seed_marker_file: /opt/odoo/.seed-applied
 
 server_nextcloud_enabled: false
 # Nextcloud keeps app state and its internal data on the server disk. Larger
@@ -335,6 +337,10 @@ fail2ban_caddy_basic_auth_logpath: /opt/reverse-proxy/data/access.log
 fail2ban_caddy_basic_auth_maxretry: 5
 fail2ban_caddy_basic_auth_findtime: 10m
 fail2ban_caddy_basic_auth_bantime: 1h
+
+# Hard cap on one Borg run so a hung dump or a stalled repo lock becomes a
+# failure (which notifies) instead of an eternally "activating" unit.
+backup_timeout: 4h
 
 server_backup_enabled: false
 backup_packages_by_family:

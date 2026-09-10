@@ -94,15 +94,36 @@
       mkdir -p "$dump_dir"
       chmod 700 "$dump_dir"
 
+      # A missing container or password file used to make this block skip the
+      # dump silently and let the backup report success — you would only find
+      # out at restore time, which is the worst possible moment. A typo in a
+      # container name now stops the run instead.
+      #
+      # Each dump is written to a temp file and moved into place only once it is
+      # non-empty, so a failed dump can never truncate the previous good one:
+      # `> file` opens and empties the target before the command even starts.
       {% for dump in backup_database_dumps %}
-      if docker inspect '{{ dump.container }}' >/dev/null 2>&1 && [ -f '{{ dump.password_file }}' ]; then
-        {% if dump.engine | default('mariadb') == 'postgres' %}
-        docker exec -e PGPASSWORD="$(cat '{{ dump.password_file }}')" '{{ dump.container }}' pg_dump -U'{{ dump.user }}' '{{ dump.database }}' > "$dump_dir/{{ dump.name }}.sql"
-        {% else %}
-        docker exec '{{ dump.container }}' mariadb-dump -u'{{ dump.user }}' -p"$(cat '{{ dump.password_file }}')" '{{ dump.database }}' > "$dump_dir/{{ dump.name }}.sql"
-        {% endif %}
-        chmod 600 "$dump_dir/{{ dump.name }}.sql"
+      if ! docker inspect '{{ dump.container }}' >/dev/null 2>&1; then
+        echo "FATAL: dump '{{ dump.name }}' names container '{{ dump.container }}', which does not exist" >&2
+        exit 1
       fi
+      if [ ! -f '{{ dump.password_file }}' ]; then
+        echo "FATAL: dump '{{ dump.name }}' has no password file at '{{ dump.password_file }}'" >&2
+        exit 1
+      fi
+      dump_tmp="$dump_dir/{{ dump.name }}.sql.partial"
+      {% if dump.engine | default('mariadb') == 'postgres' %}
+      docker exec -e PGPASSWORD="$(cat '{{ dump.password_file }}')" '{{ dump.container }}' pg_dump -U'{{ dump.user }}' '{{ dump.database }}' > "$dump_tmp"
+      {% else %}
+      docker exec '{{ dump.container }}' mariadb-dump -u'{{ dump.user }}' -p"$(cat '{{ dump.password_file }}')" '{{ dump.database }}' > "$dump_tmp"
+      {% endif %}
+      if [ ! -s "$dump_tmp" ]; then
+        echo "FATAL: dump '{{ dump.name }}' produced an empty file" >&2
+        rm -f "$dump_tmp"
+        exit 1
+      fi
+      chmod 600 "$dump_tmp"
+      mv "$dump_tmp" "$dump_dir/{{ dump.name }}.sql"
       {% endfor %}
 
       if ! borg info "$BORG_REPO" >/dev/null 2>&1; then
@@ -136,10 +157,14 @@
       Description=Run autoconfig Borg backup
       Requires=docker.service
       After=network-online.target docker.service
+      {% if notify_enabled | default(false) %}
+      OnFailure=autoconfig-notify@%n.service
+      {% endif %}
 
       [Service]
       Type=oneshot
       ExecStart=/usr/local/sbin/autoconfig-borg-backup
+      TimeoutStartSec={{ backup_timeout }}
 
 - name: Install Borg backup systemd timer
   ansible.builtin.copy:

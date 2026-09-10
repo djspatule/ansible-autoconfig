@@ -1,0 +1,35 @@
+---
+# A filtered, read-only stand-in for /var/run/docker.sock.
+#
+# Why this exists: Homepage needs the Docker API to show container status, and
+# the documented way to give it that is to bind-mount the raw socket. That socket
+# is root-equivalent on the host — anything that can talk to it can start a
+# privileged container and own the machine. Mounting it read-write into a
+# public-facing Next.js dashboard means any RCE in that dashboard is a full host
+# compromise, and `RW=True` on the bind does not even limit it to reads.
+#
+# The proxy terminates the socket and re-exposes it over TCP on an internal
+# Docker network with an explicit allowlist: only the endpoints Homepage
+# actually reads. POST is denied, so even a fully compromised Homepage cannot
+# create, exec into, or modify a container through it.
+- name: Ensure the Docker socket proxy image is present
+  community.docker.docker_image:
+    name: "{{ server_docker_socket_proxy_image }}"
+    source: pull
+    force_source: true
+  register: server_docker_socket_proxy_pull
+
+- name: Run the Docker socket proxy
+  community.docker.docker_container:
+    name: "{{ server_docker_socket_proxy_container_name }}"
+    image: "{{ server_docker_socket_proxy_image }}"
+    state: started
+    recreate: "{{ server_docker_socket_proxy_pull.changed }}"
+    restart_policy: unless-stopped
+    # Deliberately NO published_ports: the proxy is reachable only from other
+    # containers on the shared network, never from the LAN or the host.
+    networks:
+      - name: "{{ server_docker_socket_proxy_network_name }}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    env: "{{ server_docker_socket_proxy_env }}"

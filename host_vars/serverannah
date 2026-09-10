@@ -9,6 +9,11 @@ autoconfig_playbook: local.yml
 # Dotfiles enabled; dotfiles_stow_packages below is intentionally overridden to
 # the server subset. Add packages here individually as they mature.
 base_dotfiles_enabled: true
+# Failure notifications. Nothing on this box could report a problem before:
+# the nightly pull broke for a day in silence. The topic is generated on the
+# host into /etc/ansible/secrets/notify-topic and printed once by the run so a
+# phone can subscribe.
+notify_enabled: true
 server_fail2ban_enabled: true
 fail2ban_caddy_basic_auth_enabled: true
 server_backup_enabled: true
@@ -23,6 +28,21 @@ backup_paths:
   # them up keeps the conversation history and project state across provider
   # changes and reinstalls.
   - /home/lion/.local/share/opencode
+  # Every generated service password lives here: the DB roots, the Nextcloud
+  # admin and user passwords, dinnizer-secret-key-base, caddy-shared-password.
+  # The DB dumps below were made *against* these passwords, so restoring dumps
+  # onto a host that generated fresh ones gives you a Nextcloud whose database
+  # and config.php disagree, and a Rails app whose encrypted columns are dead.
+  # The Borg repo is encrypted, so this is safe to include — the one thing that
+  # must stay outside is the Borg passphrase itself.
+  - /etc/ansible/secrets
+  # Jellyfin users, watch state and the seeded libraries.
+  - /opt/jellyfin/config
+  - /opt/game-timer/site
+  - /opt/excalidraw
+  # What a bare-metal rebuild needs first.
+  - /etc/fstab
+  - /etc/netplan
 backup_database_dumps:
   - name: aumenuilya
     container: aumenuilya-db
@@ -41,6 +61,14 @@ backup_database_dumps:
     user: dinnizer
     password_file: /etc/ansible/secrets/dinnizer-db-password
 server_homepage_enabled: true
+# Read-only Docker socket proxy, so Homepage never sees the raw socket.
+server_docker_socket_proxy_enabled: true
+# Bind the dashboard to the LAN address rather than 0.0.0.0. Caddy reaches it
+# over the shared Docker network by name, so nothing needs the world-bound port;
+# this keeps the direct-LAN fallback documented below without exposing an
+# unauthenticated dashboard on every interface.
+homepage_published_ports:
+  - "192.168.1.100:3000:3000"
 server_bentopdf_enabled: true
 server_game_timer_enabled: true
 server_dinnizer_enabled: true
@@ -48,11 +76,6 @@ server_nextcloud_enabled: true
 server_frigate_enabled: true
 server_excalidraw_enabled: true
 server_jellyfin_enabled: true
-server_odoo_enabled: true
-# Seed Odoo from a dump archive placed at this path on the target host. The
-# playbook skips the import when the Odoo database already has data in
-# ir_model_data, so once the seed runs this can stay true safely.
-server_odoo_seed_enabled: true
 # Keep Pi-hole on the LAN address so systemd-resolved can continue to own the
 # host loopback resolver while household clients use serverannah directly.
 server_pihole_enabled: true
@@ -76,13 +99,13 @@ pihole_published_ports:
   - "192.168.1.100:53:53/udp"
   - "192.168.1.100:8089:80"
 server_lan_only_published_ports:
+  - 3000
   - 8089
   - 8080
   - 8971
   - 8554
   - 8555
   - 32400
-  - 8069
   - 8096
   - 8920
 server_netplan_enabled: true
@@ -156,10 +179,6 @@ server_reverse_proxy_sites:
     # would block the Jellyfin Web UI's login POST and every API call, with
     # no security benefit since Caddy's TLS already protects the channel and
     # Jellyfin's own user database enforces auth.
-  - hostname: odoo.dinnizer.com
-    upstream: odoo:8069
-    basic_auth: true
-    basic_auth_password_file: "{{ server_reverse_proxy_secret_dir }}/caddy-shared-password"
   - hostname: pihole.dinnizer.com
     upstream: pihole:80
     basic_auth: true

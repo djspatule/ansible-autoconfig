@@ -1,3 +1,8 @@
 ---
+# Container status is read through the filtered read-only socket proxy, never
+# the raw /var/run/docker.sock. See roles/server/tasks/docker_socket_proxy.yml:
+# the proxy allows only container reads and denies POST, so a compromised
+# Homepage cannot create, modify or exec into anything on the host.
 local-docker:
-  socket: /var/run/docker.sock
+  host: docker-socket-proxy
+  port: 2375

@@ -24,4 +24,14 @@ echo "== yamllint =="
 echo "== ansible-lint =="
 "$venv_dir/bin/ansible-lint"
 
+# Renders the shell-producing templates and shellchecks the result. yamllint and
+# ansible-lint both see only the YAML; this is what looks at what actually lands
+# on a host.
+echo "== rendered shell templates =="
+if command -v shellcheck >/dev/null 2>&1; then
+  "$venv_dir/bin/python" "$repo_dir/tests/render_shell_templates.py"
+else
+  echo "SKIP: shellcheck not installed (pacman -S shellcheck / apt install shellcheck)"
+fi
+
 echo "== lint OK =="

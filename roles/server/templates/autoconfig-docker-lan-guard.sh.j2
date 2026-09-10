@@ -22,8 +22,15 @@ iptables -A AUTOCONFIG-LAN-ONLY -j DROP
 
 # Send each guarded published port through the chain above. -C tests first so we
 # never stack duplicate jump rules across repeated runs.
+#
+# Both protocols: the guard used to emit TCP rules only, which left Frigate's
+# WebRTC port published on 0.0.0.0/udp with no filter at all while its TCP twin
+# was correctly guarded. Guarding UDP as well costs nothing for ports that only
+# ever serve TCP — the rule simply never matches.
 {% for port in server_lan_only_published_ports %}
-iptables -C DOCKER-USER -p tcp -m conntrack --ctorigdstport {{ port }} -j AUTOCONFIG-LAN-ONLY 2>/dev/null || iptables -I DOCKER-USER 1 -p tcp -m conntrack --ctorigdstport {{ port }} -j AUTOCONFIG-LAN-ONLY
+{% for proto in server_lan_only_protocols %}
+iptables -C DOCKER-USER -p {{ proto }} -m conntrack --ctorigdstport {{ port }} -j AUTOCONFIG-LAN-ONLY 2>/dev/null || iptables -I DOCKER-USER 1 -p {{ proto }} -m conntrack --ctorigdstport {{ port }} -j AUTOCONFIG-LAN-ONLY
+{% endfor %}
 {% endfor %}
 # Keep Docker's own RETURN terminator at the end of DOCKER-USER.
 iptables -C DOCKER-USER -j RETURN 2>/dev/null || iptables -A DOCKER-USER -j RETURN
