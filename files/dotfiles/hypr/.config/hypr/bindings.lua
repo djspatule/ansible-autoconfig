@@ -24,6 +24,10 @@ o.bind("SUPER + CTRL + Q", "Calculator", { launch = "gnome-calculator" })
 
 hl.unbind("XF86Calculator")
 o.bind("XF86Calculator", "Calculator", { launch = "gnome-calculator" })
+
+o.window("org.gnome.Calculator", { float = true })
+o.window("org.gnome.Calculator", { center = true })
+
 o.bind("SUPER + SHIFT + H", "Email", { webapp = "https://app.hey.com" })
 
 hl.unbind("SUPER + SHIFT + S")

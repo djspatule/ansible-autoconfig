@@ -79,9 +79,13 @@ def kuma_credentials() -> tuple[str, str]:
 def plan_monitor(site: dict, basic_auth_user: str, basic_auth_password: str | None) -> dict:
     """Turn one reverse-proxy site into the monitor we want for it."""
     hostname = site["hostname"]
+    # Some apps do not serve a useful page at "/". Pi-hole answers 403 there and
+    # only becomes meaningful at /admin/login, so a site may name its own health
+    # path rather than being assumed to live at the root.
+    path = site.get("monitor_path", "/")
     plan: dict = {
         "name": hostname,
-        "url": f"https://{hostname}/",
+        "url": f"https://{hostname}{path}",
         # 60s is plenty for a homelab and keeps the SQLite heartbeat table small.
         "interval": 60,
         # Two retries before alerting, so one dropped packet is not an incident.

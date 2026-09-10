@@ -198,6 +198,9 @@ server_reverse_proxy_sites:
     # Jellyfin's own user database enforces auth.
   - hostname: pihole.dinnizer.com
     upstream: pihole:80
+    # Pi-hole answers 403 at "/" — it only serves the admin app below /admin.
+    # Used by the Uptime Kuma seeder; Caddy itself proxies the whole host.
+    monitor_path: /admin/login
     basic_auth: true
     basic_auth_password_file: "{{ server_reverse_proxy_secret_dir }}/caddy-shared-password"
   - hostname: cloud.dinnizer.com
