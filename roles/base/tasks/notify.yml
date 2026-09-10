@@ -37,12 +37,17 @@
   when: not notify_topic_stat.stat.exists
   changed_when: true
 
-- name: Secure the notification topic file
+# Only for a topic that already existed: a freshly generated one is created
+# under `umask 077` by root above, so it is already 0600 root:root. Guarding on
+# the earlier stat also keeps --check working, where the generate step is a
+# no-op and the path legitimately does not exist yet.
+- name: Secure a pre-existing notification topic file
   ansible.builtin.file:
     path: "{{ notify_topic_file }}"
     owner: root
     group: root
     mode: "0600"
+  when: notify_topic_stat.stat.exists
 
 - name: Install the notification helper
   ansible.builtin.template:
@@ -70,7 +75,9 @@
   ansible.builtin.slurp:
     src: "{{ notify_topic_file }}"
   register: notify_topic_content
-  when: notify_show_subscribe_hint | bool
+  when:
+    - notify_show_subscribe_hint | bool
+    - notify_topic_stat.stat.exists or not ansible_check_mode
 
 # Printed rather than stored anywhere shareable: the operator needs the URL once
 # to subscribe a phone, and it must not end up in the public repo.
@@ -81,4 +88,6 @@
       {{ notify_base_url }}/{{ notify_topic_content.content | b64decode | trim }}
       (open it in the ntfy app or a browser). Test with:
       sudo /usr/local/sbin/autoconfig-notify "test" default "hello"
-  when: notify_show_subscribe_hint | bool
+  when:
+    - notify_show_subscribe_hint | bool
+    - notify_topic_content.content is defined
