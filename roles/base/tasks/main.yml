@@ -17,6 +17,12 @@
     - dotfiles
 # Before autopull: the pull unit references autoconfig-notify@.service via
 # OnFailure=, so the notifier must be installed first.
+- name: Authenticate the GitHub CLI when a token is present
+  ansible.builtin.import_tasks: gh_auth.yml
+  when: gh_auth_enabled | default(true)
+  tags:
+    - gh
+
 - name: Install the failure notification path
   ansible.builtin.import_tasks: notify.yml
   when: notify_enabled | default(false)

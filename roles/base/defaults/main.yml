@@ -6,6 +6,11 @@ base_packages_by_family:
     cli:
       - curl
       - btop
+      # GitHub CLI. Ubuntu ships it in universe, so no third-party apt repo and
+      # no extra supply-chain surface; the tradeoff is a slightly older version
+      # than upstream. Add GitHub's own repo only if a newer gh is actually
+      # needed for something.
+      - gh
       - python3-psutil
       - micro
       - fastfetch
@@ -42,6 +47,7 @@ base_packages_by_family:
     cli:
       - curl
       - btop
+      - github-cli
       - python-psutil
       - micro
       - fastfetch
@@ -180,7 +186,7 @@ lazydocker_arch_map:
   armv7l: armv7
   armv6l: armv6
 
-autoconfig_repo_url: https://github.com/djspatule/ansible-autoconfig.git
+autoconfig_repo_url: https://github.com/lionel-arnaud/ansible-autoconfig.git
 autoconfig_branch: main
 autoconfig_repo_dir: /opt/ansible-pull
 autoconfig_playbook: local.yml
@@ -225,3 +231,9 @@ autoconfig_pull_timeout: 45min
 # external service such as healthchecks.io (which can).
 heartbeat_url_file: /etc/ansible/secrets/heartbeat-pull-url
 heartbeat_timeout_seconds: 20
+
+# GitHub CLI authentication (roles/base/tasks/gh_auth.yml). Off unless a token
+# file is present on the host; see that file for how to create one.
+gh_auth_enabled: true
+gh_token_file: /etc/ansible/secrets/gh-token
+gh_auth_user: "{{ desktop_user | default('lion') }}"

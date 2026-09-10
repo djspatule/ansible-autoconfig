@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-repo_url="${AUTOCONFIG_REPO_URL:-https://github.com/djspatule/ansible-autoconfig.git}"
+repo_url="${AUTOCONFIG_REPO_URL:-https://github.com/lionel-arnaud/ansible-autoconfig.git}"
 branch="${AUTOCONFIG_BRANCH:-main}"
 repo_dir="${AUTOCONFIG_REPO_DIR:-/opt/ansible-pull}"
 playbook="${1:-${AUTOCONFIG_PLAYBOOK:-local.yml}}"

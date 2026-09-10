@@ -91,7 +91,7 @@ match. Config drift fixes itself while I sleep.
 ## 🚀 Try it yourself
 
 ```bash
-sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git \
+sudo ansible-pull -U https://github.com/lionel-arnaud/ansible-autoconfig.git \
   -d /opt/ansible-pull -i hosts local.yml
 ```
 
@@ -138,7 +138,7 @@ objective is to have something that can be run easily on a new machine or not
 (idempotent) with:
 
 ```bash
-sudo ansible-pull -d /opt/ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git -i hosts local.yml --vault-password-file ~/secret.txt
+sudo ansible-pull -d /opt/ansible-pull -U https://github.com/lionel-arnaud/ansible-autoconfig.git -i hosts local.yml --vault-password-file ~/secret.txt
 ```
 
 The `-d /opt/ansible-pull` matters: run as `sudo`, ansible-pull otherwise clones
@@ -351,7 +351,7 @@ storage), and Watchtower (fights the role's deliberate ownership of image pulls)
 #### Objectives
 
 - Use ansible-pull (sudo ansible-pull -U
-  <https://github.com/djspatule/ansible-autoconfig.git> --vault-password-file
+  <https://github.com/lionel-arnaud/ansible-autoconfig.git> --vault-password-file
   ~/secret.txt -C main) to automate the set-up of any of my family’s computer if
   they ever have to be reinstalled from scratch (on the same or different
   hardware).
@@ -360,7 +360,7 @@ storage), and Watchtower (fights the role's deliberate ownership of image pulls)
 - I need to be able to “test” on a virtual machine.
 
 My dotfiles are currently specific to Omarchy and managed with stow
-(<https://github.com/djspatule/omarchy-dotfiles>)... I want to transition from
+(<https://github.com/lionel-arnaud/omarchy-dotfiles>)... I want to transition from
 the dotfiles specific repo to this repo and have stow managed by ansible as part
 of the setup. Maintenance of the files need to be feasible and easy.
 
@@ -479,7 +479,7 @@ sudo ansible-playbook -i hosts --limit serverannah local.yml
 Run with `ansible-pull` on the target machine:
 
 ```bash
-sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git -C main -d /opt/ansible-pull local.yml
+sudo ansible-pull -U https://github.com/lionel-arnaud/ansible-autoconfig.git -C main -d /opt/ansible-pull local.yml
 ```
 
 When testing on a VM or before public DNS/port forwarding is ready, do not ask
@@ -487,7 +487,7 @@ Caddy to obtain public HTTPS certificates yet. Keep the real `serverannah` vars
 as the production target, and override only the staging network edge explicitly:
 
 ```bash
-sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git -C main -d /opt/ansible-pull local.yml \
+sudo ansible-pull -U https://github.com/lionel-arnaud/ansible-autoconfig.git -C main -d /opt/ansible-pull local.yml \
   -e 'server_reverse_proxy_auto_https=false server_reverse_proxy_published_ports=["8081:80"] server_reverse_proxy_sites=[{"hostname":"homepage.localtest.me","upstream":"homepage:3000"},{"hostname":"bentopdf.localtest.me","upstream":"bentopdf:8080"},{"hostname":"game-timer.localtest.me","upstream":"game-timer:80"},{"hostname":"pihole.localtest.me","upstream":"pihole:80"}]'
 ```
 
@@ -621,7 +621,7 @@ printf '%s' 'YOUR_VAULT_PASSWORD' > ~/secret.txt && chmod 600 ~/secret.txt
 
 # 3. Fetch and run the bootstrap: installs git+ansible, clones, installs
 #    collections, runs ansible-pull for base + workstation.
-curl -fsSL https://raw.githubusercontent.com/djspatule/ansible-autoconfig/main/scripts/bootstrap-server.sh \
+curl -fsSL https://raw.githubusercontent.com/lionel-arnaud/ansible-autoconfig/main/scripts/bootstrap-server.sh \
   | sudo env AUTOCONFIG_VAULT_PASSWORD_FILE=/home/lion/secret.txt sh
 ```
 
@@ -962,7 +962,7 @@ clone, then push and pull:
 ```bash
 nvim ~/Documents/ansible-autoconfig/files/dotfiles/<pkg>/<path>
 cd ~/Documents/ansible-autoconfig && git commit -am "..." && git push
-sudo ansible-pull -d /opt/ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git -i hosts local.yml --vault-password-file ~/secret.txt
+sudo ansible-pull -d /opt/ansible-pull -U https://github.com/lionel-arnaud/ansible-autoconfig.git -i hosts local.yml --vault-password-file ~/secret.txt
 ```
 
 (Never `sudo`-edit the `/opt/ansible-pull` copy: it is untracked and the next

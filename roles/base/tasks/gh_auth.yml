@@ -1,0 +1,48 @@
+---
+# Authenticate the GitHub CLI without an interactive OAuth dance.
+#
+# `gh auth login` is a browser flow and cannot be automated. `--with-token` can:
+# it reads a Personal Access Token on stdin and writes the same credential store
+# the interactive flow produces. So the *login* is automatable; creating the
+# token is not, and deliberately stays a human step.
+#
+# The token lives in /etc/ansible/secrets like every other credential — never in
+# this public repo — and that directory is in backup_paths, so it survives a
+# rebuild. Create one at https://github.com/settings/tokens and install it with:
+#
+#   printf '%s\n' ghp_xxx | sudo tee /etc/ansible/secrets/gh-token >/dev/null
+#   sudo chmod 600 /etc/ansible/secrets/gh-token
+#
+# Absent token means this simply does nothing, which is the normal state on a
+# host that has no reason to talk to GitHub as you.
+- name: Check whether a GitHub CLI token is available
+  ansible.builtin.stat:
+    path: "{{ gh_token_file }}"
+  register: gh_token_stat
+
+- name: Check whether the GitHub CLI is already authenticated
+  ansible.builtin.command:
+    argv: [gh, auth, status]
+  become: true
+  become_user: "{{ gh_auth_user }}"
+  register: gh_auth_status
+  changed_when: false
+  failed_when: false
+  when: gh_token_stat.stat.exists
+
+# Only runs when a token exists AND gh is not already authenticated, so repeated
+# pulls do not re-login every night.
+- name: Authenticate the GitHub CLI from the stored token
+  ansible.builtin.shell: |
+    set -eu
+    gh auth login --with-token < '{{ gh_token_file }}'
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ gh_auth_user }}"
+  register: gh_auth_login
+  changed_when: gh_auth_login.rc == 0
+  when:
+    - gh_token_stat.stat.exists
+    - gh_auth_status.rc | default(1) != 0
+  no_log: true

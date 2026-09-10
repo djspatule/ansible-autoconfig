@@ -91,7 +91,7 @@ server_game_timer_enabled: false
 # source is its own PUBLIC repo, which the server clones directly — there is no
 # vendored snapshot in this repo anymore. To deploy a change: push the game-timer
 # repo, then re-run the autoconfig pull (which re-clones it).
-game_timer_repo_url: https://github.com/djspatule/game-timer.git
+game_timer_repo_url: https://github.com/lionel-arnaud/game-timer.git
 game_timer_repo_version: main
 game_timer_root_dir: /opt/game-timer
 # Where the repo is cloned, and the curated dir nginx actually serves.
@@ -119,7 +119,7 @@ dinnizer_root_dir: /opt/dinnizer
 dinnizer_repo_dir: "{{ dinnizer_root_dir }}/app"
 dinnizer_db_data_dir: "{{ dinnizer_root_dir }}/postgres"
 dinnizer_secret_dir: /etc/ansible/secrets
-dinnizer_repo_url: https://github.com/djspatule/dinnizer.git
+dinnizer_repo_url: https://github.com/lionel-arnaud/dinnizer.git
 dinnizer_repo_version: main
 dinnizer_image_name: dinnizer:autoconfig
 dinnizer_container_name: dinnizer
