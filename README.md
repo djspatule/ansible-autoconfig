@@ -850,7 +850,16 @@ already running at `status.dinnizer.com`.
 2. Name it (e.g. *serverannah nightly pull*), set **Heartbeat Interval** to
    `93600` seconds (26 hours — the nightly job plus margin)
 3. Save. It shows a **Push URL** like `https://status.dinnizer.com/api/push/AbC123`
-4. Put that in `host_vars/serverannah` as `heartbeat_pull_url: "https://…"`
+4. Write it to `/etc/ansible/secrets/heartbeat-pull-url` on the host —
+   **not** into `host_vars`, which lives in this public repository:
+
+   ```bash
+   printf '%s\n' 'https://status.dinnizer.com/api/push/XXXX?status=up&msg=OK&ping=' \
+     | sudo tee /etc/ansible/secrets/heartbeat-pull-url >/dev/null
+   sudo chmod 600 /etc/ansible/secrets/heartbeat-pull-url
+   ```
+
+   That directory is in `backup_paths`, so the URL survives a rebuild.
 5. Set its notification to the existing ntfy topic
 
 Catches: the timer being masked, disabled, erroring before it starts, or the pull
@@ -858,8 +867,8 @@ silently not running. **Cannot** catch the whole machine being down — Uptime K
 would be down with it.
 
 **Option B — an external service** (healthchecks.io, Cronitor, Better Stack; all
-have free tiers). Create a free account, add a check with a ~26 hour period,
-copy its ping URL into the same variable.
+have free tiers). Create a free account, add a check with a ~26 hour period, and
+write its ping URL to the same file.
 
 Catches everything Option A does **plus** the box being off, unplugged, or
 cut off from the internet — because the watcher is not in the house.
@@ -867,8 +876,12 @@ cut off from the internet — because the watcher is not in the house.
 Running both is reasonable: point `heartbeat_pull_url` at Option B and add
 Option A as a second monitor, since a push URL is just a URL.
 
-Either way it is a **capability URL** — anyone holding it can silence the alarm
-by pinging it themselves. Keep it in host vars, never in this public repo.
+Either way it is a **capability URL**: anyone holding it can silence the alarm by
+pinging it themselves. That is why it is read from a root-only file on the host
+instead of a variable — this repository is public, and a ping URL committed here
+would be a watchdog anyone could switch off. `heartbeat_url_file` sets the path;
+the helper exits quietly when the file is absent, so an unarmed host is a normal
+state rather than a failure.
 
 **Why this is not built on ntfy**, despite the ntfy documentation describing
 exactly this pattern (schedule a message, cancel it on each successful run, let

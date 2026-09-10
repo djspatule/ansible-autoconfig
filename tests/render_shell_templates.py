@@ -35,6 +35,7 @@ REPO = Path(__file__).resolve().parent.parent
 # Templates that produce shell, mapped to the role whose defaults feed them.
 SHELL_TEMPLATES = {
     "roles/base/templates/autoconfig-notify.sh.j2": "base",
+    "roles/base/templates/autoconfig-heartbeat.sh.j2": "base",
     "roles/base/templates/autoconfig-pull.sh.j2": "base",
     "roles/server/templates/autoconfig-docker-lan-guard.sh.j2": "server",
 }

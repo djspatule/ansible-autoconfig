@@ -207,7 +207,11 @@ notify_show_subscribe_hint: true
 # 45 lets a slow dist-upgrade finish while still catching a genuine hang.
 autoconfig_pull_timeout: 45min
 
-# Dead-man's switch ping URL for the nightly pull. Empty disables it.
+# Dead-man's switch. The ping URL is read from a FILE on the host, never from a
+# variable here: it is a capability URL — anyone holding it can ping it and keep
+# the alarm permanently silent — and this repository is public.
+#
+# /etc/ansible/secrets is in backup_paths, so the URL survives a rebuild.
 #
 # Deliberately NOT built on ntfy scheduled-message cancellation, despite the
 # ntfy docs describing exactly that pattern. Tested against the free public
@@ -216,8 +220,8 @@ autoconfig_pull_timeout: 45min
 # watchdog that raises false "server is DOWN" alarms is worse than none, because
 # you stop believing it.
 #
-# Use any service whose job is detecting ABSENCE of a ping (healthchecks.io,
-# Cronitor, Better Stack heartbeats — all have free tiers). Paste its ping URL
-# here, or better, into host_vars. It is a capability URL: anyone holding it can
-# suppress your alerts, so treat it as a secret.
-heartbeat_pull_url: ""
+# Point it at anything that alerts on a MISSING ping: an Uptime Kuma "Push"
+# monitor (no signup, but it cannot detect its own host being down), or an
+# external service such as healthchecks.io (which can).
+heartbeat_url_file: /etc/ansible/secrets/heartbeat-pull-url
+heartbeat_timeout_seconds: 20

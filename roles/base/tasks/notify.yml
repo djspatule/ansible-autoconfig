@@ -91,3 +91,21 @@
   when:
     - notify_show_subscribe_hint | bool
     - notify_topic_content.content is defined
+
+# The heartbeat is part of the same alerting story as the notifier above, so it
+# is installed alongside it rather than in its own task file.
+- name: Install the dead-man's switch heartbeat helper
+  ansible.builtin.template:
+    src: autoconfig-heartbeat.sh.j2
+    dest: /usr/local/sbin/autoconfig-heartbeat
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Ensure the heartbeat URL file is root-only if it exists
+  ansible.builtin.file:
+    path: "{{ heartbeat_url_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  failed_when: false

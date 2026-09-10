@@ -1,0 +1,27 @@
+#!/bin/sh
+# Managed by Ansible (roles/base). Do not edit on the host.
+#
+# Dead-man's switch ping. Called from ExecStartPost, so it runs only after a
+# SUCCESSFUL run — a failed pull must not refresh the heartbeat, or the watchdog
+# would report healthy while nothing works.
+#
+# The URL lives in a file rather than in the unit because it is a capability:
+# anyone holding it can ping it themselves and keep the alarm permanently
+# silent. This repository is public, so it must never be committed here.
+set -eu
+
+url_file='{{ heartbeat_url_file }}'
+
+# Absent file means the watchdog is simply not armed on this host. That is a
+# normal state, not an error — exit quietly so the calling unit stays green.
+[ -r "$url_file" ] || exit 0
+url="$(cat "$url_file")"
+[ -n "$url" ] || exit 0
+
+# Failure is deliberately non-fatal and quiet-ish: an outage at the monitoring
+# provider must not fail the pull it is only observing. The journal line is
+# enough to notice a heartbeat that has been failing for a while.
+if ! curl -fsS --max-time {{ heartbeat_timeout_seconds }} -o /dev/null "$url"; then
+  logger -t autoconfig-heartbeat -- "heartbeat ping failed"
+  exit 0
+fi
