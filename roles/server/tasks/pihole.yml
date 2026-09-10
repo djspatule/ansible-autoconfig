@@ -40,31 +40,69 @@
 # pihole_custom_dns_records and sends SIGHUP to pihole-FTL to reload the
 # config without a container restart — fast (~1s) and avoids disturbing
 # upstream DNS state.
-- name: Render pihole_custom_dns_records into pihole.toml
-  ansible.builtin.set_fact:
-    pihole_custom_dns_records_toml: >-
-      [{% for record in pihole_custom_dns_records %}"{{ record.ip }} {{ record.name }}"{% if not loop.last %}, {% endif %}{% endfor %}]
 # Pi-hole has two `hosts = [...]` arrays — one under [dns] for local A records
 # and one under [dhcp] for static DHCP leases. We slice the file at the [dns]
 # section boundary so the regex only matches inside [dns], and use Python
 # directly (ansible.builtin.replace has no DOTALL flag exposed).
+#
+# The program is passed as a literal block scalar and the records arrive as one
+# JSON argv entry, not through Jinja interpolation. A folded scalar (`>-`)
+# cannot be used here: YAML keeps the newline before any *more-indented*
+# continuation line, which would hand `python3 -c` a string starting with
+# leading whitespace and blow up with IndentationError. Passing the records via
+# argv also keeps them out of the regex replacement, where a backslash would
+# otherwise be read as a group reference.
+#
+# The comparison is on the *parsed* record list, not on the rendered text:
+# pihole-FTL rewrites pihole.toml in its own style (one record per line) every
+# time it saves its config, so a literal text compare would report "changed" on
+# every run and SIGHUP the daemon for nothing.
 - name: Replace the [dns] hosts line in pihole.toml
   ansible.builtin.command:
-    cmd: >-
-      python3 -c "
-      import re, pathlib;
-      p = pathlib.Path('{{ pihole_config_dir }}/pihole.toml');
-      c = p.read_text();
-      i, j = c.find('[dns]'), c.find('[dhcp]', c.find('[dns]'));
-      new = re.sub(
-        r'(\s*hosts\s*=\s*)\[.*?\](\s*###.*)?$',
-        r'\1{{ pihole_custom_dns_records_toml }}\2',
-        c[i:j], count=1, flags=re.DOTALL | re.MULTILINE
-      );
-      p.write_text(c[:i] + new + c[j:])
-      "
+    argv:
+      - python3
+      - -c
+      - |
+        import json
+        import pathlib
+        import re
+        import sys
+
+        path = pathlib.Path(sys.argv[1])
+        wanted = ['%s %s' % (r['ip'], r['name']) for r in json.loads(sys.argv[2])]
+
+        text = path.read_text()
+        start = text.find('[dns]')
+        if start == -1:
+            sys.exit('no [dns] section in %s' % path)
+        end = text.find('[dhcp]', start)
+        if end == -1:
+            end = len(text)
+        section = text[start:end]
+
+        match = re.search(
+            r'(\s*hosts\s*=\s*)(\[.*?\])(\s*###.*)?$',
+            section,
+            flags=re.DOTALL | re.MULTILINE,
+        )
+        if match is None:
+            sys.exit('no [dns] hosts array in %s' % path)
+        # Exit 0 means "already correct"; exit 9 means "file rewritten". This
+        # gives Ansible honest change reporting so the SIGHUP below only fires
+        # when the records actually moved.
+        if re.findall(r'"([^"]*)"', match.group(2)) == wanted:
+            sys.exit(0)
+
+        rendered = '[' + ', '.join(json.dumps(h) for h in wanted) + ']'
+        section = (section[:match.start()] + match.group(1) + rendered
+                   + (match.group(3) or '') + section[match.end():])
+        path.write_text(text[:start] + section + text[end:])
+        sys.exit(9)
+      - "{{ pihole_config_dir }}/pihole.toml"
+      - "{{ pihole_custom_dns_records | to_json }}"
   register: pihole_custom_dns_records_render
-  changed_when: pihole_custom_dns_records_render.rc == 0
+  changed_when: pihole_custom_dns_records_render.rc == 9
+  failed_when: pihole_custom_dns_records_render.rc not in [0, 9]
   when: pihole_custom_dns_records | length > 0
 
 - name: Signal pihole-FTL to reload its config
