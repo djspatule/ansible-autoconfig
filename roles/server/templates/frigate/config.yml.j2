@@ -34,18 +34,25 @@ cameras:
 
 record:
   enabled: true
-  retain:
-    days: {{ frigate_record_retain_days }}
   alerts:
     retain:
       days: {{ frigate_alerts_retain_days }}
   detections:
     retain:
       days: {{ frigate_detections_retain_days }}
+  # Frigate 0.17 replaced the single `record.retain.days` key with the separate
+  # `continuous` and `motion` retentions, and migrates the old key on startup.
+  # Both default to frigate_record_retain_days so this is exactly the shape
+  # Frigate itself writes — otherwise Ansible and Frigate rewrite the file past
+  # each other and restart the recorder on every run.
+  continuous:
+    days: {{ frigate_record_continuous_days }}
+  motion:
+    days: {{ frigate_record_motion_days }}
 
 snapshots:
   enabled: true
   retain:
     default: {{ frigate_snapshots_retain_days }}
 
-version: 0.15-1
+version: {{ frigate_config_version }}

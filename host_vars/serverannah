@@ -76,15 +76,15 @@ pihole_published_ports:
   - "192.168.1.100:53:53/udp"
   - "192.168.1.100:8089:80"
 server_lan_only_published_ports:
-    - 8089
-    - 8080
-    - 8971
-    - 8554
-    - 8555
-    - 32400
-    - 8069
-    - 8096
-    - 8920
+  - 8089
+  - 8080
+  - 8971
+  - 8554
+  - 8555
+  - 32400
+  - 8069
+  - 8096
+  - 8920
 server_netplan_enabled: true
 server_netplan_config: |
   # Managed by ansible-autoconfig.
@@ -223,10 +223,13 @@ dotfiles_stow_packages:
   - starship
   - git
   - nvim
-  # opencode + systemd: opencode ships its config (.config/opencode/opencode.json),
-  # and the systemd package ships the opencode-web.service + rclone-gdrive-mount.service
-  # user units that the server role enables. Without these the dotfile stow would
-  # deploy the binary's config but leave the units unmanaged.
+  # opencode ships its config (.config/opencode/opencode.json). The systemd
+  # package no longer carries opencode-web.service or rclone-gdrive-mount.service:
+  # the server role templates those two units with this host's LAN IP, port and
+  # binary path, and a static Stow copy cannot express any of that. The copies
+  # that used to live there held *unrendered* Jinja, so whenever Stow won the
+  # race against the role systemd got a unit whose ExecStart was the literal
+  # text "{{ opencode_binary }}".
   - opencode
   - systemd
 

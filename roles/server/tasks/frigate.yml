@@ -104,14 +104,50 @@
 - name: Configure and run Frigate when the camera path exists
   when: frigate_camera_path_stat.stat.exists
   block:
-    - name: Install Frigate configuration
+    # Frigate rewrites config.yml itself: it migrates renamed keys on startup
+    # and re-serialises the document in its own style (quoting, blank lines).
+    # A plain `template` therefore saw a diff on every run and restarted the
+    # recorder nightly. Stage the render, compare the *parsed* documents, and
+    # only swap the file in when the configuration actually differs.
+    - name: Render the Frigate configuration
       ansible.builtin.template:
         src: frigate/config.yml.j2
-        dest: "{{ frigate_config_dir }}/config.yml"
+        dest: "{{ frigate_config_dir }}/.config.yml.ansible-new"
         owner: root
         group: root
         mode: "0644"
+      changed_when: false
+
+    - name: Install Frigate configuration
+      ansible.builtin.command:
+        argv:
+          - python3
+          - -c
+          - |
+            import os
+            import pathlib
+            import sys
+
+            import yaml
+
+            staged = pathlib.Path(sys.argv[1])
+            live = pathlib.Path(sys.argv[2])
+            wanted = yaml.safe_load(staged.read_text())
+            current = yaml.safe_load(live.read_text()) if live.exists() else None
+
+            # Exit 0 means "already correct", 9 means "config replaced", so the
+            # restart handler below only fires on a real configuration change.
+            if current == wanted:
+                staged.unlink()
+                sys.exit(0)
+
+            os.replace(staged, live)
+            sys.exit(9)
+          - "{{ frigate_config_dir }}/.config.yml.ansible-new"
+          - "{{ frigate_config_dir }}/config.yml"
       register: frigate_config_template
+      changed_when: frigate_config_template.rc == 9
+      failed_when: frigate_config_template.rc not in [0, 9]
 
     - name: Pull Frigate image
       community.docker.docker_image:

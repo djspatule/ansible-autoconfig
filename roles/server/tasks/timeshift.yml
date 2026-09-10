@@ -21,38 +21,51 @@
     group: root
     mode: "0755"
 
-- name: Deploy Timeshift configuration
-  ansible.builtin.copy:
-    dest: /etc/timeshift/timeshift.json
+# Timeshift owns this file too: it rewrites timeshift.json in its own style
+# (spaces before the colons) and adds its own bookkeeping keys — snapshot_size,
+# snapshot_count, date_format — every time it saves. A plain `copy` of the whole
+# document therefore saw a diff on every single run, reported "changed", and
+# triggered the snapshot task below; serverannah accumulated 107 stray
+# "ansible initial snapshot" entries that way, none of which Timeshift's
+# retention ever prunes (it only prunes its own D/W/M-tagged snapshots).
+#
+# So reconcile only the keys we actually own and leave the rest of the document
+# alone — including `exclude`, which the operator edits from the Timeshift UI.
+- name: Reconcile the managed keys in the Timeshift configuration
+  ansible.builtin.command:
+    argv:
+      - python3
+      - -c
+      - |
+        import json
+        import pathlib
+        import sys
+
+        path = pathlib.Path(sys.argv[1])
+        managed = json.loads(sys.argv[2])
+
+        raw = path.read_text() if path.exists() else ''
+        current = json.loads(raw) if raw.strip() else {}
+        # Exit 0 means "already correct", 9 means "file rewritten", so the
+        # snapshot task below can key off a real change.
+        if all(current.get(key) == value for key, value in managed.items()):
+            sys.exit(0)
+
+        current.update(managed)
+        path.write_text(json.dumps(current, indent=2) + chr(10))
+        sys.exit(9)
+      - /etc/timeshift/timeshift.json
+      - "{{ timeshift_managed_config | to_json }}"
+  register: timeshift_config
+  changed_when: timeshift_config.rc == 9
+  failed_when: timeshift_config.rc not in [0, 9]
+
+- name: Ensure the Timeshift configuration stays root-owned
+  ansible.builtin.file:
+    path: /etc/timeshift/timeshift.json
     owner: root
     group: root
     mode: "0600"
-    content: |
-      {
-        "backup_device_uuid": "{{ timeshift_device_uuid }}",
-        "parent_device_uuid": "",
-        "do_first_run": "false",
-        "btrfs_mode": "false",
-        "include_btrfs_home_for_backup": "false",
-        "include_btrfs_home_for_restore": "false",
-        "stop_cron_on_battery": "false",
-        "schedule_monthly": "{{ 'true' if 'monthly' in timeshift_schedule else 'false' }}",
-        "schedule_weekly": "{{ 'true' if 'weekly' in timeshift_schedule else 'false' }}",
-        "schedule_daily": "{{ 'true' if 'daily' in timeshift_schedule else 'false' }}",
-        "schedule_hourly": "false",
-        "schedule_boot": "false",
-        "count_monthly": "{{ timeshift_keep_monthly }}",
-        "count_weekly": "{{ timeshift_keep_weekly }}",
-        "count_daily": "{{ timeshift_keep_daily }}",
-        "count_hourly": "0",
-        "count_boot": "0",
-        "snapshot_size": "",
-        "snapshot_count": "",
-        "date_format": "%Y-%m-%d %H:%M:%S",
-        "exclude": [],
-        "exclude-apps": []
-      }
-  register: timeshift_config
 
 - name: Enable and start Timeshift cron service
   ansible.builtin.systemd:
@@ -60,8 +73,27 @@
     enabled: true
     state: started
 
-- name: Take an initial snapshot if config was just written
+# Gated on a marker file rather than on `timeshift_config.changed`: a config
+# change is not the same thing as "this host has never been snapshotted", and
+# tying the two together is what produced the snapshot pile-up above. Timeshift
+# takes over on its own schedule (see timeshift_schedule) once the first one
+# exists.
+- name: Check whether the initial Timeshift snapshot has already been taken
+  ansible.builtin.stat:
+    path: "{{ timeshift_initial_snapshot_marker }}"
+  register: timeshift_initial_snapshot
+
+- name: Take the initial Timeshift snapshot
   ansible.builtin.command:
     cmd: timeshift --create --comments "ansible initial snapshot" --scripted
-  when: timeshift_config.changed
+  when: not timeshift_initial_snapshot.stat.exists
   changed_when: true
+
+- name: Record that the initial Timeshift snapshot was taken
+  ansible.builtin.copy:
+    dest: "{{ timeshift_initial_snapshot_marker }}"
+    content: "Managed by ansible-autoconfig: the initial snapshot has been taken.\n"
+    owner: root
+    group: root
+    mode: "0644"
+  when: not timeshift_initial_snapshot.stat.exists

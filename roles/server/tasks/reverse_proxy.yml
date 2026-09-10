@@ -10,7 +10,20 @@
     - "{{ server_reverse_proxy_root_dir }}"
     - "{{ server_reverse_proxy_config_dir }}"
     - "{{ server_reverse_proxy_data_dir }}"
-    - "{{ server_reverse_proxy_secret_dir }}"
+
+# The secret directory is deliberately NOT in the loop above. Every *_secret_dir
+# in this role resolves to the same /etc/ansible/secrets, and the other eight
+# services that create it all ask for 0700. This task used to fold it into the
+# 0755 loop, so the two modes fought each other: whichever task ran last won,
+# both reported "changed" on every run, and since reverse_proxy is last in
+# main.yml the directory holding every DB root password ended up world-readable.
+- name: Ensure reverse proxy secret directory exists
+  ansible.builtin.file:
+    path: "{{ server_reverse_proxy_secret_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
 
 - name: Ensure reverse proxy container network exists
   community.docker.docker_network:
@@ -49,10 +62,30 @@
   when: not item.stat.exists
   no_log: true
 
+# bcrypt salts randomly, so re-hashing an unchanged password yields a different
+# digest every time. That made the rendered Caddyfile differ on every run, which
+# restarted the Caddy container nightly (a few seconds of downtime for every
+# proxied site) and burned one `docker run` per basic-auth host. Cache the digest
+# next to the password and reuse it until the password itself changes; the cache
+# is keyed by the SHA-256 of the password file, so rotating a password
+# invalidates it automatically.
 - name: Hash reverse proxy basic auth passwords with Caddy
   ansible.builtin.shell: |
     set -eu
-    docker run --rm "{{ server_reverse_proxy_image }}" caddy hash-password --plaintext "$(cat '{{ item.basic_auth_password_file | default(server_reverse_proxy_secret_dir + '/caddy-' + item.hostname + '-password') }}')"
+    password_file='{{ item.basic_auth_password_file | default(server_reverse_proxy_secret_dir + '/caddy-' + item.hostname + '-password') }}'
+    cache_dir='{{ server_reverse_proxy_secret_dir }}/.caddy-hash-cache'
+    mkdir -p "$cache_dir"
+    chmod 700 "$cache_dir"
+    fingerprint=$(sha256sum "$password_file" | cut -d' ' -f1)
+    cache_file="$cache_dir/$(printf '%s' "$password_file" | sha256sum | cut -c1-32).hash"
+    if [ -f "$cache_file" ] && [ "$(head -n 1 "$cache_file")" = "$fingerprint" ]; then
+      tail -n +2 "$cache_file"
+      exit 0
+    fi
+    hash=$(docker run --rm "{{ server_reverse_proxy_image }}" caddy hash-password --plaintext "$(cat "$password_file")")
+    umask 077
+    printf '%s\n%s\n' "$fingerprint" "$hash" > "$cache_file"
+    printf '%s\n' "$hash"
   args:
     executable: /bin/bash
   loop: "{{ server_reverse_proxy_basic_auth_sites }}"
