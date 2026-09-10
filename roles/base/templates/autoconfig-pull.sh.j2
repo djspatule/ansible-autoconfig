@@ -15,6 +15,13 @@ else
   # the remote branch exactly so the daily pull cannot break on a dirty or
   # divergent tree (e.g. an app rewriting a tracked file through a dotfile symlink,
   # or an upstream force-push). clean runs without -x, so ignored paths survive.
+  # Re-assert the remote every run. It is only set at clone time otherwise, so a
+  # change to autoconfig_repo_url would never reach an existing checkout — which
+  # is exactly what happened at the GitHub account rename: the script pulled from
+  # the new URL while the checkout kept fetching the old one, surviving only on
+  # GitHub's redirect. A redirect stops the day someone re-registers the freed
+  # username, and this runs as root.
+  git -C "$repo_dir" remote set-url origin "$repo_url"
   git -C "$repo_dir" fetch --prune origin
   git -C "$repo_dir" checkout -f "$branch"
   git -C "$repo_dir" reset --hard "origin/$branch"
