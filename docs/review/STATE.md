@@ -8,7 +8,7 @@ Base: 1f1a5ee
   died on a session limit. Orchestrator did the security verification directly
   against the live host, which is stronger evidence than a code-read anyway.
 - P2 verification: in progress.
-- P3 implementation: pending.
+- P3 implementation: 5 fixes committed on the branch, pending live verification.
 
 ## CONFIRMED by orchestrator (live host + code, not agent claims)
 
@@ -45,3 +45,20 @@ F4 no TimeoutStartSec on the pull unit
 3. S2 guard UDP
 4. F1/F4 notification + timeout wiring
 5. F3 backup gaps
+
+## Implemented on this branch (each its own commit, pre-commit gate green)
+1. Docker log caps via /etc/docker/daemon.json (946 MB of unbounded logs found,
+   frigate alone 650 MB) + Restart docker handler.
+2. Homepage: raw docker.sock RW bind replaced with a filtered read-only socket
+   proxy (POST denied); homepage bound to the LAN IP; port 3000 added to the
+   LAN-only guard.
+3. LAN guard now filters UDP as well as TCP (8555/udp was wide open).
+4. autoconfig-notify + OnFailure= on the pull and Borg units + TimeoutStartSec
+   on both. Topic generated host-side into /etc/ansible/secrets.
+5. Backup: Odoo DB dump added (511 tables, previously NO dump at all);
+   /etc/ansible/secrets and 8 other paths added; dump runner no longer silently
+   skips a missing container and no longer truncates the last good dump.
+
+## Next
+- Live-verify all five against serverannah from this branch.
+- Then decide on merge to main.
