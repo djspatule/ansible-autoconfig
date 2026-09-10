@@ -206,3 +206,18 @@ notify_show_subscribe_hint: true
 # Hard cap on a single ansible-pull run. The serverannah run takes ~5 minutes;
 # 45 lets a slow dist-upgrade finish while still catching a genuine hang.
 autoconfig_pull_timeout: 45min
+
+# Dead-man's switch ping URL for the nightly pull. Empty disables it.
+#
+# Deliberately NOT built on ntfy scheduled-message cancellation, despite the
+# ntfy docs describing exactly that pattern. Tested against the free public
+# server: DELETE returns HTTP 200 but the scheduled message still fires — it
+# held in only one of three trials, including one with an 85-second margin. A
+# watchdog that raises false "server is DOWN" alarms is worse than none, because
+# you stop believing it.
+#
+# Use any service whose job is detecting ABSENCE of a ping (healthchecks.io,
+# Cronitor, Better Stack heartbeats — all have free tiers). Paste its ping URL
+# here, or better, into host_vars. It is a capability URL: anyone holding it can
+# suppress your alerts, so treat it as a secret.
+heartbeat_pull_url: ""

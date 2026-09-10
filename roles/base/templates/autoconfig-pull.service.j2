@@ -11,6 +11,15 @@ OnFailure=autoconfig-notify@%n.service
 [Service]
 Type=oneshot
 ExecStart=/usr/local/bin/autoconfig-pull
+{% if heartbeat_pull_url %}
+# Dead-man's switch. OnFailure= above reports a run that ran and failed; it
+# cannot report a run that never happened — a masked timer, a box left off, a
+# dead uplink. Only something outside the house can notice silence, so a
+# successful run pings an external monitor configured to alert when the ping is
+# LATE. ExecStartPost runs only when ExecStart succeeded, which is the whole
+# point: a failed run must not refresh the heartbeat.
+ExecStartPost=-/usr/bin/curl -fsS --max-time 20 -o /dev/null {{ heartbeat_pull_url }}
+{% endif %}
 # Neither git nor apt has an internal timeout here, so a hung fetch would leave
 # the unit "activating" forever — which never triggers OnFailure and looks
 # exactly like a run that is merely slow. Cap it so a hang becomes a failure.

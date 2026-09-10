@@ -198,6 +198,16 @@ jellyfin_libraries:
     paths:
       - /data/Pictures
 
+# Uptime Kuma: external checks of the public sites, certs and DNS.
+# Pinned to the v1 major on purpose — v2 changed the storage backend, so an
+# unpinned upgrade would migrate the database with no way back.
+server_uptime_kuma_enabled: false
+uptime_kuma_image: louislam/uptime-kuma:1
+uptime_kuma_container_name: uptime-kuma
+uptime_kuma_network_name: autoconfig-services
+uptime_kuma_data_dir: /opt/uptime-kuma
+uptime_kuma_port: 3001
+
 server_nextcloud_enabled: false
 # Nextcloud keeps app state and its internal data on the server disk. Larger
 # family storage can be exposed separately through nextcloud_external_mounts.

@@ -1,13 +1,34 @@
 ---
 - logo:
     icon: homepage.png
+
+# Disk lines cover every mount that can fill and take services down with it:
+# root holds the containers and the databases, SSD_1TO holds Nextcloud and the
+# media library, back-up holds the Borg repository, verbatim holds Frigate
+# recordings. Root filling to 100% is what takes Postgres, MariaDB, Caddy and
+# the nightly dump down together, so it is listed first.
 - resources:
+    label: System
     cpu: true
     memory: true
-    disk: /
+    uptime: true
+
+- resources:
+    label: Storage
+    disk:
+      - /
+      - /mnt/SSD_1TO
+      - /mnt/back-up
+      - /mnt/verbatim
+
 - search:
     provider: duckduckgo
     target: _blank
+
 - datetime:
     text_size: xl
     locale: fr-FR
+    format:
+      dateStyle: long
+      timeStyle: short
+      hour12: false

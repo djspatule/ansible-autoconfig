@@ -43,6 +43,7 @@ backup_paths:
   - /opt/jellyfin/config
   - /opt/game-timer/site
   - /opt/excalidraw
+  - /opt/uptime-kuma
   # What a bare-metal rebuild needs first.
   - /etc/fstab
   - /etc/netplan
@@ -64,6 +65,9 @@ backup_database_dumps:
     user: dinnizer
     password_file: /etc/ansible/secrets/dinnizer-db-password
 server_homepage_enabled: true
+# External checks of the public sites, certs and DNS. Monitors are configured in
+# its own UI; only the container and its route are managed here.
+server_uptime_kuma_enabled: true
 # Read-only Docker socket proxy, so Homepage never sees the raw socket.
 server_docker_socket_proxy_enabled: true
 # Bind the dashboard to the LAN address rather than 0.0.0.0. Caddy reaches it
@@ -160,6 +164,10 @@ server_reverse_proxy_sites:
     upstream: dinnizer:3000
   - hostname: homepage.dinnizer.com
     upstream: homepage:3000
+    basic_auth: true
+    basic_auth_password_file: "{{ server_reverse_proxy_secret_dir }}/caddy-shared-password"
+  - hostname: status.dinnizer.com
+    upstream: uptime-kuma:3001
     basic_auth: true
     basic_auth_password_file: "{{ server_reverse_proxy_secret_dir }}/caddy-shared-password"
   - hostname: pdf.dinnizer.com

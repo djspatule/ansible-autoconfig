@@ -1,4 +1,15 @@
 ---
+# Every service actually running on serverannah. Grouped the way they are used,
+# not the way they are deployed.
+#
+# siteMonitor always points at the INTERNAL container URL, never the public
+# hostname: the public routes for the admin tools sit behind Caddy basic auth,
+# so monitoring those would report a permanent 401 and show every tile as down.
+#
+# `server: local-docker` + `container:` reads container state through the
+# filtered read-only Docker socket proxy (see roles/server/tasks/docker_socket_proxy.yml),
+# never the raw socket.
+
 - Public Sites:
     - AuMenuIlYA:
         icon: wordpress.png
@@ -8,6 +19,22 @@
         container: aumenuilya
         showStats: true
         siteMonitor: http://aumenuilya/
+    - Dinnizer:
+        icon: mdi-silverware-fork-knife
+        href: https://app.dinnizer.com/
+        description: Meal-planning app
+        server: local-docker
+        container: dinnizer
+        showStats: true
+        siteMonitor: http://dinnizer:3000/
+    - Dinnizer Website:
+        icon: mdi-web
+        href: https://www.dinnizer.com/
+        description: Public landing site
+        server: local-docker
+        container: dinnizer-website
+        showStats: true
+        siteMonitor: http://dinnizer-website/
     - Tabletop Timer:
         icon: mdi-timer-outline
         href: https://tabletop-timer.com/
@@ -26,29 +53,101 @@
         container: nextcloud
         showStats: true
         siteMonitor: http://nextcloud/status.php
+    - Jellyfin:
+        icon: jellyfin.png
+        href: https://jelly.dinnizer.com/
+        description: Films, series and music
+        server: local-docker
+        container: jellyfin
+        showStats: true
+        siteMonitor: http://jellyfin:8096/health
     - Frigate:
         icon: frigate.png
         href: https://frigate.dinnizer.com/
         description: Camera NVR (basic auth)
+        server: local-docker
+        container: frigate
+        showStats: true
+    - Excalidraw:
+        icon: mdi-draw
+        href: https://draw.dinnizer.com/
+        description: Collaborative whiteboard (basic auth)
+        server: local-docker
+        container: excalidraw
+        showStats: true
+        siteMonitor: http://excalidraw/
     - BentoPDF:
         icon: mdi-file-pdf-box
         href: https://pdf.dinnizer.com/
         description: Family PDF toolkit (basic auth)
+        server: local-docker
+        container: bentopdf
+        showStats: true
+        siteMonitor: http://bentopdf:8080/
 
 - Infrastructure:
     - Homepage:
         icon: homepage.png
         href: https://homepage.dinnizer.com/
-        description: Protected service dashboard
+        description: This dashboard
         server: local-docker
         container: homepage
         showStats: true
         siteMonitor: http://homepage:3000/
+    - Uptime Kuma:
+        icon: uptime-kuma.png
+        href: https://status.dinnizer.com/
+        description: External checks and cert expiry (basic auth)
+        server: local-docker
+        container: uptime-kuma
+        showStats: true
+        siteMonitor: http://uptime-kuma:3001/
     - Pi-hole:
         icon: pi-hole.png
-        href: http://192.168.1.100:8089/admin/login
-        description: LAN-only DNS filtering admin
+        href: https://pihole.dinnizer.com/admin/login
+        description: Network-wide DNS filtering
         server: local-docker
         container: pihole
         showStats: true
         siteMonitor: http://pihole/admin/img/logo.svg
+    - Caddy:
+        icon: mdi-shield-lock-outline
+        description: Reverse proxy and automatic HTTPS
+        server: local-docker
+        container: server-reverse-proxy
+        showStats: true
+    - Docker Socket Proxy:
+        icon: mdi-shield-key-outline
+        description: Filtered read-only Docker API for this dashboard
+        server: local-docker
+        container: docker-socket-proxy
+        showStats: true
+
+- Databases:
+    # No href: these are not meant to be reachable from a browser. They are here
+    # so a container that has died shows up on the dashboard rather than being
+    # noticed when the app in front of it starts throwing errors.
+    - Nextcloud DB:
+        icon: mariadb.png
+        description: MariaDB behind Nextcloud
+        server: local-docker
+        container: nextcloud-db
+        showStats: true
+    - Nextcloud Redis:
+        icon: redis.png
+        description: Cache and file locking
+        server: local-docker
+        container: nextcloud-redis
+        showStats: true
+    - Dinnizer DB:
+        icon: postgres.png
+        description: PostgreSQL behind Dinnizer
+        server: local-docker
+        container: dinnizer-db
+        showStats: true
+    - AuMenuIlYA DB:
+        icon: mariadb.png
+        description: MariaDB behind the food blog
+        server: local-docker
+        container: aumenuilya-db
+        showStats: true

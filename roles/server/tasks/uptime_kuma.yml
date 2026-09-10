@@ -1,0 +1,44 @@
+---
+# Uptime Kuma watches the services from the *outside* — it asks each public URL
+# whether it answers, which is a different question from the one the systemd
+# OnFailure= alerts answer. Those know only whether an Ansible or backup job
+# failed; they know nothing about a WordPress site that white-screened after a
+# plugin update, or a certificate that quietly failed to renew.
+#
+# Monitors are configured through the web UI, not from here. Uptime Kuma's API
+# is not stable enough to drive idempotently, and pretending otherwise would
+# produce a task that silently diverges from what the UI shows. The container,
+# its storage and its route are managed; the checks inside it are not.
+- name: Ensure the Uptime Kuma data directory exists
+  ansible.builtin.file:
+    path: "{{ uptime_kuma_data_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Pull Uptime Kuma image
+  community.docker.docker_image:
+    name: "{{ uptime_kuma_image }}"
+    source: pull
+    force_source: true
+  register: uptime_kuma_image_pull
+
+- name: Ensure Uptime Kuma container network exists
+  community.docker.docker_network:
+    name: "{{ uptime_kuma_network_name }}"
+    state: present
+
+- name: Run Uptime Kuma container
+  community.docker.docker_container:
+    name: "{{ uptime_kuma_container_name }}"
+    image: "{{ uptime_kuma_image }}"
+    state: started
+    recreate: "{{ uptime_kuma_image_pull.changed }}"
+    restart_policy: unless-stopped
+    # No published ports: Caddy reaches it over the shared network by name, so
+    # the dashboard is never exposed on a host interface.
+    networks:
+      - name: "{{ uptime_kuma_network_name }}"
+    volumes:
+      - "{{ uptime_kuma_data_dir }}:/app/data"
