@@ -4,11 +4,12 @@
 #                          ansible-playbook local.yml --tags server,pihole
 #                          ansible-playbook local.yml --tags dotfiles --skip-tags always
 # Limit to one host:       ansible-playbook local.yml --limit serverannah
-- hosts: all
+- name: Refresh package metadata on every host
+  hosts: all
   tags: always
   become: true
   pre_tasks:
-    - name: update repositories (arch)
+    - name: Update repositories (Arch)
       tags: always
       become: true
       community.general.pacman:
@@ -16,7 +17,7 @@
       changed_when: false
       when: ansible_facts['distribution'] == 'Archlinux'
 
-    - name: update repositories and apply distribution upgrades
+    - name: Update repositories and apply distribution upgrades
       tags: always
       become: true
       ansible.builtin.apt:
@@ -29,36 +30,41 @@
       when: ansible_facts['os_family'] == "Debian"
 
 # run roles
-- hosts: all
+- name: Apply the common base role
+  hosts: all
   tags: base
   become: true
   roles:
     - base
 
-- hosts: server
+- name: Apply the server role
+  hosts: server
   tags: server
   become: true
   roles:
     # The server role now contains only server-specific storage and services.
     - server
 
-- hosts: workstation
+- name: Apply the workstation role
+  hosts: workstation
   tags: workstation
   become: true
   roles:
     - workstation
 
-- hosts: kids
+- name: Apply the kids role
+  hosts: kids
   tags: kids
   become: true
   roles:
     - kids
 
 # end of run cleanup
-- hosts: all
+- name: Clean up the package cache after the run
+  hosts: all
   become: true
   tasks:
-    - name: cleanup package cache (debian and ubuntu)
+    - name: Clean up the package cache (Debian and Ubuntu)
       tags: always
       ansible.builtin.apt:
         autoclean: true
@@ -67,7 +73,7 @@
       # Mint, …) so apt tasks no longer silently skip on a distro we forgot to list.
       when: ansible_facts['os_family'] == "Debian"
 
-    - name: autoremove orphan packages (debian and ubuntu)
+    - name: Autoremove orphan packages (Debian and Ubuntu)
       tags: always
       ansible.builtin.apt:
         autoremove: true

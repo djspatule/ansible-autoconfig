@@ -1,12 +1,14 @@
 ---
 # Keep the server task list explicit and flat so each service can be tested with
 # tags and understood without chasing too much indirection.
-- import_tasks: docker.yml
+- name: Install and configure Docker
+  ansible.builtin.import_tasks: docker.yml
   tags:
     - server
     - server_docker
 
-- import_tasks: netplan.yml
+- name: Configure the network with netplan
+  ansible.builtin.import_tasks: netplan.yml
   when: server_netplan_enabled | default(false)
   tags:
     - server
@@ -63,67 +65,78 @@
     - server_docker
     - firewall
 
-- import_tasks: timeshift.yml
+- name: Configure Timeshift system snapshots
+  ansible.builtin.import_tasks: timeshift.yml
   when: server_timeshift_enabled | default(false)
   tags:
     - server
     - timeshift
 
-- import_tasks: mounts.yml
+- name: Configure the storage mounts
+  ansible.builtin.import_tasks: mounts.yml
   when: server_manage_fstab | default(false)
   tags:
     - server
     - server_mounts
 
-- import_tasks: fail2ban.yml
+- name: Configure fail2ban
+  ansible.builtin.import_tasks: fail2ban.yml
   when: server_fail2ban_enabled | default(false)
   tags:
     - server
     - fail2ban
 
-- import_tasks: backup.yml
+- name: Configure the Borg backups
+  ansible.builtin.import_tasks: backup.yml
   when: server_backup_enabled | default(false)
   tags:
     - server
     - backup
 
-- import_tasks: homepage.yml
+- name: Deploy Homepage
+  ansible.builtin.import_tasks: homepage.yml
   when: server_homepage_enabled | default(false)
   tags:
     - server
     - homepage
 
-- import_tasks: bentopdf.yml
+- name: Deploy BentoPDF
+  ansible.builtin.import_tasks: bentopdf.yml
   when: server_bentopdf_enabled | default(false)
   tags:
     - server
     - bentopdf
 
-- import_tasks: game_timer.yml
+- name: Deploy the game timer
+  ansible.builtin.import_tasks: game_timer.yml
   when: server_game_timer_enabled | default(false)
   tags:
     - server
     - game_timer
 
-- import_tasks: dinnizer.yml
+- name: Deploy Dinnizer
+  ansible.builtin.import_tasks: dinnizer.yml
   when: server_dinnizer_enabled | default(false)
   tags:
     - server
     - dinnizer
 
-- import_tasks: excalidraw.yml
+- name: Deploy Excalidraw
+  ansible.builtin.import_tasks: excalidraw.yml
   when: server_excalidraw_enabled | default(false)
   tags:
     - server
     - excalidraw
 
-- import_tasks: jellyfin.yml
+- name: Deploy Jellyfin
+  ansible.builtin.import_tasks: jellyfin.yml
   when: server_jellyfin_enabled | default(false)
   tags:
     - server
     - jellyfin
 
-- import_tasks: odoo.yml
+- name: Deploy Odoo
+  ansible.builtin.import_tasks: odoo.yml
   when: server_odoo_enabled | default(false)
   tags:
     - server
@@ -133,13 +146,15 @@
 # hardware/storage availability and sets a fact; the main task only runs when
 # both the feature flag AND the preflight fact are true. This prevents the
 # deployment from failing on a machine where the required disk is not yet mounted.
-- import_tasks: nextcloud_preflight.yml
+- name: Check whether Nextcloud storage is available
+  ansible.builtin.import_tasks: nextcloud_preflight.yml
   when: server_nextcloud_enabled | default(false)
   tags:
     - server
     - nextcloud
 
-- import_tasks: nextcloud.yml
+- name: Deploy Nextcloud
+  ansible.builtin.import_tasks: nextcloud.yml
   when:
     - server_nextcloud_enabled | default(false)
     - nextcloud_storage_mount_available | default(false)
@@ -147,13 +162,15 @@
     - server
     - nextcloud
 
-- import_tasks: frigate_preflight.yml
+- name: Check whether the Frigate camera is available
+  ansible.builtin.import_tasks: frigate_preflight.yml
   when: server_frigate_enabled | default(false)
   tags:
     - server
     - frigate
 
-- import_tasks: frigate.yml
+- name: Deploy Frigate
+  ansible.builtin.import_tasks: frigate.yml
   when:
     - server_frigate_enabled | default(false)
     - frigate_runtime_available | default(false)
@@ -161,31 +178,36 @@
     - server
     - frigate
 
-- import_tasks: pihole.yml
+- name: Deploy Pi-hole
+  ansible.builtin.import_tasks: pihole.yml
   when: server_pihole_enabled | default(false)
   tags:
     - server
     - pihole
 
-- import_tasks: aumenuilya.yml
+- name: Deploy AuMenuIlYA
+  ansible.builtin.import_tasks: aumenuilya.yml
   when: server_aumenuilya_enabled | default(false)
   tags:
     - server
     - aumenuilya
 
-- import_tasks: opencode.yml
+- name: Deploy opencode web
+  ansible.builtin.import_tasks: opencode.yml
   when: server_opencode_enabled | default(false)
   tags:
     - server
     - opencode
 
-- import_tasks: rclone_gdrive.yml
+- name: Configure the rclone Google Drive mount
+  ansible.builtin.import_tasks: rclone_gdrive.yml
   when: server_rclone_gdrive_enabled | default(false)
   tags:
     - server
     - rclone_gdrive
 
-- import_tasks: reverse_proxy.yml
+- name: Deploy the Caddy reverse proxy
+  ansible.builtin.import_tasks: reverse_proxy.yml
   when: server_reverse_proxy_enabled | default(false)
   tags:
     - server

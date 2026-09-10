@@ -41,6 +41,10 @@
 
 # Apply the current fstab after the managed block and its target directories are
 # in place. The data entries use nofail, so missing disks do not block VM tests.
+# noqa command-instead-of-module — ansible.posix.mount manages one entry at a
+# time against a known device/fstype. The point here is the opposite: apply
+# whatever the managed fstab now declares, in one pass, without the role having
+# to re-enumerate every entry.
 - name: Mount filesystems declared in fstab
-  ansible.builtin.command: mount -a
+  ansible.builtin.command: mount -a  # noqa: command-instead-of-module
   changed_when: false

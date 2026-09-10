@@ -11,8 +11,10 @@
       Espanso auto-install is only wired for Arch/Omarchy (AUR: espanso-wayland).
       On {{ ansible_facts.os_family }} install espanso by hand for now.
 
+# noqa command-instead-of-shell — `command -v` is a shell builtin, so this
+# genuinely needs a shell. ansible.builtin.command cannot run it.
 - name: Check whether espanso is already installed
-  ansible.builtin.shell: command -v espanso
+  ansible.builtin.shell: command -v espanso  # noqa: command-instead-of-shell
   register: workstation_espanso_installed
   changed_when: false
   failed_when: false

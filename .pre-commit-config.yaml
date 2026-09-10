@@ -7,16 +7,18 @@
 # One-time setup:
 #   pipx install pre-commit   # or: pip install --user pre-commit
 #   pre-commit install        # installs the git hook into this repo
+# The pinned revs track the versions scripts/lint.sh installs into .lint-venv,
+# so the hook and the manual lint run agree on what passes.
 # Then it just works on every commit. To refresh the pinned versions later:
 #   pre-commit autoupdate
 # To run on demand against everything:
 #   pre-commit run --all-files
 repos:
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.35.1
+    rev: v1.38.0
     hooks:
       - id: yamllint
   - repo: https://github.com/ansible/ansible-lint
-    rev: v24.12.2
+    rev: v26.4.0
     hooks:
       - id: ansible-lint

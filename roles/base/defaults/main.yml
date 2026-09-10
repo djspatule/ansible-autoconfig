@@ -34,8 +34,10 @@ base_packages_by_family:
       - lazygit
       - zoxide
       - pandoc
-    snaps: [] # keep the [] for as long as this list is empty. Delete [] when you at at least one line.
-      # - tldr
+    # Keep the [] for as long as this list is empty; delete it once there is
+    # at least one entry.
+    snaps: []
+    # - tldr
   Archlinux:
     cli:
       - curl

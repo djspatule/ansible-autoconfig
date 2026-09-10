@@ -2,13 +2,18 @@
 # Base is the common foundation for every host. Only server-safe tasks belong here.
 # lazydocker, starship, and dotfiles are opt-in via their respective flags.
 # autopull always runs — every host must be self-managing via ansible-pull.
-- import_tasks: common_packages.yml
-- import_tasks: lazydocker.yml
+- name: Install the common package set
+  ansible.builtin.import_tasks: common_packages.yml
+- name: Install lazydocker
+  ansible.builtin.import_tasks: lazydocker.yml
   when: base_lazydocker_enabled | default(false)
-- import_tasks: starship_prompt.yml
+- name: Configure the Starship prompt
+  ansible.builtin.import_tasks: starship_prompt.yml
   when: base_starship_prompt_enabled | default(false)
-- import_tasks: dotfiles.yml
+- name: Deploy the dotfiles
+  ansible.builtin.import_tasks: dotfiles.yml
   when: base_dotfiles_enabled | default(false)
   tags:
     - dotfiles
-- import_tasks: autopull.yml
+- name: Install the self-managing ansible-pull timer
+  ansible.builtin.import_tasks: autopull.yml

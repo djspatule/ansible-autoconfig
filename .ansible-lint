@@ -11,6 +11,15 @@ profile: basic
 skip_list:
   - var-naming[no-role-prefix]
 
+# .yamllint already declares line-length a warning rather than an error, because
+# the long lines in this repo are inline SQL and shell one-liners (the Pi-hole
+# gravity.db imports, the Nextcloud occ calls) that only get harder to read when
+# broken across continuations. ansible-lint runs its own yamllint pass and does
+# not inherit that level, so state the same decision here rather than have the
+# two linters disagree.
+warn_list:
+  - yaml[line-length]
+
 exclude_paths:
   - .git/
   - .lint-venv/
