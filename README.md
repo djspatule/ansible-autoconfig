@@ -45,6 +45,7 @@ two small businesses.
 | 📊 | **Homepage** | One dashboard showing the health of everything at a glance. |
 | 💾 | **Borg + Timeshift** | Encrypted, deduplicated backups — *with a restore that has actually been tested on a clean machine.* |
 | 🚨 | **Failure alerts** | If anything breaks, my phone knows before I do. |
+| 📈 | **Uptime Kuma** | Checks every public site from the outside, and warns before a certificate expires. |
 | 🚫 | **fail2ban** | Automatically bans hosts that try to brute-force their way in. |
 
 ---
@@ -115,7 +116,7 @@ anyone (human or agent) changing this repo.
 - [Linting](#linting) — local lint + the rendered-template test harness
 - [Testing On A VM](#testing-on-a-vm)
 - [Storage Model](#storage-model) · [Disaster Recovery](#disaster-recovery) · [Off-Site Backups](#off-site-backups)
-- [Dotfiles Model](#dotfiles-model) · [Pi-hole Source Of Truth](#pi-hole-source-of-truth)
+- [Dead-Man's Switch](#dead-mans-switch) · [Dotfiles Model](#dotfiles-model) · [Pi-hole Source Of Truth](#pi-hole-source-of-truth)
 - [Serverannah Notes](#serverannah-notes) · [Conventions](#conventions-for-future-changes) · [Known Reality](#known-reality)
 
 ## Credits and lineage
@@ -168,11 +169,12 @@ Ranked by value for *this* setup. Resilience before new apps: the box now has
 17 services and the useful question is not "what else can it run" but "what
 tells me when one of them stops".
 
-- [ ] **Dead-man's switch** for the nightly pull and backup. `OnFailure=` (now
-      implemented) catches a run that *fails*; it structurally cannot catch a
-      timer that never fires at all — a masked unit, a box that is off, a
-      network that is down. Needs a watcher outside the house: an
-      externally-hosted ping URL that alerts when a heartbeat is *late*.
+- [~] **Dead-man's switch** — mechanism implemented, needs a ping URL.
+      `OnFailure=` catches a run that *fails*; it structurally cannot catch a
+      timer that never fires at all. Set `heartbeat_pull_url` to a URL from any
+      service that alerts on a *missing* ping. See
+      [Dead-Man's Switch](#dead-mans-switch) for why this is deliberately not
+      built on ntfy.
 - [x] **Off-site backup copy** — implemented. The Borg repo (~6 GB) mirrors to
       Google Drive after every `borg compact`. See
       [Off-Site Backups](#off-site-backups).
@@ -180,12 +182,18 @@ tells me when one of them stops".
       not self-hosted: a password manager that lives on the machine whose
       passphrase it holds is circular, and this is the one service where
       depending on someone else's uptime is the *safer* choice).
-- [ ] **Uptime monitoring** (Uptime Kuma, ~150 MB). Checks the public sites,
-      certificate expiry and DNS from the outside. Today a white-screened site
-      is discovered by a family member, not by me.
-- [ ] **Rotate the shared Caddy password on a schedule.** One password currently
-      gates six admin surfaces, one of which reaches an agent with shell access.
-      A rotation task plus per-site passwords would shrink that blast radius.
+- [x] **Uptime monitoring** — Uptime Kuma deployed at `status.dinnizer.com`.
+      Monitors are configured in its own UI (its API is not stable enough to
+      manage idempotently from Ansible, and a task pretending otherwise would
+      silently diverge from what the UI shows).
+- [ ] ~~Rotate the shared Caddy password / split it per site~~ — **rejected,
+      deliberately.** Caddy basic auth holds no session: every page refresh
+      re-prompts, and desktop Bitwarden cannot autofill a browser-native auth
+      dialog (it can on mobile, where the prompt is a normal form). Per-site
+      passwords would multiply that friction by six, and automatic rotation adds
+      a lockout risk that outweighs the benefit. Revisit only if Caddy gains
+      cookie-backed sessions, or by moving the admin routes to an auth portal
+      (Authelia / tinyauth) that issues a session cookie.
 - [ ] **Fix or delete push mode.** The documented
       `-e ansible_connection=ssh` entry point cannot work (see Current Entry
       Points). Either make `dotfiles_source_dir` and the `synchronize` tasks
@@ -771,6 +779,38 @@ Borg repo — nothing about the restore path in
 rclone sync 'Google Drive Perso:backups/borg/serverannah' /tmp/borg-restore
 BORG_PASSPHRASE=... borg list /tmp/borg-restore
 ```
+
+### Dead-Man's Switch
+
+`OnFailure=` reports a job that ran and failed. It cannot report a job that
+**never ran** — a masked timer, a box left switched off, a dead uplink, a hung
+`git fetch`. From inside the house those are indistinguishable from silence, and
+silence looks exactly like success. Only something outside can notice.
+
+So a successful pull pings an external monitor, and that monitor alerts when the
+ping is **late**:
+
+```ini
+ExecStartPost=-/usr/bin/curl -fsS --max-time 20 -o /dev/null {{ heartbeat_pull_url }}
+```
+
+Two details matter. `ExecStartPost` runs only when `ExecStart` succeeded, so a
+failed run does not refresh the heartbeat. The leading `-` makes the ping
+non-fatal, so an outage at the monitoring provider cannot fail the pull itself.
+
+Set `heartbeat_pull_url` (empty disables it) to a ping URL from any service whose
+job is detecting the *absence* of a signal — healthchecks.io, Cronitor and
+Better Stack all have free tiers. It is a capability URL: anyone holding it can
+suppress your alerts, so keep it in host vars, not here.
+
+**Why this is not built on ntfy**, despite the ntfy documentation describing
+exactly this pattern (schedule a message, cancel it on each successful run, let
+it fire when the runs stop): *it was tested and it does not hold.* Against the
+free public server, `DELETE /<topic>/<id>` returns HTTP 200 and the scheduled
+message fires anyway. It held in one of three trials, including a failure with
+an 85-second cancellation margin. A watchdog that raises false "server is DOWN"
+alarms is worse than no watchdog, because you stop believing it. If ntfy
+scheduling is ever revisited, re-run that test first.
 
 ### Dotfiles Model
 
