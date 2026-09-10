@@ -84,29 +84,30 @@ def plan_monitor(site: dict, basic_auth_user: str, basic_auth_password: str | No
         "url": f"https://{hostname}/",
         # 60s is plenty for a homelab and keeps the SQLite heartbeat table small.
         "interval": 60,
-        "retries": 2,
+        # Two retries before alerting, so one dropped packet is not an incident.
+        "maxretries": 2,
         "timeout": 30,
+        # Warn before a certificate expires. This is half the reason the whole
+        # thing exists: a silently unrenewed cert takes a site down with no
+        # warning at all.
+        "expiryNotification": True,
+        # Nextcloud and Jellyfin answer / with a 302 to their login page, which
+        # is a perfectly healthy response, so 3xx is accepted everywhere.
+        "accepted_statuscodes": ["200-299", "300-399"],
     }
 
     if site.get("redirect_to"):
         # A redirect host is healthy when it redirects. Following it would test
-        # the *target* instead and hide a broken redirect.
-        plan["accepted_statuscodes"] = ["200-299", "300-399"]
-        plan["follow_redirect"] = False
+        # the *target* instead and hide a broken redirect, so cap redirects at 0.
+        plan["maxredirects"] = 0
         return plan
-
-    # Nextcloud and Jellyfin answer / with a 302 to their login page, which is a
-    # perfectly healthy response, so 3xx is accepted everywhere.
-    plan["accepted_statuscodes"] = ["200-299", "300-399"]
 
     if site.get("basic_auth"):
         if basic_auth_password:
             # Authenticate so the check reaches the application. Without this the
             # monitor would only ever see Caddy's 401 and would report green with
             # a dead service behind it.
-            plan["authMethod"] = "basic"
-            plan["basic_auth_user"] = basic_auth_user
-            plan["basic_auth_pass"] = basic_auth_password
+            plan["_basic_auth"] = (basic_auth_user, basic_auth_password)
         else:
             # No password available: settle for proving DNS, TLS and Caddy are
             # alive by treating the auth challenge itself as success. This does
@@ -140,12 +141,13 @@ def main() -> int:
     if args.dry_run:
         print(f"{len(plans)} monitors planned from {args.host_vars.name}:\n")
         for p in plans:
-            auth = " (authenticated)" if p.get("authMethod") == "basic" else ""
+            auth = " (authenticated)" if p.get("_basic_auth") else ""
             codes = ",".join(p.get("accepted_statuscodes", []))
             print(f"  {p['name']:26s} {p['url']:42s} [{codes}]{auth}")
         return 0
 
-    from uptime_kuma_api import UptimeKumaApi  # imported late so --dry-run needs no dependency
+    # Imported late so --dry-run needs no dependency and no network.
+    from uptime_kuma_api import AuthMethod, UptimeKumaApi
 
     username, password = kuma_credentials()
     api = UptimeKumaApi(args.url)
@@ -158,6 +160,12 @@ def main() -> int:
                 print(f"  skip    {p['name']} (already exists)")
                 skipped += 1
                 continue
+            # _basic_auth is our own marker; translate it into the library's
+            # parameters here rather than importing the enum at module scope.
+            creds = p.pop("_basic_auth", None)
+            if creds:
+                p["authMethod"] = AuthMethod.HTTP_BASIC
+                p["basic_auth_user"], p["basic_auth_pass"] = creds
             api.add_monitor(type="http", **p)
             print(f"  created {p['name']}")
             created += 1

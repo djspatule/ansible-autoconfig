@@ -12,8 +12,18 @@ o.bind("SUPER + SHIFT + E", "File manager", { launch = "nautilus --new-window" }
 hl.unbind("SUPER + SHIFT + W")
 o.bind("SUPER + SHIFT + W", "Typora", { launch = "typora --enable-wayland-ime" })
 
+-- omacalc has a reproducible bug where the numpad stops sending digits after
+-- it opens (floating or tiled, focus forced or not) -- switched to
+-- gnome-calculator instead. Omarchy's defaults bind omacalc on three keys:
+-- SUPER + SHIFT + C, SUPER + CTRL + Q, and the physical XF86Calculator key.
 hl.unbind("SUPER + SHIFT + C")
-o.bind("SUPER + SHIFT + C", "Calculator", { launch = "omacalc" })
+o.bind("SUPER + SHIFT + C", "Calculator", { launch = "gnome-calculator" })
+
+hl.unbind("SUPER + CTRL + Q")
+o.bind("SUPER + CTRL + Q", "Calculator", { launch = "gnome-calculator" })
+
+hl.unbind("XF86Calculator")
+o.bind("XF86Calculator", "Calculator", { launch = "gnome-calculator" })
 o.bind("SUPER + SHIFT + H", "Email", { webapp = "https://app.hey.com" })
 
 hl.unbind("SUPER + SHIFT + S")
