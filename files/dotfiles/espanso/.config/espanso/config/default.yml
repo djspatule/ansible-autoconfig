@@ -30,8 +30,27 @@ toggle_key: OFF
 # them has its quirks, therefore you may want to change it if you are having problems.
 # By default, espanso uses the "Auto" backend which should work well in most cases,
 # but you may want to try the "Clipboard" or "Inject" backend in case of issues.
-# TODO: Testing Clipboard on Omarchy/Hyprland to avoid all-caps expansions from EVDEV injection.
+# Clipboard alone did NOT stop the all-caps expansions, because it only changes
+# how the *text* is delivered. espanso still drives its own virtual keyboard
+# ("Espanso virtual device", /dev/input/event25) to send the paste shortcut, and
+# that is where the modifiers come from.
+#
+# The failure mode: espanso emits modifier press then release on that virtual
+# device. When a release is lost or arrives out of order, the compositor keeps
+# the modifier latched. Because the latch belongs to a *different* input device
+# than the real keyboard, pressing and releasing Shift yourself does not clear
+# it — which is exactly why only `espanso restart` fixes it: restarting destroys
+# and recreates event25, and the latch goes with it.
+#
+# Ruled out while diagnosing: layout mismatch (Hyprland and espanso are both
+# "fr"), and per-match force_mode overrides (there are none).
+#
+# The two delays below give the compositor time to process each press/release
+# pair in order. evdev_modifier_delay exists in espanso specifically for this
+# class of evdev race.
 backend: Clipboard
+evdev_modifier_delay: 30
+paste_shortcut_event_delay: 30
 
 # --- Auto-restart
 
