@@ -54,6 +54,12 @@ server_docker_socket_proxy_env:
   NETWORKS: "0"
   VOLUMES: "0"
   INFO: "0"
+  # VERSION stays allowed: Docker clients call /version to negotiate an API
+  # version before anything else, and Homepage's container list breaks without
+  # it. It discloses only the daemon version, to something already inside the
+  # internal network. Verified against the running proxy: /containers/json 200,
+  # /images/json 403, POST /containers/create 403, POST /containers/<c>/exec 403.
+  VERSION: "1"
   POST: "0"
 
 homepage_container_name: homepage
