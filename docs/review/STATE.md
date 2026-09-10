@@ -1,16 +1,47 @@
 # Autonomous review build — state
 
 Branch: review/security-functionality-2026-09
-Base commit: 1f1a5ee
+Base: 1f1a5ee
 
-## Phases
-- [ ] P1 review fan-out (security / functionality / features)
-- [ ] P2 orchestrator verification of every finding
-- [ ] P3 implementation (one commit per fix, lint gate via pre-commit)
-- [ ] P4 report
+## Phase status
+- P1 review fan-out: features agent COMPLETE; security + functionality agents
+  died on a session limit. Orchestrator did the security verification directly
+  against the live host, which is stronger evidence than a code-read anyway.
+- P2 verification: in progress.
+- P3 implementation: pending.
 
-## Rule
-No finding is actioned on a subagent's word. Each is reproduced by the
-orchestrator against the real repo or the live hosts before any code changes.
+## CONFIRMED by orchestrator (live host + code, not agent claims)
 
-## Log
+S1 CRITICAL  homepage container mounts /var/run/docker.sock RW (root-equivalent
+   on the host) AND is published on 0.0.0.0:3000 serving HTTP 200 with no auth,
+   AND port 3000 is absent from server_lan_only_published_ports. Caddy correctly
+   returns 401 on homepage.dinnizer.com, so the auth is bypassed by going direct.
+   Evidence: docker inspect homepage -> RW=True; curl http://192.168.1.100:3000 -> 200;
+   curl https://homepage.dinnizer.com -> 401; host_vars/serverannah lan-only list.
+
+S2 MEDIUM  LAN guard is TCP-only. roles/server/templates/autoconfig-docker-lan-guard.sh.j2
+   emits only `-p tcp` rules. 8555/udp (Frigate WebRTC) is published on 0.0.0.0
+   with no matching guard rule. Confirmed: `ss -ulnp` shows 0.0.0.0:8555 udp;
+   `iptables -S DOCKER-USER | grep -c udp` -> 0.
+
+S3 LOW  ufw inactive on serverannah; DOCKER-USER chain is the only filter.
+   The guard chain logic itself is correct (established -> RETURN, LAN -> RETURN, DROP).
+
+S4 GOOD (no action)  Secrets hygiene verified clean: vaulted file really is
+   ANSIBLE_VAULT-encrypted, .gitignore covers vault passwords, zero private-key
+   blobs across all 3129 history objects, no hardcoded credentials in tracked
+   files, historic backups/raspi/* pihole configs carry no pwhash.
+
+## FROM FEATURES AGENT — must be verified before acting
+F1 no OnFailure= on autoconfig-pull.service.j2 or the borg backup unit
+F2 no /etc/docker/daemon.json -> unbounded json-file container logs, 53GB free
+F3 backup gaps: /etc/ansible/secrets and /opt/odoo not in backup_paths; no Odoo
+   entry in backup_database_dumps at all
+F4 no TimeoutStartSec on the pull unit
+
+## Implementation order (once verified)
+1. docker daemon.json log caps (disk-fill risk today)
+2. S1 homepage: socket-proxy + close :3000
+3. S2 guard UDP
+4. F1/F4 notification + timeout wiring
+5. F3 backup gaps
