@@ -348,6 +348,20 @@ fail2ban_caddy_basic_auth_bantime: 1h
 # failure (which notifies) instead of an eternally "activating" unit.
 backup_timeout: 4h
 
+# Off-site copy of the Borg repository. Disabled by default; the repo is
+# repokey-encrypted, so the cloud provider only ever sees opaque segments and no
+# extra encryption layer is needed.
+backup_offsite_enabled: false
+backup_offsite_remote: "Google Drive Perso"
+backup_offsite_path: backups/borg/serverannah
+# The backup runs as root; the OAuth token belongs to the desktop user. Point at
+# that user's config explicitly rather than relying on root's (empty) one.
+backup_offsite_rclone_config: "/home/{{ desktop_user | default('lion') }}/.config/rclone/rclone.conf"
+backup_offsite_transfers: 4
+# Set e.g. "8M" to keep a large first upload from saturating the home uplink.
+# The first run transfers the whole repo; later runs are incremental.
+backup_offsite_bwlimit: ""
+
 server_backup_enabled: false
 backup_packages_by_family:
   Debian:

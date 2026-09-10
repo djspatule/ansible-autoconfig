@@ -17,6 +17,9 @@ notify_enabled: true
 server_fail2ban_enabled: true
 fail2ban_caddy_basic_auth_enabled: true
 server_backup_enabled: true
+# Off-site copy of the Borg repo to Google Drive after each run. The repo is
+# repokey-encrypted, so Google only ever sees opaque segments.
+backup_offsite_enabled: true
 backup_paths:
   - /opt/aumenuilya
   - /opt/nextcloud

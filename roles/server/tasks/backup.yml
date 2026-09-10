@@ -146,6 +146,35 @@
 
       borg compact "$BORG_REPO"
 
+      {% if backup_offsite_enabled | default(false) %}
+      # Off-site copy. Every other copy of this data is in one room: the main
+      # SSD, the backup disk, the Timeshift disk. One fire, theft or flood takes
+      # all of them, so the repo is mirrored to cloud storage after compaction.
+      #
+      # Safe to sync a Borg repo with a plain mirror: segments are append-only
+      # and immutable, so an incremental run transfers only new segments, and
+      # the deletions that `borg prune` + `borg compact` just made propagate
+      # correctly. Syncing *after* compact (not before) means the remote never
+      # holds segments the local repo has already dropped.
+      #
+      # --config is explicit and non-negotiable: this script runs as root, while
+      # the Google Drive token belongs to the desktop user, so root's own empty
+      # rclone config would otherwise be used and the remote would appear to not
+      # exist.
+      if [ -r '{{ backup_offsite_rclone_config }}' ]; then
+        rclone sync "$BORG_REPO" '{{ backup_offsite_remote }}:{{ backup_offsite_path }}' \
+          --config '{{ backup_offsite_rclone_config }}' \
+          --transfers {{ backup_offsite_transfers }} \
+          --checksum \
+      {% if backup_offsite_bwlimit %}
+          --bwlimit '{{ backup_offsite_bwlimit }}' \
+      {% endif %}
+          --stats-one-line --stats 60s
+      else
+        echo "WARNING: off-site sync skipped, no readable rclone config at {{ backup_offsite_rclone_config }}" >&2
+      fi
+      {% endif %}
+
 - name: Install Borg backup systemd service
   ansible.builtin.copy:
     dest: "/etc/systemd/system/{{ backup_timer_name }}.service"

@@ -114,7 +114,7 @@ anyone (human or agent) changing this repo.
 - [Secrets And Vault](#secrets-and-vault) — the two-tier secret model
 - [Linting](#linting) — local lint + the rendered-template test harness
 - [Testing On A VM](#testing-on-a-vm)
-- [Storage Model](#storage-model) · [Disaster Recovery](#disaster-recovery)
+- [Storage Model](#storage-model) · [Disaster Recovery](#disaster-recovery) · [Off-Site Backups](#off-site-backups)
 - [Dotfiles Model](#dotfiles-model) · [Pi-hole Source Of Truth](#pi-hole-source-of-truth)
 - [Serverannah Notes](#serverannah-notes) · [Conventions](#conventions-for-future-changes) · [Known Reality](#known-reality)
 
@@ -173,16 +173,13 @@ tells me when one of them stops".
       timer that never fires at all — a masked unit, a box that is off, a
       network that is down. Needs a watcher outside the house: an
       externally-hosted ping URL that alerts when a heartbeat is *late*.
-- [ ] **Off-site backup copy.** Every copy currently lives in one room. The
-      rclone Google Drive remote is already configured and authorised, so an
-      `rclone sync` of the Borg repo after `borg compact` is the highest
-      resilience-per-line change available. Borg segments are append-only and
-      immutable, so only new segments transfer.
-- [ ] **Escrow the Borg passphrase.** It exists on exactly one disk in one
-      house. Lose it and every archive — including any off-site copy — is
-      permanently unreadable. Candidate: self-hosted Vaultwarden (~50 MB), which
-      doubles as the family password manager, plus a paper/USB copy kept
-      elsewhere and a playbook assertion that the escrow actually happened.
+- [x] **Off-site backup copy** — implemented. The Borg repo (~6 GB) mirrors to
+      Google Drive after every `borg compact`. See
+      [Off-Site Backups](#off-site-backups).
+- [x] **Escrow the Borg passphrase** — held in Bitwarden (hosted, deliberately
+      not self-hosted: a password manager that lives on the machine whose
+      passphrase it holds is circular, and this is the one service where
+      depending on someone else's uptime is the *safer* choice).
 - [ ] **Uptime monitoring** (Uptime Kuma, ~150 MB). Checks the public sites,
       certificate expiry and DNS from the outside. Today a white-screened site
       is discovered by a family member, not by me.
@@ -725,6 +722,55 @@ borg extract /path/to/repo::serverannah-<ts>   # restores ./opt/... and ./var/..
 borg's standalone binary (GitHub releases, `borg-linux-glibc236`) needs no root,
 so a restore works even on a machine where you cannot install packages. Match
 the binary's major version to the one that wrote the repo (currently `1.4.x`).
+
+### Off-Site Backups
+
+Every local copy of the data lives in one room — the main SSD, the backup disk,
+the Timeshift disk. A fire, a theft or a flood takes all three at once, so the
+Borg repository is mirrored to Google Drive after every run.
+
+**How it works.** The backup runner does its normal `borg create` → `borg prune`
+→ `borg compact`, then:
+
+```sh
+rclone sync "$BORG_REPO" 'Google Drive Perso:backups/borg/serverannah' \
+  --config /home/lion/.config/rclone/rclone.conf --transfers 4 --checksum
+```
+
+**Why a plain mirror is safe here.** Borg segments are append-only and
+immutable, so an incremental run only ever uploads *new* segments — it is not
+re-uploading the archive each night. Running the sync *after* `compact` (never
+before) means the remote never keeps segments the local repo has already pruned.
+
+**Why `--config` is mandatory.** The backup runs as `root`; the Google OAuth
+token belongs to the desktop user. Without an explicit config path, rclone reads
+root's own empty config and reports that the remote does not exist. The runner
+skips the sync with a warning — rather than failing the whole backup — if that
+file is unreadable.
+
+**Encryption.** The repo is `repokey`-encrypted, so Google only ever stores
+opaque segments. No second encryption layer (`rclone crypt`) is used or needed.
+The corollary is the usual one: *the passphrase is the backup.* It is held in
+Bitwarden, deliberately off this machine.
+
+**Size and cost.** The repo is ~6 GB against ~81 GB free on a 200 GB Drive
+plan, so it fits with a wide margin. The first run uploads the whole repo;
+after that only new segments move, typically tens of MB a night. Set
+`backup_offsite_bwlimit` (e.g. `"8M"`) if that first upload saturates the
+uplink.
+
+**Tuning.** `backup_offsite_enabled`, `backup_offsite_remote`,
+`backup_offsite_path`, `backup_offsite_transfers`, `backup_offsite_bwlimit` and
+`backup_offsite_rclone_config` in `roles/server/defaults/main.yml`.
+
+**Restoring from the off-site copy.** Pull it down and treat it as a normal
+Borg repo — nothing about the restore path in
+[Disaster Recovery](#disaster-recovery) changes:
+
+```sh
+rclone sync 'Google Drive Perso:backups/borg/serverannah' /tmp/borg-restore
+BORG_PASSPHRASE=... borg list /tmp/borg-restore
+```
 
 ### Dotfiles Model
 
