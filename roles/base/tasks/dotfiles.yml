@@ -171,19 +171,37 @@
 # The bashrc/starship-specific tasks above are kept for readable git history;
 # this generic loop covers all other managed paths, including newer files in
 # legacy packages such as bash/.inputrc.
+# Keep the comments inside the shell block below free of apostrophes. Ansible
+# splits the whole block as one argument string and counts quotes as it goes,
+# so a lone apostrophe in a comment fails the parse with "unbalanced jinja2
+# block or quotes" and takes the entire role down with it.
 - name: Preserve unmanaged selected dotfiles before Stow takes over
   ansible.builtin.shell: |
     set -eu
     target='{{ dotfiles_home }}/{{ item.path }}'
-    expected='{{ dotfiles_source_dir }}/{{ item.package }}/{{ item.path }}'
     backup="$target.pre-stow-backup"
 
     # CASE 1: nothing at the target -> Stow can create it freely.
     if [ ! -e "$target" ] && [ ! -L "$target" ]; then echo NOOP; exit 0; fi
 
-    # CASE 2: target is already our Stow symlink (a whole-dir fold, legacy state).
-    if [ -L "$target" ] && [ "$(readlink -f "$target")" = "$expected" ]; then
-      echo NOOP; exit 0
+    # A host can hold more than one checkout of this repo: the ansible-pull timer
+    # runs out of /opt/ansible-pull, while the operator runs the same playbook by
+    # hand from a working tree under ~. Both stow the same packages, so a link
+    # planted by one run legitimately points into the other checkout on the next.
+    # Matching against the absolute path of whichever checkout is running made
+    # each run treat the other symlink as unmanaged and fall through to CASE 4,
+    # which does an unconditional rm -rf of the target. On savannarchome that
+    # silently deleted and re-created ~27 paths
+    # (.config/hypr, .config/nvim, .config/wireplumber ...) on every alternation,
+    # with only a stale one-time backup standing between that and real data loss.
+    # So recognise the link by its repo-relative tail instead of its full path.
+    suffix="files/dotfiles/{{ item.package }}/{{ item.path }}"
+
+    # CASE 2: target is already a Stow symlink into some checkout of this repo.
+    if [ -L "$target" ]; then
+      case "$(readlink -f "$target")" in
+        */"$suffix") echo NOOP; exit 0 ;;
+      esac
     fi
 
     # CASE 3: with --no-folding a managed directory is a REAL dir whose entries
@@ -193,7 +211,7 @@
       link=$(find "$target" -type l 2>/dev/null | head -n1)
       if [ -n "$link" ]; then
         case "$(readlink -f "$link")" in
-          "$expected"/*) echo NOOP; exit 0 ;;
+          */"$suffix"/*) echo NOOP; exit 0 ;;
         esac
       fi
     fi
