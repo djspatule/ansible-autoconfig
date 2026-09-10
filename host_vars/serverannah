@@ -146,6 +146,11 @@ homepage_extra_allowed_hosts:
   # dashboard is reachable from the home network without going through DNS.
   - 192.168.1.100:3000
   - homepage.dinnizer.com
+  # The container's own name on the shared Docker network. Uptime Kuma checks
+  # the app directly at http://homepage:3000/ to see past Caddy's auth gate, and
+  # Homepage rejects any Host header not listed here with a 400 — so without
+  # this the monitor reports the dashboard down while it is perfectly healthy.
+  - homepage:3000
 server_reverse_proxy_auto_https: true
 server_reverse_proxy_hsts_enabled: true
 server_reverse_proxy_published_ports:
