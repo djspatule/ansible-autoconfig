@@ -88,13 +88,28 @@ workstation_rclone_gdrive_options:
 
 # Chromium New Tab Page seeding.
 #
-# Set to true in host_vars to seed a custom homepage URL on first Chromium
-# run. Controls the Home button only: in Chromium 151 the new-tab page is
-# hard-wired to chrome://newtab/ with no preference or command-line flag to
-# override it. To make Ctrl+T open a specific URL, install a
-# chrome_url_overrides.newtab extension.
+# Set to true in host_vars to seed a custom homepage URL on first Chromium run.
+# This controls the Home button only: there is no *preference* or command-line
+# flag that redirects the new-tab page.
+#
+# There IS however a managed policy, NewTabPageLocation — see
+# workstation_chromium_managed_policies below. That is the supported route and
+# needs no extension; an earlier version of this comment said an extension was
+# the only option, which was wrong.
 workstation_chromium_defaults_enabled: false
 workstation_chromium_new_tab_url: "https://homepage.dinnizer.com"
 workstation_chromium_seeded_preferences:
   homepage: "{{ workstation_chromium_new_tab_url }}"
   homepage_is_newtab: false
+
+# Chromium enterprise policies, written to /etc/chromium/policies/managed/.
+# Chromium reads every *.json in that directory and merges them, so this writes
+# its own file rather than one shared blob — the directory already contains a
+# color.json managed elsewhere, and clobbering it would be rude.
+#
+# NewTabPageLocation is what actually redirects Ctrl+T; it is compiled into
+# Chromium on Linux (verified against the installed binary, not assumed).
+# Policies are read at startup, so Chromium must be restarted to pick up a
+# change.
+workstation_chromium_managed_policies: {}
+workstation_chromium_policy_file: /etc/chromium/policies/managed/autoconfig.json

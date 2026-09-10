@@ -28,6 +28,11 @@
       tags:
         - workstation_espanso
 
+    - name: Deploy Chromium managed policies
+      ansible.builtin.import_tasks: chromium_policies.yml
+      tags:
+        - workstation_chromium
+
     - name: Configure the rclone Google Drive mount
       ansible.builtin.import_tasks: rclone_gdrive.yml
       when: workstation_rclone_gdrive_enabled | default(false)

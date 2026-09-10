@@ -1,0 +1,31 @@
+---
+# Chromium reads every *.json under /etc/chromium/policies/managed/ and merges
+# them, so this owns one file of its own instead of a shared blob — the
+# directory already holds a color.json managed elsewhere.
+- name: Ensure the Chromium managed policy directory exists
+  ansible.builtin.file:
+    path: "{{ workstation_chromium_policy_file | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+# Policies are machine-wide and read at startup, so the file is root-owned and
+# world-readable: Chromium runs as the desktop user and has to be able to read
+# it. Nothing secret belongs in here.
+- name: Deploy the Chromium managed policies
+  ansible.builtin.copy:
+    content: "{{ workstation_chromium_managed_policies | to_nice_json }}\n"
+    dest: "{{ workstation_chromium_policy_file }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when: workstation_chromium_managed_policies | length > 0
+
+# Removing every policy should remove the file, otherwise the last set of
+# policies would linger forever with no way to turn them off from here.
+- name: Remove the Chromium managed policies when none are configured
+  ansible.builtin.file:
+    path: "{{ workstation_chromium_policy_file }}"
+    state: absent
+  when: workstation_chromium_managed_policies | length == 0

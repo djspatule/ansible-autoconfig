@@ -161,6 +161,10 @@ homepage_extra_allowed_hosts:
   # Homepage rejects any Host header not listed here with a 400 — so without
   # this the monitor reports the dashboard down while it is perfectly healthy.
   - homepage:3000
+  # The Pi-hole search domain form. This is what the workstations' Chromium new
+  # tab points at: it needs no basic auth, so a new tab does not raise a
+  # password prompt the way the public hostname would.
+  - serverannah.lan:3000
 server_reverse_proxy_auto_https: true
 server_reverse_proxy_hsts_enabled: true
 server_reverse_proxy_published_ports:

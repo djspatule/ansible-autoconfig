@@ -14,6 +14,19 @@ workstation_espanso_enabled: true
 # Failure notifications. Generates its own topic, separate from the server's, so
 # one leaked topic does not expose both machines.
 notify_enabled: true
+
+# Chromium new tab opens the homelab dashboard.
+#
+# Deliberately the LAN URL and not https://homepage.dinnizer.com: the public
+# route sits behind Caddy basic auth, which would raise a browser-native
+# password dialog on every single new tab — and desktop Bitwarden cannot
+# autofill those, only the mobile app can. The .lan name comes from the Pi-hole
+# search domain, so it needs no auth and survives the LAN IP changing.
+#
+# Off the home network the new tab will fail to load; that is the trade for not
+# being prompted for a password every time a tab opens.
+workstation_chromium_managed_policies:
+  NewTabPageLocation: http://serverannah.lan:3000
 omarchy_allow_ansible_package_installs: true
 
 dotfiles_stow_packages:
