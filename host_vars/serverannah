@@ -170,6 +170,12 @@ server_reverse_proxy_sites:
     upstream: uptime-kuma:3001
     basic_auth: true
     basic_auth_password_file: "{{ server_reverse_proxy_secret_dir }}/caddy-shared-password"
+    # The push endpoint is how the dead-man's switch reports in, and its token is
+    # already the credential. curl from a systemd unit cannot present basic auth,
+    # so exempting this one path is what makes the watchdog work at all. Reading
+    # the dashboard still requires the password.
+    basic_auth_except_paths:
+      - /api/push/*
   - hostname: pdf.dinnizer.com
     upstream: bentopdf:8080
     basic_auth: true

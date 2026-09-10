@@ -39,9 +39,20 @@ http://{{ site.hostname }} {
     }
 
     # Protect admin-style dashboards exposed through public DNS.
+{% if site.basic_auth_except_paths | default([]) %}
+    # ...except these paths, which carry their own credential in the URL and
+    # are called by machines that cannot present basic auth. Uptime Kuma's push
+    # endpoint is the case here: the token in the path IS the authentication,
+    # and the dead-man's switch has no way to send a basic_auth header.
+    @needs_auth not path {{ site.basic_auth_except_paths | join(' ') }}
+    basic_auth @needs_auth {
+        {{ server_reverse_proxy_basic_auth_hashes[site.hostname].user }} {{ server_reverse_proxy_basic_auth_hashes[site.hostname].hash }}
+    }
+{% else %}
     basic_auth {
         {{ server_reverse_proxy_basic_auth_hashes[site.hostname].user }} {{ server_reverse_proxy_basic_auth_hashes[site.hostname].hash }}
     }
+{% endif %}
 {% endif %}
 {% if site.upstream_tls_insecure_skip_verify | default(false) %}
     reverse_proxy {{ site.upstream }} {
