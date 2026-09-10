@@ -28,6 +28,27 @@ backup_paths:
   # them up keeps the conversation history and project state across provider
   # changes and reinstalls.
   - /home/lion/.local/share/opencode
+  # Every generated service password lives here: the DB roots, the Nextcloud
+  # admin and user passwords, dinnizer-secret-key-base, caddy-shared-password.
+  # The DB dumps below were made *against* these passwords, so restoring dumps
+  # onto a host that generated fresh ones gives you a Nextcloud whose database
+  # and config.php disagree, and a Rails app whose encrypted columns are dead.
+  # The Borg repo is encrypted, so this is safe to include — the one thing that
+  # must stay outside is the Borg passphrase itself.
+  - /etc/ansible/secrets
+  # Odoo runs a real business. app/ and addons/ carry the customisations; the
+  # database is dumped separately below. db/ is a live Postgres data directory
+  # and is deliberately NOT restored from this copy — use the dump.
+  - /opt/odoo/app
+  - /opt/odoo/addons
+  - /opt/odoo/seed
+  # Jellyfin users, watch state and the seeded libraries.
+  - /opt/jellyfin/config
+  - /opt/game-timer/site
+  - /opt/excalidraw
+  # What a bare-metal rebuild needs first.
+  - /etc/fstab
+  - /etc/netplan
 backup_database_dumps:
   - name: aumenuilya
     container: aumenuilya-db
@@ -45,6 +66,16 @@ backup_database_dumps:
     database: dinnizer_production
     user: dinnizer
     password_file: /etc/ansible/secrets/dinnizer-db-password
+  # Odoo had NO dump at all, despite being the business-critical database here.
+  # /opt/odoo/db on disk is a live Postgres data directory: copying it while the
+  # server is running yields a torn, possibly unrecoverable snapshot. A dump is
+  # the only consistent backup, and without it the Odoo filestore is useless.
+  - name: odoo
+    engine: postgres
+    container: odoo-db
+    database: odoo
+    user: odoo
+    password_file: /etc/ansible/secrets/odoo-db-password
 server_homepage_enabled: true
 # Read-only Docker socket proxy, so Homepage never sees the raw socket.
 server_docker_socket_proxy_enabled: true
