@@ -40,12 +40,17 @@
     published_ports: "{{ homepage_published_ports }}"
     networks:
       - name: "{{ homepage_network_name }}"
-    volumes:
-      # The raw /var/run/docker.sock bind is deliberately gone: it was mounted
-      # read-write into a public-facing dashboard, which made any RCE in
-      # Homepage a full host compromise. Container status now comes from the
-      # filtered read-only proxy (tasks/docker_socket_proxy.yml), reached over
-      # the shared Docker network and configured in files/homepage/.../docker.yaml.
-      - "{{ homepage_config_dir }}:/app/config"
+    # The raw /var/run/docker.sock bind is deliberately gone: it was mounted
+    # read-write into a public-facing dashboard, which made any RCE in Homepage
+    # a full host compromise. Container status now comes from the filtered
+    # read-only proxy (tasks/docker_socket_proxy.yml), reached over the shared
+    # Docker network and configured in files/homepage/.../docker.yaml.
+    #
+    # The disk mounts are read-only and exist only so the resources widget can
+    # stat them: Homepage reads usage from inside its own container, so a path
+    # listed in widgets.yaml but not mounted here renders as "API Error". A
+    # dashboard has no business writing to a media library or a backup
+    # repository, hence :ro.
+    volumes: "{{ [homepage_config_dir ~ ':/app/config'] + homepage_extra_volumes }}"
     env:
       HOMEPAGE_ALLOWED_HOSTS: "{{ (homepage_allowed_hosts + homepage_extra_allowed_hosts) | unique | join(',') }}"

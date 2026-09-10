@@ -74,6 +74,16 @@ server_docker_socket_proxy_enabled: true
 # over the shared Docker network by name, so nothing needs the world-bound port;
 # this keeps the direct-LAN fallback documented below without exposing an
 # unauthenticated dashboard on every interface.
+# Disks the dashboard reports usage for. These must match the disk list in
+# files/homepage/opt/homepage/config/widgets.yaml: Homepage stats them from
+# inside its container, so an unmounted path shows "API Error" instead of a bar.
+# Read-only — a dashboard has no business writing to a media library or a backup
+# repository. "/" needs no entry; the container already has its own root.
+homepage_extra_volumes:
+  - /mnt/SSD_1TO:/mnt/SSD_1TO:ro
+  - /mnt/back-up:/mnt/back-up:ro
+  - /mnt/verbatim:/mnt/verbatim:ro
+
 homepage_published_ports:
   - "192.168.1.100:3000:3000"
 server_bentopdf_enabled: true

@@ -73,6 +73,12 @@ homepage_port: 3000
 # LAN address instead of 0.0.0.0 — Caddy reaches Homepage over the shared Docker
 # network by service name, so the published port is only for direct LAN access
 # and never needs to be world-bound.
+# Extra bind mounts for the Homepage container, e.g. the disks its resources
+# widget reports on. Homepage reads usage from INSIDE its own container, so a
+# path listed in widgets.yaml but not mounted here renders as "API Error".
+# Host-specific paths belong in host_vars, so this stays empty by default.
+homepage_extra_volumes: []
+
 homepage_published_ports:
   - "{{ homepage_port }}:3000"
 homepage_allowed_hosts:
