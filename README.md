@@ -1,32 +1,124 @@
-# Ansible Autoconfig
+# 🏠 Homelab as Code
 
-<!--toc:start-->
+**One command rebuilds my entire home infrastructure — a family server, a
+laptop, a Raspberry Pi and the kids' machine — from an empty disk.**
 
-- [Ansible Autoconfig](#ansible-autoconfig)
-  - [Usage](#usage)
-  - [ToDo](#todo)
-    - [Guidelines for coding agents](#guidelines-for-coding-agents)
-      - [Objectives](#objectives)
-      - [Roles](#roles)
-      - [Extra instructions](#extra-instructions)
-      - [Do not do](#do-not-do)
-  - [Agent written readme](#agent-written-readme)
-    - [Design Rules](#design-rules)
-    - [Active Layout](#active-layout)
-    - [Current Entry Points](#current-entry-points)
-    - [Secrets And Vault](#secrets-and-vault)
-    - [Linting](#linting)
-    - [Testing On A VM](#testing-on-a-vm)
-    - [Why `requirements.yml` Stays](#why-requirementsyml-stays)
-    - [What `group_vars/all` Still Does](#what-group_varsall-still-does)
-    - [Storage Model](#storage-model)
-    - [Disaster Recovery](#disaster-recovery)
-    - [Dotfiles Model](#dotfiles-model)
-    - [Pi-hole Source Of Truth](#pi-hole-source-of-truth)
-    - [Serverannah Notes](#serverannah-notes)
-    - [Conventions For Future Changes](#conventions-for-future-changes)
-    - [Known Reality](#known-reality)
-    <!--toc:end-->
+Everything here is *declarative*: instead of clicking through installers and
+remembering what I did six months ago, the whole setup is written down as code,
+version-controlled, and re-applied automatically every night. If a machine dies,
+I reinstall the OS, run one command, and it comes back exactly as it was.
+
+Built and maintained by **Lionel Arnaud** — [dinnizer.com](https://www.dinnizer.com)
+
+---
+
+## ✨ What it actually runs
+
+A single refurbished office PC quietly runs the digital life of a household and
+two small businesses.
+
+### 👨‍👩‍👧‍👦 For the family
+
+| | Service | What it does |
+|---|---|---|
+| ☁️ | **Nextcloud** | Private Google-Drive replacement. Family photos, documents and calendars, on hardware we own. |
+| 🎬 | **Jellyfin** | The household's own Netflix — films, series and music streamed to any TV, tablet or phone. |
+| 📹 | **Frigate** | Security camera recording with on-device AI person detection. No footage ever leaves the house. |
+| 🛡️ | **Pi-hole** | Network-wide ad and tracker blocking. Every device on the WiFi is protected automatically. |
+| 🎲 | **Tabletop Timer** | A board-game turn timer, live at [tabletop-timer.com](https://tabletop-timer.com). |
+| 👧 | **Parental controls** | Screen-time limits and a curated app set on the kids' laptop. |
+
+### 💼 For the businesses
+
+| | Service | What it does |
+|---|---|---|
+| 🍽️ | **Au Menu Il Y A** | A live customer-facing site at [aumenuilya.fr](https://www.aumenuilya.fr). |
+| 🥗 | **Dinnizer** | A meal-planning web app — my own product, running in production. |
+| 🎨 | **Excalidraw** | Self-hosted collaborative whiteboard for sketching ideas. |
+| 📄 | **BentoPDF** | Private PDF toolkit — merge, split and convert without uploading confidential files to a random website. |
+
+### 🔧 Keeping it all alive
+
+| | Service | What it does |
+|---|---|---|
+| 🔐 | **Caddy** | Front door for every site. Obtains and renews HTTPS certificates automatically. |
+| 📊 | **Homepage** | One dashboard showing the health of everything at a glance. |
+| 💾 | **Borg + Timeshift** | Encrypted, deduplicated backups — *with a restore that has actually been tested on a clean machine.* |
+| 🚨 | **Failure alerts** | If anything breaks, my phone knows before I do. |
+| 🚫 | **fail2ban** | Automatically bans hosts that try to brute-force their way in. |
+
+---
+
+## 🖥️ The machines
+
+| Machine | Role |
+|---|---|
+| 🗄️ **Server** | Headless Ubuntu box. Runs every service above in Docker. |
+| 💻 **Laptop** | Arch Linux / Hyprland daily driver — desktop, dotfiles and dev tooling. |
+| 🍓 **Raspberry Pi** | Small always-on dev and test bench. |
+| 👧 **Kids' laptop** | Old MacBook given a second life with Linux Mint and strict screen-time limits. |
+
+Each machine checks this repository **every night** and reconfigures itself to
+match. Config drift fixes itself while I sleep.
+
+---
+
+## 🧠 What this project demonstrates
+
+*A plain-language summary of the engineering behind it.*
+
+- **🔁 Infrastructure as Code** — ~6 000 lines of Ansible. Zero manual server
+  setup; every change is reviewed and version-controlled.
+- **🔒 Security engineering** — secrets never touch this public repository. They
+  are generated on the machine itself or encrypted before commit. Admin
+  interfaces sit behind authentication, internal services are firewalled to the
+  local network, and a recent audit closed a container-escape path.
+- **♻️ Reliability** — backups are encrypted, pruned on a schedule, and the
+  restore path has been rehearsed end to end on a clean machine. Failures page a
+  phone instead of dying silently in a log.
+- **✅ Testing & automation** — linting and a custom test harness run on every
+  commit, catching the class of bug that generic linters miss.
+- **📝 Documentation** — every non-obvious decision is written down with the
+  reasoning behind it, so the *why* survives longer than my memory.
+
+> **In plain terms:** this is the same discipline a professional platform or
+> DevOps team applies to production systems, at household scale — where the
+> users are my family and the downtime complaints arrive at dinner.
+
+---
+
+## 🚀 Try it yourself
+
+```bash
+sudo ansible-pull -U https://github.com/djspatule/ansible-autoconfig.git \
+  -d /opt/ansible-pull -i hosts local.yml
+```
+
+That single command installs, configures and starts everything appropriate for
+whichever machine it runs on.
+
+---
+
+# 🛠️ Technical documentation
+
+Everything below is the working documentation: how to run it, the roadmap, the
+secrets model, the storage and disaster-recovery design, and the conventions for
+anyone (human or agent) changing this repo.
+
+**Contents**
+
+- [Usage](#usage) — how to run it, including test/dry-run modes
+- [ToDo](#todo) — roadmap and open items
+- [Guidelines for coding agents](#guidelines-for-coding-agents) — the contract for AI contributors
+- [Design Rules](#design-rules) · [Active Layout](#active-layout) · [Current Entry Points](#current-entry-points)
+- [Secrets And Vault](#secrets-and-vault) — the two-tier secret model
+- [Linting](#linting) — local lint + the rendered-template test harness
+- [Testing On A VM](#testing-on-a-vm)
+- [Storage Model](#storage-model) · [Disaster Recovery](#disaster-recovery)
+- [Dotfiles Model](#dotfiles-model) · [Pi-hole Source Of Truth](#pi-hole-source-of-truth)
+- [Serverannah Notes](#serverannah-notes) · [Conventions](#conventions-for-future-changes) · [Known Reality](#known-reality)
+
+## Credits and lineage
 
 ![Ansible Logo](https://www.learnlinux.tv/wp-content/uploads/2020/12/ansible-e1607524003363.png)
 
@@ -69,6 +161,52 @@ cmds are kinda similar ... and the check option allows to test on a system
 without implementing anything ('dry run')._
 
 ## ToDo
+
+### 🔭 Proposed next steps (Sept 2026 review)
+
+Ranked by value for *this* setup. Resilience before new apps: the box now has
+17 services and the useful question is not "what else can it run" but "what
+tells me when one of them stops".
+
+- [ ] **Dead-man's switch** for the nightly pull and backup. `OnFailure=` (now
+      implemented) catches a run that *fails*; it structurally cannot catch a
+      timer that never fires at all — a masked unit, a box that is off, a
+      network that is down. Needs a watcher outside the house: an
+      externally-hosted ping URL that alerts when a heartbeat is *late*.
+- [ ] **Off-site backup copy.** Every copy currently lives in one room. The
+      rclone Google Drive remote is already configured and authorised, so an
+      `rclone sync` of the Borg repo after `borg compact` is the highest
+      resilience-per-line change available. Borg segments are append-only and
+      immutable, so only new segments transfer.
+- [ ] **Escrow the Borg passphrase.** It exists on exactly one disk in one
+      house. Lose it and every archive — including any off-site copy — is
+      permanently unreadable. Candidate: self-hosted Vaultwarden (~50 MB), which
+      doubles as the family password manager, plus a paper/USB copy kept
+      elsewhere and a playbook assertion that the escrow actually happened.
+- [ ] **Uptime monitoring** (Uptime Kuma, ~150 MB). Checks the public sites,
+      certificate expiry and DNS from the outside. Today a white-screened site
+      is discovered by a family member, not by me.
+- [ ] **Rotate the shared Caddy password on a schedule.** One password currently
+      gates six admin surfaces, one of which reaches an agent with shell access.
+      A rotation task plus per-site passwords would shrink that blast radius.
+- [ ] **Fix or delete push mode.** The documented
+      `-e ansible_connection=ssh` entry point cannot work (see Current Entry
+      Points). Either make `dotfiles_source_dir` and the `synchronize` tasks
+      control-node aware, or remove the claim.
+- [ ] **Make `--check` usable end to end.** A dry run currently dies on the
+      Nextcloud `occ` wait loop, so the playbook cannot be pre-flighted. Guard
+      the wait loops with `when: not ansible_check_mode`.
+- [ ] **Docker log rotation is capped; disk usage is not monitored.** A simple
+      hourly disk-percentage check wired to the new notifier would have flagged
+      the 94%-full disk long before it became urgent.
+
+*Considered and rejected, with reasons, in `docs/review/REVIEW-2026-09.md`:*
+Prometheus/Grafana/Loki (5-6 containers and unbounded disk to answer a question
+one 150 MB container answers), Immich (needs 200-500 GB), a full secrets manager
+(introduces an unsealing bootstrap problem — the real gap is escrow, not
+storage), and Watchtower (fights the role's deliberate ownership of image pulls).
+
+### Original backlog
 
 - [x] initiate base role
 - [ ] implement server roles (fresh arch and ubuntu machines compatible)
@@ -317,15 +455,21 @@ Run locally against the active inventory:
 sudo ansible-playbook -i hosts --limit serverannah local.yml
 ```
 
-> Note: `host_vars/serverannah` sets `ansible_connection: local` so the daily
-> `ansible-pull` timer (which runs as root directly on the box) can apply the
-> config without an SSH round-trip. When you run `ansible-playbook` from a
-> laptop, override that to a real SSH session — otherwise every task silently
-> runs on the laptop, not on the server:
+> **This repo is pull-only. Push mode does not work.** `host_vars/serverannah`
+> sets `ansible_connection: local` so the nightly `ansible-pull` timer (running
+> as root on the box) applies the config with no SSH round-trip.
 >
-> ```bash
-> sudo ansible-playbook -i hosts --limit serverannah local.yml -e ansible_connection=ssh
-> ```
+> Overriding that with `-e ansible_connection=ssh` from a laptop looks like it
+> should work and does not. Two separate tasks break, both because the control
+> node and the target stop being the same machine:
+>
+> - the dotfiles guard resolves `dotfiles_source_dir` from `playbook_dir` — the
+>   *laptop's* checkout path — and then asserts it exists on the **server**;
+> - `ansible.posix.synchronize` rsyncs **from** the control node, so any
+>   file-seeding task looks for its source on the laptop.
+>
+> Run it on the target with `ansible-pull`, or via the managed timer. Fixing
+> push mode properly is an open item in the ToDo.
 
 Run with `ansible-pull` on the target machine:
 
@@ -404,13 +548,31 @@ ansible-vault view    files/dotfiles/ssh/.ssh/config   # read without decrypting
 Linting is local-only. There is no GitHub Action and no cloud cost: everything
 runs on your machine.
 
-- `scripts/lint.sh` runs `yamllint` + `ansible-lint`. On first run it builds a
-  throwaway virtualenv (`.lint-venv/`, gitignored) so nothing is installed
-  system-wide. Run it any time:
+- `scripts/lint.sh` runs `yamllint`, `ansible-lint`, **and the rendered-template
+  test harness**. On first run it builds a throwaway virtualenv (`.lint-venv/`,
+  gitignored) so nothing is installed system-wide. Run it any time:
 
   ```bash
   ./scripts/lint.sh
   ```
+
+- `tests/render_shell_templates.py` is the part the linters cannot do. yamllint
+  and ansible-lint only ever see the YAML *before* Jinja substitution, and both
+  passed cleanly while this repo shipped a folded scalar that fed `python3 -c`
+  an indented first line, and a systemd unit whose `ExecStart` was the literal
+  text `{{ opencode_binary }}`. The harness renders each shell-producing
+  template with the role defaults and runs the result through `shellcheck`.
+
+  Two details are what make it a test rather than decoration, each verified by
+  deliberately reintroducing the bug:
+  - Rendering uses `StrictUndefined`. Jinja's default turns a typo'd variable
+    into an empty string and the harness would pass.
+  - `shellcheck` runs at `--severity=info`, because SC2086 (unquoted expansion —
+    the word-splitting class that once created two directories literally named
+    `{{` and `}}`) is filtered out at `warning`.
+
+  It does **not** catch a template that renders to valid shell but does the
+  wrong thing; the TCP-only firewall guard rendered perfectly for months.
 
 - A **pre-commit hook** is an optional convenience: a check that git runs
   automatically every time you `git commit`, refusing the commit if linting
@@ -426,8 +588,12 @@ runs on your machine.
 Config lives in `.yamllint` (lenient: long lines warn, real booleans only) and
 `.ansible-lint` (`basic` profile; the role-prefix naming rule is deliberately
 skipped because this repo names variables by concern, e.g. `nextcloud_`,
-`pihole_`, not `server_nextcloud_`). The remaining findings are cosmetic (long
-lines, a few unnamed `import_tasks`) and can be cleaned up over time.
+`pihole_`, not `server_nextcloud_`). `yaml[line-length]` is warn-listed in both,
+because the long lines here are inline SQL and shell one-liners that only get
+harder to read when wrapped — the two linters are configured to agree on that
+rather than contradict each other.
+
+The suite currently reports **0 failures**, and the hook is installed.
 
 ### Testing On A VM
 
