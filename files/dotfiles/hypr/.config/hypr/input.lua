@@ -5,6 +5,11 @@ hl.config({
   input = {
     sensitivity = -0.3,
     accel_profile = "flat",
+
+    -- Keep numpad digits working: without this, NumLock state can drift
+    -- out of sync with the keyboard's physical LED, and the numpad
+    -- silently sends navigation keys (Home/End/arrows) instead of digits.
+    numlock_by_default = true,
   },
 })
 

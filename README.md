@@ -862,6 +862,13 @@ already running at `status.dinnizer.com`.
    That directory is in `backup_paths`, so the URL survives a rebuild.
 5. Set its notification to the existing ntfy topic
 
+`status.dinnizer.com` sits behind Caddy basic auth, and a `curl` from a systemd
+unit cannot present those credentials — so the push path is exempted from it in
+`host_vars` via `basic_auth_except_paths: ["/api/push/*"]`. That is safe: the
+push token in the URL is already the credential, which is the whole design of a
+push monitor. Reading the dashboard still requires the password. Without that
+exemption the ping returns 401 and the watchdog can never report in.
+
 Catches: the timer being masked, disabled, erroring before it starts, or the pull
 silently not running. **Cannot** catch the whole machine being down — Uptime Kuma
 would be down with it.
