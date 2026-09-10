@@ -71,6 +71,21 @@ workstation_espanso_aur_package: espanso-wayland
 # host_vars to select which services are active on a given workstation.
 workstation_systemd_user_services: []
 
+# rclone Google Drive mount, the workstation twin of server_rclone_gdrive_*.
+# Deploying the unit is safe on its own: it only starts once the remote has been
+# authorised interactively with `rclone config`, and StartLimitBurst stops an
+# unauthorised remote from crash-looping the user session.
+workstation_rclone_gdrive_enabled: false
+workstation_rclone_gdrive_remote: "Google Drive Perso"
+workstation_rclone_gdrive_user: "{{ workstation_user }}"
+workstation_rclone_gdrive_mount_point: "{{ workstation_home }}/Google Drive Perso"
+workstation_rclone_gdrive_options:
+  - --drive-skip-shortcuts
+  - --vfs-cache-mode
+  - full
+  - --vfs-cache-max-age
+  - 72h
+
 # Chromium New Tab Page seeding.
 #
 # Set to true in host_vars to seed a custom homepage URL on first Chromium

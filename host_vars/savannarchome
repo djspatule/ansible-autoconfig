@@ -39,7 +39,14 @@ dotfiles_secret_files:
     mode: "0600"
     dir_mode: "0700"
 
-# Systemd user services to enable after stow deploys them.
+# Systemd user services to enable after stow deploys them. rclone-gdrive-mount
+# is deliberately NOT listed here: the workstation role templates that unit with
+# this host's mount point and manages its lifecycle itself (see below), so
+# listing it would enable it before the template had been written.
 workstation_systemd_user_services:
   - audio-policy.service
   - freebox-mount.service
+
+# Google Drive mounted at ~/Google Drive Perso. The remote is already authorised
+# for lion on this machine.
+workstation_rclone_gdrive_enabled: true

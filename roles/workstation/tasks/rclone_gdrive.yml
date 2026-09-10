@@ -1,0 +1,68 @@
+---
+# rclone mount of the user's personal Google Drive at ~/Google Drive Perso.
+#
+# This mirrors roles/server/tasks/rclone_gdrive.yml. The two are kept separate
+# rather than shared because the mount point and remote differ per host class,
+# and Ansible template lookup is role-local — but they are the same design, so
+# fixes to one belong in the other.
+#
+# Two-stage behaviour, as on the server:
+#   1. The unit is templated and enabled here. StartLimitBurst keeps an
+#      unauthorised remote from crash-looping the session.
+#   2. The remote itself is created interactively with `rclone config`. We do
+#      not script the OAuth flow.
+#
+# The mount point is created by ExecStartPre in the unit, not by a file task:
+# an explicit create fails with EEXIST against a half-bound FUSE mount.
+- name: Probe whether the rclone remote is already configured
+  ansible.builtin.command:
+    argv: [rclone, listremotes]
+  become: true
+  become_user: "{{ workstation_rclone_gdrive_user }}"
+  register: workstation_rclone_gdrive_remotes
+  changed_when: false
+  failed_when: false
+
+- name: Warn when the rclone Google Drive remote is not configured yet
+  ansible.builtin.debug:
+    msg: >-
+      rclone remote "{{ workstation_rclone_gdrive_remote }}" is not configured
+      for {{ workstation_rclone_gdrive_user }} on this host. Run `rclone config`
+      once to authorise it, or copy an authorised rclone.conf from a machine
+      that already has it (OAuth tokens are tied to the Google account, not the
+      host). Then: systemctl --user start rclone-gdrive-mount.service
+  when: workstation_rclone_gdrive_remote + ':' not in (workstation_rclone_gdrive_remotes.stdout_lines | default([]))
+
+- name: Deploy the rclone gdrive systemd user unit
+  ansible.builtin.template:
+    src: rclone-gdrive-mount.service.j2
+    dest: "{{ workstation_home }}/.config/systemd/user/rclone-gdrive-mount.service"
+    owner: "{{ workstation_rclone_gdrive_user }}"
+    group: "{{ workstation_rclone_gdrive_user }}"
+    mode: "0644"
+  register: workstation_rclone_gdrive_unit
+
+- name: Reload the rclone gdrive systemd user manager
+  ansible.builtin.systemd:
+    daemon_reload: true
+    scope: user
+  become: true
+  become_user: "{{ workstation_rclone_gdrive_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ (lookup('pipe', 'id -u ' ~ workstation_rclone_gdrive_user)) }}"
+  when: workstation_rclone_gdrive_unit.changed
+
+# Restart rather than start when the unit itself changed, so a corrected unit
+# actually replaces a running (or crash-looping) older definition.
+- name: Ensure the rclone gdrive mount is active
+  ansible.builtin.systemd:
+    name: rclone-gdrive-mount.service
+    enabled: true
+    state: "{{ 'restarted' if workstation_rclone_gdrive_unit.changed else 'started' }}"
+    scope: user
+  become: true
+  become_user: "{{ workstation_rclone_gdrive_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ (lookup('pipe', 'id -u ' ~ workstation_rclone_gdrive_user)) }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ (lookup('pipe', 'id -u ' ~ workstation_rclone_gdrive_user)) }}/bus"
+  when: workstation_rclone_gdrive_remote + ':' in (workstation_rclone_gdrive_remotes.stdout_lines | default([]))
