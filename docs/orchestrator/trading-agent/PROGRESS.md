@@ -41,3 +41,57 @@ credential-free and done.
 
 ### Budget
 Comfortable. State flushed to disk and committed after each step.
+
+## 2026-09-11 — Phase 4/5: deployed to raspi, acceptance walked
+
+Branch `feat/trading-agent`, 222 tests green. Deployed via the real
+`ansible-pull` mechanism on the branch, eleven runs.
+
+Host-level items, verified on raspi rather than by unit test:
+
+- **G1** deployed by `roles/trading_agent`, never by hand. First run failed:
+  pip builds a local directory in place and the pull checkout is root-owned
+  while the build runs as the agent user. Source is now mirrored to
+  `/opt/trading-agent/src` with `rsync --delete`.
+- **G2** `changed=0` on a consecutive run (pull4.log). The one earlier flip was
+  the base role re-chowning files that the git update had re-rooted, which
+  settles by the following run. The reinstall is gated on the mirror changing
+  or the venv being empty, because `pip install --upgrade <dir>` reports
+  success unconditionally.
+- **D3** `systemctl is-enabled` = enabled; `kill -9` produced a new PID and
+  `NRestarts=1`; a full reboot brought the unit back on its own.
+- **G5** proven by an unplanned failure: the unit crash-looped once on a real
+  bug, `OnFailure=` fired, and a notification with journal context arrived on
+  the raspi ntfy topic. `StartLimit*` were in `[Service]`, where systemd
+  ignores them — the rate limit was never in effect. Moved to `[Unit]`.
+- **G6** `/etc/trading-agent/env` is 0600 root, rendered from the vault, every
+  key present. Its only inputs are the vault file and role defaults.
+
+**H2 remains open** and is the only one: a paper order needs a recorded view,
+and a view needs the operator to answer a Telegram question. Everything up to
+that point runs — the agent proposed BMRN $100 off a real Phase 3 readout and
+its own view gate held it.
+
+### What the deploy found that the tests could not
+
+Every one of these passed 200+ green tests and was still wrong in production:
+
+1. `CatalystFeed(universe)` was built with no HTTP clients. Both methods
+   return `[]` by contract when their client is missing, so the agent ran
+   clean cycles reporting zero catalysts and nothing failed.
+2. The whole consultation subsystem was orphaned — nothing in the codebase
+   constructed an `Event`. The agent could propose a trade and then refuse
+   itself forever for a view it had no way to ask for.
+3. `ReasoningClient` had no `ask()`. `research()` caught the AttributeError
+   and returned `ok=False`, so every brief failed silently.
+4. The registry was searched by ticker. `query.term=ACAD` matched "Academy"
+   and "Acute"; the first question ever sent asked about an obesity study run
+   by a company the agent cannot trade.
+5. ClinicalTrials.gov 429'd an unspaced 149-symbol sweep, so most of the
+   universe came back empty and the agent reasoned over a partial picture
+   without knowing it was partial.
+6. Telegram rejected the first well-sourced question as unparseable Markdown
+   and `send()` discarded the reason.
+
+The lesson is in `tests/test_main_wiring.py`: the tests asserted behaviour of
+components and never that production actually connected them.
