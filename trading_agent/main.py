@@ -25,6 +25,8 @@ from trading_agent.agent import run_cycle
 from trading_agent.audit import AuditLog, new_correlation_id
 from trading_agent.broker import Broker
 from trading_agent.catalysts import CatalystFeed
+from trading_agent.sources import (alpaca_news_client, ctgov_client,
+                                   etf_holdings_fetcher)
 from trading_agent.commands import handle_command
 from trading_agent.config import Config
 from trading_agent.reasoning import ReasoningClient
@@ -52,15 +54,42 @@ def _install_signal_handlers() -> None:
     signal.signal(signal.SIGINT, handler)
 
 
+def build_worker(config: Config, paths: dict) -> dict:
+    """Construct the work loop's collaborators, fully wired.
+
+    Separated from work_loop so a test can assert that every injection point
+    actually received something. The feed, the universe and the command handler
+    all take their network clients as arguments and default to None, which is
+    right for testing and silently wrong in production: the first deploy ran
+    clean cycles for twenty minutes reporting zero catalysts, because the feed
+    had been built with no HTTP client at all.
+    """
+    universe = Universe(paths["universe_cache"],
+                        fetcher=etf_holdings_fetcher())
+    return {
+        "state": State(paths["state_db"]),
+        "views": ViewStore(paths["views_db"]),
+        "audit": AuditLog(paths["audit_log"]),
+        "universe": universe,
+        "broker": Broker.from_config(config),
+        "reasoner": ReasoningClient.from_config(config),
+        "feed": CatalystFeed(universe,
+                             http=ctgov_client(),
+                             news=alpaca_news_client(config)),
+        "telegram": Telegram(config.telegram_bot_token, config.telegram_chat_id),
+    }
+
+
 def work_loop(config: Config, paths: dict) -> None:
     """Everything expensive. Its own state handle; never touches the main one."""
-    state = State(paths["state_db"])
-    views = ViewStore(paths["views_db"])
-    audit = AuditLog(paths["audit_log"])
-    universe = Universe(paths["universe_cache"])
-    broker = Broker.from_config(config)
-    reasoner = ReasoningClient.from_config(config)
-    feed = CatalystFeed(universe)
+    parts = build_worker(config, paths)
+    state, views, audit = parts["state"], parts["views"], parts["audit"]
+    universe, broker = parts["universe"], parts["broker"]
+    reasoner, feed, tg = parts["reasoner"], parts["feed"], parts["telegram"]
+
+    # Refresh the tradable universe once at startup. Never fatal: a failure
+    # leaves the cache, or the in-tree seed, in place.
+    audit.record("universe_refresh", new_correlation_id(), universe.refresh())
 
     # Reconcile once before anything else. Starting a trading process on an
     # unverified picture of the account is the one thing worth refusing to do.
@@ -76,6 +105,12 @@ def work_loop(config: Config, paths: dict) -> None:
             result = run_cycle(
                 state=state, config=config, broker=broker, feed=feed,
                 reasoner=reasoner, audit=audit, views=views,
+                ask=lambda key, payload: tg.send(
+                    f"*Approval needed* `{key[:8]}`\n"
+                    f"{payload['side']} {payload['symbol']} "
+                    f"${payload['notional_usd']:.0f}\n\n"
+                    f"{payload.get('rationale', '')}"
+                ),
                 now=dt.datetime.now(dt.timezone.utc),
             )
             log.info("cycle: ran=%s submitted=%s skipped=%s",
@@ -92,11 +127,16 @@ def command_loop(config: Config, paths: dict) -> None:
     """Telegram commands. Kept trivial so it is always responsive."""
     state = State(paths["state_db"])
     tg = Telegram(config.telegram_bot_token, config.telegram_chat_id)
+    # /stop must also pull the agent's resting orders, or a halt leaves limit
+    # orders that can still fill. Its own broker handle: this loop shares
+    # nothing with the work loop, which is what keeps it responsive.
+    broker = Broker.from_config(config)
     offset = 0
     while not _stop.is_set():
         texts, offset = tg.messages_from_owner(offset)
         for text in texts:
-            result = handle_command(text, state=state)
+            result = handle_command(text, state=state,
+                                    on_halt=broker.cancel_all_orders)
             if result.text:
                 tg.send(result.text)
             if result.changed:

@@ -57,3 +57,66 @@ def test_main_exposes_the_two_loops():
     # The command loop must poll far more often than the work loop runs, or
     # /stop inherits the work loop's latency.
     assert m.COMMAND_POLL_SECONDS < m.CYCLE_INTERVAL_SECONDS / 10
+
+
+# --- every injection point must actually be injected ------------------------
+#
+# The first Pi deploy ran clean, restarted cleanly, reported no errors, and
+# found zero catalysts every cycle for twenty minutes: CatalystFeed had been
+# built with http=None and news=None. Nothing failed, so nothing said so.
+# These tests assert the wiring rather than the behaviour it enables.
+
+
+def _paths(tmp_path):
+    return {
+        "state_db": str(tmp_path / "s.db"),
+        "views_db": str(tmp_path / "v.db"),
+        "audit_log": str(tmp_path / "a.log"),
+        "universe_cache": str(tmp_path / "u.json"),
+    }
+
+
+def _built(tmp_path, monkeypatch):
+    from trading_agent.broker import Broker
+    from trading_agent.config import Config
+    from trading_agent.main import build_worker
+
+    # The only stub. alpaca-py is not installed in the test environment on
+    # purpose — see test_broker_isolation — and the broker is not what these
+    # tests are about.
+    monkeypatch.setattr(Broker, "from_config",
+                        classmethod(lambda cls, cfg: Broker.for_testing()))
+    return build_worker(Config.for_testing(), _paths(tmp_path))
+
+
+def test_the_catalyst_feed_is_built_with_real_clients(tmp_path, monkeypatch):
+    feed = _built(tmp_path, monkeypatch)["feed"]
+    assert feed._http is not None, "no trials client: upcoming_trials() returns []"
+    assert feed._news is not None, "no news client: recent_news() returns []"
+
+
+def test_the_universe_is_built_with_a_fetcher(tmp_path, monkeypatch):
+    universe = _built(tmp_path, monkeypatch)["universe"]
+    assert universe._fetcher is not None
+    # And it still has a usable list before any refresh succeeds.
+    assert len(universe.symbols()) >= 20
+
+
+def test_stop_is_wired_to_cancel_resting_orders():
+    """B2. handle_command takes on_halt as a keyword-only argument, so leaving
+    it out is silent: the flag flips and the orders stay."""
+    import inspect
+
+    from trading_agent import main as m
+
+    src = inspect.getsource(m.command_loop)
+    assert "on_halt=" in src, "/stop would halt trading but leave orders resting"
+    assert "cancel_all_orders" in src
+
+
+def test_the_cycle_is_given_a_way_to_ask(tmp_path):
+    import inspect
+
+    from trading_agent import main as m
+
+    assert "ask=" in inspect.getsource(m.work_loop)
