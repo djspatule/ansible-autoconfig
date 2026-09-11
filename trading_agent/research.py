@@ -38,31 +38,31 @@ Research this event and produce a brief:
   Expected: {date}
 {amendments}
 
+Budget: at most six searches, then write. This runs on a schedule against a
+whole watchlist, so a good brief now beats an exhaustive one later.
+
 Cover, briefly and only where you find real information:
 
-1. **The asset** — mechanism, what is actually novel, how derisked by earlier
-   phases. Name the phase 2 numbers if they exist.
-2. **Trial design** — endpoints, powering, comparator. Flag anything unusual:
-   an underpowered trial, a soft primary endpoint, a comparator chosen to
-   flatter.
-3. **Registry history** — endpoint or enrolment changes, timeline slippage.
+1. **The asset and its trial** — mechanism, what is novel, how derisked by
+   earlier phases, and the design: endpoints, powering, comparator. Flag
+   anything unusual, such as a soft primary endpoint or a comparator chosen
+   to flatter. Name the phase 2 numbers if they exist.
+2. **Registry history** — endpoint or enrolment changes, timeline slippage.
    Amendments late in a pivotal trial are the single most informative signal
    available from outside.
-4. **The company** — is this a single-asset story? Cash runway? Has management
-   run a successful registrational programme before?
-5. **What would change your mind** — the two or three things that would most
+3. **What would change your mind** — the two or three things that would most
    move the probability either way.
 
-Then: **three to five links** the colleague can open and read. Prefer primary
-sources (ClinicalTrials.gov, PubMed, FDA/EMA, SEC filings). Where secondary
-coverage helps, prefer lemonde.fr and nytimes.com — they hold subscriptions to
-both, so those are readable where other paywalls are not. Label each link with
-what it is and why it is worth the click.
+Then: **three links** the colleague can open and read. Prefer primary sources
+(ClinicalTrials.gov, PubMed, FDA/EMA, SEC filings). Where secondary coverage
+helps, prefer lemonde.fr and nytimes.com — they hold subscriptions to both, so
+those are readable where other paywalls are not. Label each link with what it
+is and why it is worth the click.
 
 Be honest about what you could not find. An admitted gap is useful; a confident
 guess is worse than silence, because it will be read as evidence.
 
-Keep it under 400 words plus links. It is read on a phone."""
+Keep it under 300 words plus links. It is read on a phone."""
 
 
 @dataclass(frozen=True)
@@ -89,6 +89,11 @@ def build_brief_prompt(event, amendments=()) -> str:
     )
 
 
+# A brief that outlasts a trading cycle is not a brief, it is a stall. The
+# prompt carries an explicit search budget; this is the backstop.
+BRIEF_TIMEOUT_SECONDS = 240.0
+
+
 def research(event, *, reasoner, amendments=()) -> Brief:
     """Produce a brief. Failure degrades to no brief, never to a raised error.
 
@@ -97,7 +102,8 @@ def research(event, *, reasoner, amendments=()) -> Brief:
     they would be asked about nothing at all.
     """
     try:
-        text = reasoner.ask(build_brief_prompt(event, amendments))
+        text = reasoner.ask(build_brief_prompt(event, amendments),
+                            timeout=BRIEF_TIMEOUT_SECONDS)
     except Exception:  # noqa: BLE001
         return Brief(event.symbol, "", ok=False)
     return Brief(event.symbol, (text or "").strip(), ok=bool(text and text.strip()))

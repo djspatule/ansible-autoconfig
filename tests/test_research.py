@@ -15,7 +15,7 @@ class Reasoner:
     def __init__(self, text=None, fail=False):
         self.text, self.fail, self.seen = text, fail, None
 
-    def ask(self, prompt):
+    def ask(self, prompt, **kwargs):
         if self.fail:
             raise OSError("opencode down")
         self.seen = prompt

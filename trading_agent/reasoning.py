@@ -59,7 +59,9 @@ class ReasoningClient:
         base = config.opencode_url.rstrip("/")
 
         def transport(payload: dict) -> str:
-            with httpx.Client(auth=auth, timeout=180.0) as http:
+            # The caller sets this for prose; proposals keep the default.
+            timeout = float(payload.get("timeout") or 180.0)
+            with httpx.Client(auth=auth, timeout=timeout) as http:
                 created = http.post(f"{base}/session",
                                     json={"title": "trading-agent cycle"})
                 created.raise_for_status()
@@ -82,7 +84,7 @@ class ReasoningClient:
 
         return cls(transport, url=config.opencode_url)
 
-    def ask(self, prompt: str) -> str:
+    def ask(self, prompt: str, *, timeout: float | None = None) -> str:
         """One prose question, one prose answer.
 
         Used for research briefs and follow-ups, where the reader is the
@@ -91,7 +93,10 @@ class ReasoningClient:
         worse but survivable. Nothing here reaches an order.
         """
         try:
-            return (self._transport({"prompt": prompt}) or "").strip()
+            payload = {"prompt": prompt}
+            if timeout is not None:
+                payload["timeout"] = timeout
+            return (self._transport(payload) or "").strip()
         except Exception:  # noqa: BLE001 — never raise into the question path
             return ""
 

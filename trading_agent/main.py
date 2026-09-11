@@ -104,21 +104,6 @@ def work_loop(config: Config, paths: dict) -> None:
 
     while not _stop.is_set():
         try:
-            # Ask before trading. The view gate refuses an opening trade with
-            # no view on file, so a cycle that never asks is a cycle that can
-            # only ever refuse itself.
-            cid = new_correlation_id()
-            catalysts = feed.upcoming_trials() + feed.recent_news()
-            ask_next(to_events(catalysts), views=views, state=state,
-                     telegram=tg, reasoner=reasoner, audit=audit,
-                     now=dt.datetime.now(dt.timezone.utc), correlation_id=cid)
-        except Exception as exc:  # noqa: BLE001 — never let the question path
-            # stop the trading path. A missed question costs a trade that would
-            # have been refused anyway; a dead work loop costs the positions.
-            log.exception("consultation failed: %s", exc)
-            audit.record("consultation_failed", cid, {"error": str(exc)})
-
-        try:
             result = run_cycle(
                 state=state, config=config, broker=broker, feed=feed,
                 reasoner=reasoner, audit=audit, views=views,
@@ -137,6 +122,22 @@ def work_loop(config: Config, paths: dict) -> None:
             # and the command loop still need to be answering.
             log.exception("cycle failed: %s", exc)
             audit.record("cycle_failed", new_correlation_id(), {"error": str(exc)})
+
+        try:
+            # After trading, never before. A research brief can take minutes
+            # — it sends the model off to read — and order management must not
+            # queue behind it. The view it produces is for the next cycle.
+            cid = new_correlation_id()
+            catalysts = feed.upcoming_trials() + feed.recent_news()
+            ask_next(to_events(catalysts), views=views, state=state,
+                     telegram=tg, reasoner=reasoner, audit=audit,
+                     now=dt.datetime.now(dt.timezone.utc), correlation_id=cid)
+        except Exception as exc:  # noqa: BLE001 — never let the question path
+            # stop the trading path. A missed question costs a trade that would
+            # have been refused anyway; a dead work loop costs the positions.
+            log.exception("consultation failed: %s", exc)
+            audit.record("consultation_failed", cid, {"error": str(exc)})
+
         _stop.wait(CYCLE_INTERVAL_SECONDS)
 
 

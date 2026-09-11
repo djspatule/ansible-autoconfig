@@ -40,7 +40,7 @@ class Reasoner:
         self.answer = answer
         self.prompts = []
 
-    def ask(self, prompt):
+    def ask(self, prompt, **kwargs):
         self.prompts.append(prompt)
         return self.answer
 

@@ -133,3 +133,14 @@ def test_both_loops_are_wired_into_the_conversation():
 
     assert "ask_next" in inspect.getsource(m.work_loop), "nothing asks"
     assert "handle_reply" in inspect.getsource(m.command_loop), "nothing listens"
+
+
+def test_trading_runs_before_the_conversation():
+    """A research brief sends the model off to read and can take minutes.
+    Order management must never queue behind it."""
+    import inspect
+
+    src = inspect.getsource(__import__("trading_agent.main", fromlist=["x"]).work_loop)
+    body = src[src.index("while not _stop.is_set():"):]
+    assert body.index("run_cycle(") < body.index("ask_next("), \
+        "the cycle must not wait on the question"
