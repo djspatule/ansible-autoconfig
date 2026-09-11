@@ -52,6 +52,26 @@
 
   **This contradicts the brief and is the operator's call to overturn.**
 
+- **O-09 Research is rationed, deliberately.** Deep research per catalyst costs
+  real tokens on the operator's own account, so most events must not qualify.
+  Two gates:
+
+  * materiality — only HIGH events are always researched; MEDIUM only when no
+    view exists; LOW never;
+  * an existing view suppresses further research, because a held view is the
+    answer research was trying to produce. Only a HIGH event overrides that,
+    since an amendment or a termination can genuinely invalidate an earlier
+    read.
+
+- **O-10 Views are keyed on the trial, not the news item.** One read on NCT123
+  answers for its interim analysis, its amendments and its final readout. Both
+  cheaper and closer to how the judgment actually works — an opinion is about
+  the science, not about a headline.
+
+- **O-11 Financial events are surfaced but never scored.** Earnings move prices
+  and are worth reading, but a call on one says nothing about biotech judgment.
+  Scoring them would dilute the single number meant to measure domain skill.
+
 ## ACCEPTED RISKS
 - **R-01** Nightly unattended upgrades on a machine running a financial process
   (see A-10). Operator-accepted; amount at risk is small.

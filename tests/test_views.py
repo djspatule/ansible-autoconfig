@@ -115,3 +115,20 @@ def test_empty_scoreboard_reports_nothing_rather_than_zero(tmp_path):
     """No data is not the same as no skill."""
     board = store(tmp_path).scoreboard()
     assert board["accuracy"] is None and board["edge_over_base"] is None
+
+
+def test_financial_outcomes_are_recorded_but_not_scored(tmp_path):
+    """Surfaced and remembered, deliberately ungraded — the scoreboard is
+    supposed to measure biotech judgment, not quarterly numbers."""
+    s = store(tmp_path)
+    s.record(View("MRNA", "MRNA", "positive", 3, "beat expected", NOW))
+    s.record_outcome("MRNA", "MRNA", "positive", LATER, scoreable=False)
+    assert s.scoreboard()["scored"] == 0
+
+
+def test_a_view_on_a_trial_covers_its_later_events(tmp_path):
+    """One read on NCT123 answers for its interim analysis and its readout —
+    cheaper, and closer to how the judgment actually works."""
+    s = store(tmp_path)
+    s.record(View("MRNA", "NCT123", "positive", 4, "strong mechanism", NOW))
+    assert s.for_event("MRNA", "NCT123", now=NOW + dt.timedelta(days=3)) is not None

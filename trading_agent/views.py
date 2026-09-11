@@ -37,6 +37,10 @@ CREATE TABLE IF NOT EXISTS outcomes (
     event_id TEXT NOT NULL,
     outcome TEXT NOT NULL,
     observed_at TEXT NOT NULL,
+    -- Financial events are recorded but never graded: the scoreboard measures
+    -- biotech judgment, and diluting it with earnings calls would make the one
+    -- number that matters mean less.
+    scoreable INTEGER NOT NULL DEFAULT 1,
     PRIMARY KEY (symbol, event_id)
 );
 """
@@ -106,11 +110,12 @@ class ViewStore:
                     dt.datetime.fromisoformat(row[5]), expires)
 
     def record_outcome(self, symbol: str, event_id: str, outcome: str,
-                       observed_at: dt.datetime) -> None:
+                       observed_at: dt.datetime, *, scoreable: bool = True) -> None:
         self._db.execute(
-            "INSERT OR REPLACE INTO outcomes(symbol,event_id,outcome,observed_at)"
-            " VALUES(?,?,?,?)",
-            (symbol.upper(), event_id, outcome, observed_at.isoformat()),
+            "INSERT OR REPLACE INTO outcomes"
+            "(symbol,event_id,outcome,observed_at,scoreable) VALUES(?,?,?,?,?)",
+            (symbol.upper(), event_id, outcome, observed_at.isoformat(),
+             1 if scoreable else 0),
         )
 
     def scored(self) -> list[dict]:
@@ -120,7 +125,7 @@ class ViewStore:
             "SELECT v.symbol, v.event_id, v.stance, v.confidence, o.outcome"
             " FROM views v JOIN outcomes o"
             "   ON v.symbol=o.symbol AND v.event_id=o.event_id"
-            " WHERE v.stance != 'no_opinion'"
+            " WHERE v.stance != 'no_opinion' AND o.scoreable = 1"
             " GROUP BY v.symbol, v.event_id"
             " HAVING v.recorded_at = MAX(v.recorded_at)"
         ).fetchall()
