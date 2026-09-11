@@ -825,7 +825,7 @@ Uptime Kuma 1.x has **no REST API for monitors** — `/api/monitors` returns the
 single-page-app shell, not data. Everything goes over socket.io, so there is no
 supported CLI, and nothing to drive from Ansible.
 
-`scripts/seed-uptime-kuma.py` therefore uses the unofficial `uptime-kuma-api`
+`scripts/helpers/seed-uptime-kuma.py` therefore uses the unofficial `uptime-kuma-api`
 library, and is deliberately a **one-shot seeder rather than config
 management**. That distinction matters: an upstream change to an unofficial API
 breaking a tool you run by hand costs you ten minutes, while the same change
@@ -840,10 +840,10 @@ unmonitored.
 
 ```bash
 # See the plan without touching anything (needs no credentials, no network):
-./scripts/seed-uptime-kuma.py --dry-run
+./scripts/helpers/seed-uptime-kuma.py --dry-run
 
 # Apply it, from serverannah:
-sudo KUMA_USERNAME=admin KUMA_PASSWORD='...' sh scripts/seed-uptime-kuma.sh
+sudo KUMA_USERNAME=admin KUMA_PASSWORD='...' sh scripts/helpers/seed-uptime-kuma.sh
 ```
 
 The wrapper runs the seeder in a throwaway container **on the shared Docker

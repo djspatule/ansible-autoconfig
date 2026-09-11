@@ -8,8 +8,8 @@
 # the shared Docker network avoids both.
 #
 # Usage (on serverannah):
-#   sudo sh scripts/seed-uptime-kuma.sh --dry-run
-#   sudo sh scripts/seed-uptime-kuma.sh
+#   sudo sh scripts/helpers/seed-uptime-kuma.sh --dry-run
+#   sudo sh scripts/helpers/seed-uptime-kuma.sh
 set -eu
 
 repo_dir="${AUTOCONFIG_REPO_DIR:-/opt/ansible-pull}"
@@ -25,4 +25,4 @@ exec docker run --rm -i \
   -e "KUMA_PASSWORD=${KUMA_PASSWORD:-}" \
   -w /repo \
   python:3.12-slim \
-  sh -c "pip install --quiet uptime-kuma-api pyyaml && python scripts/seed-uptime-kuma.py --url '$target' $*"
+  sh -c "pip install --quiet uptime-kuma-api pyyaml && python scripts/helpers/seed-uptime-kuma.py --url '$target' $*"

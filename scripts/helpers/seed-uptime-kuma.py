@@ -32,7 +32,7 @@ password, so the check reaches the real application instead of stopping at
 Caddy's 401 and reporting a healthy gate in front of a dead service.
 
 USAGE
-    ./scripts/seed-uptime-kuma.py --url https://status.dinnizer.com [--dry-run]
+    ./scripts/helpers/seed-uptime-kuma.py --url https://status.dinnizer.com [--dry-run]
 """
 from __future__ import annotations
 
@@ -43,7 +43,8 @@ from pathlib import Path
 
 import yaml
 
-REPO = Path(__file__).resolve().parent.parent
+# scripts/helpers/<this file> -> up two levels is the repository root.
+REPO = Path(__file__).resolve().parents[2]
 DEFAULT_HOST_VARS = REPO / "host_vars" / "serverannah"
 CREDENTIALS_FILE = "/etc/ansible/secrets/uptime-kuma-credentials"
 NTFY_TOPIC_FILE = "/etc/ansible/secrets/notify-topic"

@@ -2,8 +2,8 @@
 # Flash Raspberry Pi OS to a removable device and configure it for a headless
 # first boot: wifi, SSH by key, hostname, locale.
 #
-#   sudo WIFI_SSID='...' WIFI_PSK='...' sh scripts/flash-rpi.sh --check
-#   sudo WIFI_SSID='...' WIFI_PSK='...' sh scripts/flash-rpi.sh /dev/sdX
+#   sudo WIFI_SSID='...' WIFI_PSK='...' sh scripts/helpers/flash-rpi.sh --check
+#   sudo WIFI_SSID='...' WIFI_PSK='...' sh scripts/helpers/flash-rpi.sh /dev/sdX
 #
 # THIS DESTROYS EVERYTHING ON THE TARGET DEVICE.
 #
@@ -99,7 +99,7 @@ CONSOLE_PW=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 20)
 PW_HASH=$(printf '%s' "$CONSOLE_PW" | openssl passwd -6 -stdin)
 
 cat > "$MNT/custom.toml" <<TOML
-# Written by scripts/flash-rpi.sh. Raspberry Pi OS consumes this on first boot.
+# Written by scripts/helpers/flash-rpi.sh. Raspberry Pi OS consumes this on first boot.
 config_version = 1
 
 [system]

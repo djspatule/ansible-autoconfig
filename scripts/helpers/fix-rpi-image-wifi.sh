@@ -3,8 +3,8 @@
 # SSH on first boot. Run it against the MOUNTED image, as root, from the machine
 # that flashed the drive:
 #
-#   sudo sh scripts/fix-rpi-image-wifi.sh --check    # report only, change nothing
-#   sudo sh scripts/fix-rpi-image-wifi.sh
+#   sudo sh scripts/helpers/fix-rpi-image-wifi.sh --check    # report only, change nothing
+#   sudo sh scripts/helpers/fix-rpi-image-wifi.sh
 #
 # Why this is needed at all: Raspberry Pi OS keeps the wifi radio soft-blocked
 # by rfkill until a WLAN regulatory country is configured. With no country the
