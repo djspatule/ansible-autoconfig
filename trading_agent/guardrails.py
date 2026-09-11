@@ -40,6 +40,16 @@ class OrderIntent:
         raw = f"{self.symbol}|{self.side}|{self.notional_usd}|{self.correlation_id}"
         return hashlib.sha256(raw.encode()).hexdigest()[:32]
 
+    @property
+    def approval_key(self) -> str:
+        """Identifies the DECISION, not the cycle. Deliberately excludes the
+        correlation id: the operator answers a question about buying $300 of
+        XBI, and that answer has to still match when the next cycle re-proposes
+        it under a new correlation id. Notional is included, so approving $300
+        does not approve $900."""
+        raw = f"{self.symbol}|{self.side}|{self.notional_usd}"
+        return hashlib.sha256(raw.encode()).hexdigest()[:32]
+
     def _expected_token(self) -> str:
         return hashlib.sha256(
             f"{_APPROVAL_SALT}|{self.idempotency_key}".encode()
@@ -110,6 +120,20 @@ def evaluate(intent: OrderIntent, *, state, config, now: dt.datetime) -> Decisio
                 False,
                 f"max_deployed: {projected:.2f} would exceed "
                 f"{config.max_deployed_usd:.2f}",
+            )
+
+    # 7. Human approval, last: there is no point asking about an order the risk
+    #    layer would have refused anyway. With the threshold at its default of
+    #    infinity no finite order reaches this branch, which is the operator's
+    #    choice — but the gate is wired, so turning it back on is one env var.
+    if n >= config.approval_threshold_usd:
+        status = state.approval_status(intent.approval_key)
+        if status != "granted":
+            return Decision(
+                False,
+                f"approval_required: {n:.2f} at or above "
+                f"{config.approval_threshold_usd:.2f} "
+                f"({status or 'not yet requested'})",
             )
 
     approved = replace(intent, approval_token=intent._expected_token())

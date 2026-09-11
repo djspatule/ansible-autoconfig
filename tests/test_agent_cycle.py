@@ -129,3 +129,74 @@ def test_closing_a_position_needs_no_view(tmp_path):
     kw["views"] = ViewStore(tmp_path / "v.db")
     r = run_cycle(**kw, now=OPEN)
     assert r.submitted == 1, "a sell must not be gated on a view"
+
+
+# --- ACCEPTANCE C1, C3 — the approval gate inside a real cycle --------------
+
+GATED = ('{"proposals":[{"symbol":"MRNA","side":"buy","notional_usd":300,'
+         '"rationale":"phase 3 readout"}]}')
+
+
+def _gated(tmp_path):
+    kw = mk(tmp_path, GATED)
+    kw["config"] = Config.for_testing(approval_threshold_usd=250.0,
+                                      max_position_usd=1000.0,
+                                      max_deployed_usd=1000.0)
+    return kw
+
+
+def test_c1_a_gated_order_is_asked_about_and_not_submitted(tmp_path):
+    kw = _gated(tmp_path)
+    asked = []
+    r = run_cycle(**kw, ask=lambda key, payload: asked.append((key, payload)),
+                  now=OPEN)
+    assert r.submitted == 0
+    assert any("approval_required" in x for x in r.rejected)
+    assert len(asked) == 1
+    assert asked[0][1]["notional_usd"] == 300
+    assert kw["state"].pending_approvals()
+
+
+def test_c1_the_question_is_asked_once_not_every_cycle(tmp_path):
+    kw = _gated(tmp_path)
+    asked = []
+    for _ in range(3):
+        run_cycle(**kw, ask=lambda key, payload: asked.append(key), now=OPEN)
+    assert len(asked) == 1
+
+
+def test_c1_a_granted_approval_lets_the_next_cycle_submit(tmp_path):
+    kw = _gated(tmp_path)
+    keys = []
+    run_cycle(**kw, ask=lambda key, _p: keys.append(key), now=OPEN)
+    kw["state"].set_approval(keys[0], "granted")
+
+    r = run_cycle(**kw, now=OPEN)
+    assert r.submitted == 1, r.rejected
+
+
+def test_c3_silence_past_the_deadline_denies_rather_than_submits(tmp_path):
+    kw = _gated(tmp_path)
+    kw["config"] = Config.for_testing(approval_threshold_usd=250.0,
+                                      max_position_usd=1000.0,
+                                      max_deployed_usd=1000.0,
+                                      approval_ttl_seconds=3600.0)
+    run_cycle(**kw, ask=lambda *_: None, now=OPEN)
+
+    later = OPEN + dt.timedelta(hours=2)
+    r = run_cycle(**kw, now=later)
+    assert r.submitted == 0
+    assert any("denied" in x for x in r.rejected), r.rejected
+    assert not kw["state"].pending_approvals()
+
+
+def test_c1_a_failing_notification_does_not_open_the_gate(tmp_path):
+    """If Telegram is down the operator never sees the question — which must
+    mean the order waits, not that it goes through unasked."""
+    kw = _gated(tmp_path)
+
+    def boom(_key, _payload):
+        raise OSError("telegram down")
+
+    r = run_cycle(**kw, ask=boom, now=OPEN)
+    assert r.submitted == 0

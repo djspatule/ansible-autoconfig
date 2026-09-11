@@ -25,7 +25,15 @@ CREATE TABLE IF NOT EXISTS daily (
     -- even if the position recovers. A breaker that un-trips is not a breaker.
     loss_breaker_tripped INTEGER NOT NULL DEFAULT 0
 );
-CREATE TABLE IF NOT EXISTS approvals (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS approvals (
+    id TEXT PRIMARY KEY,
+    payload TEXT NOT NULL,
+    -- pending | granted | denied. An expired request becomes denied and stays
+    -- on the row: a "yes" that arrives after the deadline must land on a closed
+    -- record, not silently open a new one.
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at REAL NOT NULL DEFAULT 0.0
+);
 """
 
 
@@ -40,6 +48,21 @@ class State:
         self._db = sqlite3.connect(self.path, isolation_level=None)
         self._db.execute("PRAGMA journal_mode=WAL")
         self._db.executescript(_SCHEMA)
+        self._migrate()
+
+    def _migrate(self) -> None:
+        """CREATE TABLE IF NOT EXISTS leaves an older database on its old
+        columns, so new ones are added here rather than assumed."""
+        have = {r[1] for r in self._db.execute("PRAGMA table_info(approvals)")}
+        if "status" not in have:
+            self._db.execute(
+                "ALTER TABLE approvals ADD COLUMN "
+                "status TEXT NOT NULL DEFAULT 'pending'"
+            )
+        if "created_at" not in have:
+            self._db.execute(
+                "ALTER TABLE approvals ADD COLUMN created_at REAL NOT NULL DEFAULT 0.0"
+            )
 
     # --- kill switch --------------------------------------------------------
 
@@ -110,18 +133,59 @@ class State:
 
     # --- pending approvals --------------------------------------------------
 
-    def add_pending_approval(self, request_id: str, payload: dict) -> None:
+    def add_pending_approval(
+        self, request_id: str, payload: dict, now: dt.datetime | None = None
+    ) -> None:
+        ts = (now or dt.datetime.now(dt.timezone.utc)).timestamp()
         self._db.execute(
-            "INSERT INTO approvals(id,payload) VALUES(?,?) "
+            "INSERT INTO approvals(id,payload,status,created_at) "
+            "VALUES(?,?,'pending',?) "
             "ON CONFLICT(id) DO UPDATE SET payload=excluded.payload",
-            (request_id, json.dumps(payload)),
+            (request_id, json.dumps(payload), ts),
         )
 
     def pending_approvals(self) -> dict[str, dict]:
         return {
             r[0]: json.loads(r[1])
-            for r in self._db.execute("SELECT id,payload FROM approvals")
+            for r in self._db.execute(
+                "SELECT id,payload FROM approvals WHERE status='pending'"
+            )
         }
+
+    def approval_status(self, request_id: str) -> str | None:
+        """None means never requested, which is not the same as denied — the
+        caller decides what to do about each, and neither one is approval."""
+        row = self._db.execute(
+            "SELECT status FROM approvals WHERE id=?", (request_id,)
+        ).fetchone()
+        return row[0] if row else None
+
+    def set_approval(self, request_id: str, status: str) -> None:
+        if status not in ("granted", "denied"):
+            raise ValueError(f"not an approval outcome: {status!r}")
+        # Only a pending request can be answered. Re-answering a closed one is a
+        # no-op, so a duplicate Telegram tap cannot resurrect a denial.
+        self._db.execute(
+            "UPDATE approvals SET status=? WHERE id=? AND status='pending'",
+            (status, request_id),
+        )
+
+    def expire_approvals(self, now: dt.datetime, ttl_seconds: float) -> list[str]:
+        """Deadline reached means DENIED. Silence is never consent: the only way
+        an order gets through this gate is a human saying yes in time."""
+        cutoff = now.timestamp() - ttl_seconds
+        ids = [
+            r[0]
+            for r in self._db.execute(
+                "SELECT id FROM approvals WHERE status='pending' AND created_at < ?",
+                (cutoff,),
+            )
+        ]
+        for request_id in ids:
+            self._db.execute(
+                "UPDATE approvals SET status='denied' WHERE id=?", (request_id,)
+            )
+        return ids
 
     def resolve_approval(self, request_id: str) -> None:
         self._db.execute("DELETE FROM approvals WHERE id=?", (request_id,))

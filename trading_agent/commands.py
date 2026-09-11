@@ -17,13 +17,31 @@ class CommandResult:
     changed: bool = False
 
 
-def handle_command(text: str, *, state) -> CommandResult:
+def handle_command(text: str, *, state, on_halt=None) -> CommandResult:
+    """Handle one operator command.
+
+    `on_halt` runs AFTER the kill switch is set, never before. Cancelling open
+    orders means talking to a broker that may be slow or unreachable, and the
+    halt itself must never wait on that — ACCEPTANCE B4 requires /stop to take
+    effect regardless of what else is stuck.
+    """
     cmd = (text or "").strip().split()[0].lower() if (text or "").strip() else ""
 
     if cmd == "/stop":
+        # Flag first, and it is already durable before anything slow is tried.
         state.set_kill_switch(True)
+        note = ""
+        if on_halt is not None:
+            try:
+                outcome = on_halt()
+                note = (f"\nOpen orders: {outcome.get('cancelled', 0)} cancelled"
+                        f", {outcome.get('failed', 0)} failed.")
+                if outcome.get("error"):
+                    note = f"\nCould not reach the broker to cancel: {outcome['error']}"
+            except Exception as exc:  # noqa: BLE001 — the halt still stands
+                note = f"\nCancellation failed: {exc}. The halt is in effect regardless."
         return CommandResult(
-            "HALTED. No new orders will be placed. Send /resume to restart.",
+            "HALTED. No new orders will be placed. Send /resume to restart." + note,
             changed=True,
         )
 

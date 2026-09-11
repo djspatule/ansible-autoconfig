@@ -6,6 +6,7 @@ shell, or a unit file copied from somewhere else. Two cannot be set by accident.
 """
 from __future__ import annotations
 
+import math
 import os
 from dataclasses import dataclass
 
@@ -34,6 +35,8 @@ class Config:
     # "never ask" — but the path stays wired, so re-enabling is config, not a
     # rewrite.
     approval_threshold_usd: float = float("inf")
+    # How long a request waits before it is denied. Never auto-approved.
+    approval_ttl_seconds: float = 3600.0
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
     opencode_url: str = ""
@@ -71,6 +74,7 @@ class Config:
             daily_loss_limit_usd=_num("DAILY_LOSS_LIMIT_USD", 50.0),
             account_equity_usd=_num("ACCOUNT_EQUITY_USD", 1000.0),
             approval_threshold_usd=_num("APPROVAL_THRESHOLD_USD", float("inf")),
+            approval_ttl_seconds=_num("APPROVAL_TTL_SECONDS", 3600.0),
             telegram_bot_token=os.environ.get("TELEGRAM_BOT_TOKEN", ""),
             telegram_chat_id=os.environ.get("TELEGRAM_CHAT_ID", ""),
             opencode_url=os.environ.get("OPENCODE_URL", ""),
@@ -94,8 +98,13 @@ def _num(name: str, default: float) -> float:
     if raw is None or raw == "":
         return default
     try:
-        return float(raw)
+        value = float(raw)
     except ValueError as exc:
         # Fail closed: an unparseable limit must stop startup, not silently
         # fall back to a default the operator did not choose.
         raise ConfigError(f"{name}={raw!r} is not a number") from exc
+    # NaN parses happily and then compares false against every bound, so a
+    # limit set to NaN would disable that limit instead of tightening it.
+    if math.isnan(value):
+        raise ConfigError(f"{name}={raw!r} is not a usable limit")
+    return value

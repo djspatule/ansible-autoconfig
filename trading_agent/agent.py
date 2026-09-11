@@ -38,9 +38,18 @@ class CycleResult:
 
 
 def run_cycle(*, state, config, broker, feed, reasoner, audit, views=None,
-              now: dt.datetime | None = None) -> CycleResult:
+              ask=None, now: dt.datetime | None = None) -> CycleResult:
+    """`ask` is called with (approval_key, payload) when an order needs the
+    operator's explicit yes. It is optional, and its absence does not soften
+    the gate: an unanswered request stays unanswered and the order stays
+    refused."""
     now = now or dt.datetime.now(dt.timezone.utc)
     cid = new_correlation_id()
+
+    # C3: sweep deadlines before reading any status, so a request whose window
+    # closed is read as denied on this very cycle rather than the next one.
+    for expired in state.expire_approvals(now, config.approval_ttl_seconds):
+        audit.record("approval_expired", cid, {"approval_key": expired})
 
     # The kill switch is checked here as well as inside the guardrail. Cheap,
     # and it means a halted agent does no work at all rather than doing the
@@ -107,6 +116,24 @@ def run_cycle(*, state, config, broker, feed, reasoner, audit, views=None,
         })
         if not decision.allowed:
             result.rejected.append(f"{p.symbol}: {decision.reason}")
+            # Refused for want of an answer: record the question and ask it
+            # once. The order stays refused either way — asking is what makes
+            # the gate usable, not what opens it.
+            if decision.reason.startswith("approval_required"):
+                key = intent.approval_key
+                if state.approval_status(key) is None:
+                    payload = {"symbol": p.symbol, "side": p.side,
+                               "notional_usd": p.notional_usd,
+                               "rationale": p.rationale}
+                    state.add_pending_approval(key, payload, now)
+                    audit.record("approval_requested", cid,
+                                 {"approval_key": key, **payload})
+                    if ask is not None:
+                        try:
+                            ask(key, payload)
+                        except Exception as exc:  # noqa: BLE001
+                            audit.record("approval_ask_failed", cid,
+                                         {"approval_key": key, "error": str(exc)})
             continue
 
         try:

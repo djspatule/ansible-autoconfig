@@ -1,4 +1,4 @@
-"""ACCEPTANCE A1-A7 — the deterministic risk layer.
+"""ACCEPTANCE A1-A7, C1, C4 — the deterministic risk layer.
 
 These run with no network, no LLM and no real clock. That is the point: this
 layer is the only thing between the agent and the account now that mandatory
@@ -13,7 +13,7 @@ import datetime as dt
 
 import pytest
 
-from trading_agent.config import Config
+from trading_agent.config import Config, ConfigError
 from trading_agent.guardrails import OrderIntent, evaluate
 from trading_agent.state import State
 
@@ -150,3 +150,77 @@ def test_a7_guardrails_import_nothing_that_does_io():
     src = __import__("pathlib").Path(g.__file__).read_text()
     for forbidden in ("import httpx", "import requests", "alpaca", "telegram", "openai"):
         assert forbidden not in src, f"guardrails must not import {forbidden}"
+
+
+# --- ACCEPTANCE C1, C4 — the approval gate ---------------------------------
+
+
+def _intent(notional: float = 300.0):
+    return OrderIntent(symbol="XBI", side="buy", notional_usd=notional,
+                       correlation_id="c1")
+
+
+def test_c1_order_at_or_above_threshold_is_refused_without_approval(tmp_path):
+    state = State(tmp_path / "s.db")
+    config = Config.for_testing(approval_threshold_usd=250.0,
+                                max_position_usd=1000.0, max_deployed_usd=1000.0)
+    decision = evaluate(_intent(), state=state, config=config, now=NOW)
+    assert not decision.allowed
+    assert "approval_required" in decision.reason
+    # No token minted means broker.submit() refuses it even if something tried.
+    assert decision.intent is None
+
+
+def test_c1_granted_approval_lets_the_same_order_through(tmp_path):
+    state = State(tmp_path / "s.db")
+    config = Config.for_testing(approval_threshold_usd=250.0,
+                                max_position_usd=1000.0, max_deployed_usd=1000.0)
+    intent = _intent()
+    state.add_pending_approval(intent.approval_key, {"symbol": "XBI"}, NOW)
+    state.set_approval(intent.approval_key, "granted")
+
+    decision = evaluate(intent, state=state, config=config, now=NOW)
+    assert decision.allowed, decision.reason
+    assert decision.intent.is_approved
+
+
+def test_c1_denied_and_expired_approvals_both_refuse(tmp_path):
+    config = Config.for_testing(approval_threshold_usd=250.0,
+                                max_position_usd=1000.0, max_deployed_usd=1000.0)
+    for outcome in ("denied", "expired"):
+        state = State(tmp_path / f"{outcome}.db")
+        intent = _intent()
+        state.add_pending_approval(intent.approval_key, {}, NOW)
+        if outcome == "denied":
+            state.set_approval(intent.approval_key, "denied")
+        else:
+            state.expire_approvals(NOW + dt.timedelta(hours=2), 3600)
+        assert not evaluate(intent, state=state, config=config, now=NOW).allowed
+
+
+def test_c1_below_threshold_never_asks(tmp_path):
+    state = State(tmp_path / "s.db")
+    config = Config.for_testing(approval_threshold_usd=250.0,
+                                max_position_usd=1000.0, max_deployed_usd=1000.0)
+    assert evaluate(_intent(249.99), state=state, config=config, now=NOW).allowed
+
+
+def test_c4_threshold_comes_from_the_environment(monkeypatch):
+    monkeypatch.setenv("ALPACA_API_KEY_ID", "k")
+    monkeypatch.setenv("ALPACA_API_SECRET_KEY", "s")
+
+    assert Config.from_env().approval_threshold_usd == float("inf")
+
+    monkeypatch.setenv("APPROVAL_THRESHOLD_USD", "250")
+    monkeypatch.setenv("APPROVAL_TTL_SECONDS", "900")
+    config = Config.from_env()
+    assert config.approval_threshold_usd == 250.0
+    assert config.approval_ttl_seconds == 900.0
+
+
+def test_c4_a_nan_limit_is_refused_rather_than_disabling_the_limit(monkeypatch):
+    monkeypatch.setenv("ALPACA_API_KEY_ID", "k")
+    monkeypatch.setenv("ALPACA_API_SECRET_KEY", "s")
+    monkeypatch.setenv("MAX_POSITION_USD", "nan")
+    with pytest.raises(ConfigError):
+        Config.from_env()

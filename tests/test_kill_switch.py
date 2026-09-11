@@ -72,3 +72,59 @@ def test_b1_state_is_on_disk_not_in_memory(tmp_path):
     path = tmp_path / "s.db"
     handle_command("/stop", state=State(path))
     assert State(path).kill_switch_engaged()
+
+
+# --- B2: cancelling open orders on halt --------------------------------------
+
+def test_b2_stop_cancels_open_orders(tmp_path):
+    from trading_agent.broker import Broker
+
+    broker = Broker.for_testing()
+    broker._client.open_orders = [type("O", (), {"id": "a"})(),
+                                  type("O", (), {"id": "b"})()]
+    s = State(tmp_path / "s.db")
+    r = handle_command("/stop", state=s, on_halt=broker.cancel_all_orders)
+    assert s.kill_switch_engaged()
+    assert broker._client.cancelled == ["a", "b"]
+    assert "2 cancelled" in r.text
+
+
+def test_b2_halt_stands_even_if_cancellation_fails(tmp_path):
+    """An unreachable broker must not leave trading enabled."""
+    def explode():
+        raise OSError("alpaca unreachable")
+
+    s = State(tmp_path / "s.db")
+    r = handle_command("/stop", state=s, on_halt=explode)
+    assert s.kill_switch_engaged(), "the halt must not depend on the broker"
+    assert "halt is in effect regardless" in r.text
+
+
+def test_b2_per_order_failures_are_reported_not_swallowed(tmp_path):
+    """An order believed cancelled and still live is worse than a reported
+    failure."""
+    from trading_agent.broker import Broker
+
+    broker = Broker.for_testing()
+    broker._client.open_orders = [type("O", (), {"id": "a"})()]
+
+    def fail(_oid):
+        raise RuntimeError("rejected")
+
+    broker._client.cancel_order_by_id = fail
+    out = broker.cancel_all_orders()
+    assert out["cancelled"] == 0 and out["failed"] == 1
+    assert out["failures"][0]["order_id"] == "a"
+
+
+def test_b2_flag_is_set_before_cancellation_is_attempted(tmp_path):
+    """Ordering is the B4 guarantee: a slow broker must not delay the halt."""
+    s = State(tmp_path / "s.db")
+    observed = {}
+
+    def check():
+        observed["engaged_during_cancel"] = s.kill_switch_engaged()
+        return {"cancelled": 0, "failed": 0}
+
+    handle_command("/stop", state=s, on_halt=check)
+    assert observed["engaged_during_cancel"] is True

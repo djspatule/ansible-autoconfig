@@ -42,6 +42,13 @@ class _FakeClient:
     def get_all_positions(self):
         return []
 
+    def get_orders(self):
+        return list(getattr(self, "open_orders", []) or [])
+
+    def cancel_order_by_id(self, order_id):
+        self.cancelled = getattr(self, "cancelled", [])
+        self.cancelled.append(order_id)
+
 
 class Broker:
     def __init__(self, client, *, paper: bool = True) -> None:
@@ -82,6 +89,30 @@ class Broker:
             client_order_id=intent.idempotency_key,
         )
         return str(order.id)
+
+    def cancel_all_orders(self) -> dict:
+        """Cancel every open order. Best effort, reporting per order.
+
+        Called after the kill switch is already engaged, never before: the halt
+        must not wait on a broker that may be slow or unreachable. Anything that
+        cannot be cancelled is reported rather than swallowed, because an order
+        the operator believes is cancelled and is not is worse than a failure
+        they were told about.
+        """
+        try:
+            orders = self._client.get_orders()
+        except Exception as exc:  # noqa: BLE001
+            return {"cancelled": 0, "failed": 0, "error": str(exc)}
+
+        cancelled, failures = 0, []
+        for order in orders or []:
+            oid = str(getattr(order, "id", ""))
+            try:
+                self._client.cancel_order_by_id(oid)
+                cancelled += 1
+            except Exception as exc:  # noqa: BLE001 — one failure must not stop the rest
+                failures.append({"order_id": oid, "error": str(exc)})
+        return {"cancelled": cancelled, "failed": len(failures), "failures": failures}
 
     def reconcile(self, state) -> dict:
         """Startup reconciliation. Alpaca is truth; local state is a cache.
