@@ -193,3 +193,12 @@ def test_a_view_expires_rather_than_becoming_a_standing_licence(tmp_path):
 
     later = NOW + dt.timedelta(days=200)
     assert kit["views"].for_symbol("BMRN", now=later) is None
+
+
+def test_the_reasoner_the_dialogue_needs_is_the_one_production_builds():
+    """research() and the follow-up path call reasoner.ask(). It did not
+    exist: every brief failed silently and went out empty, and every follow-up
+    would have died in the same place."""
+    from trading_agent.reasoning import ReasoningClient
+
+    assert hasattr(ReasoningClient, "ask")

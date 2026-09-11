@@ -26,8 +26,8 @@ from trading_agent.audit import AuditLog, new_correlation_id
 from trading_agent.broker import Broker
 from trading_agent.catalysts import CatalystFeed
 from trading_agent.dialogue import ask_next, handle_reply, to_events
-from trading_agent.sources import (alpaca_news_client, ctgov_client,
-                                   etf_holdings_fetcher)
+from trading_agent.sources import (alpaca_assets_client, alpaca_news_client,
+                                   ctgov_client, etf_holdings_fetcher)
 from trading_agent.commands import handle_command
 from trading_agent.config import Config
 from trading_agent.reasoning import ReasoningClient
@@ -66,7 +66,8 @@ def build_worker(config: Config, paths: dict) -> dict:
     had been built with no HTTP client at all.
     """
     universe = Universe(paths["universe_cache"],
-                        fetcher=etf_holdings_fetcher())
+                        fetcher=etf_holdings_fetcher(),
+                        name_lookup=alpaca_assets_client(config))
     return {
         "state": State(paths["state_db"]),
         "views": ViewStore(paths["views_db"]),

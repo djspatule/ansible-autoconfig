@@ -43,6 +43,10 @@ IBB_HOLDINGS = (
 _UA = "Mozilla/5.0 (compatible; ansible-autoconfig trading-agent)"
 
 ALPACA_NEWS = "https://data.alpaca.markets/v1beta1/news"
+# Suffixes the exchange listing carries and a trial registry never does.
+_NAME_NOISE = re.compile(
+    r"\s*(?:-\s*)?(?:common stock|ordinary shares?|class [a-c] .*|american "
+    r"depositary shares?.*|ads.*|\(the\).*)$", re.I)
 # Alpaca accepts a long symbols list; this keeps each URL and page sane.
 _NEWS_CHUNK = 50
 # Below this a "holdings file" is a parse that found headers, or an error page.
@@ -173,5 +177,40 @@ def etf_holdings_fetcher(*, get=_get):
             if len(names) >= _MIN_HOLDINGS:
                 found |= names
         return found
+
+    return fetch
+
+
+def _company_name(raw: str) -> str:
+    """The name a trial registry would file a sponsor under.
+
+    "ACADIA Pharmaceuticals Inc. Common Stock" is how an exchange lists a
+    security; ClinicalTrials.gov knows it as "ACADIA Pharmaceuticals Inc.".
+    """
+    return _NAME_NOISE.sub("", (raw or "").strip()).strip(" .,")
+
+
+def alpaca_assets_client(config, *, get=_get):
+    """Ticker to company name.
+
+    Needed because a trial registry does not know tickers. Searching it for
+    "ACAD" matched trials containing "Academy" and "Acute" — the agent asked
+    the operator to judge an obesity study run by a company it cannot trade.
+    """
+    def fetch(symbol: str) -> str:
+        try:
+            r = get(
+                f"{config.endpoint}/v2/assets/{symbol}",
+                headers={"APCA-API-KEY-ID": config.alpaca_key_id,
+                         "APCA-API-SECRET-KEY": config.alpaca_secret_key},
+            )
+        except Exception:  # noqa: BLE001
+            return ""
+        if r.status_code != 200:
+            return ""
+        try:
+            return _company_name(r.json().get("name", ""))
+        except Exception:  # noqa: BLE001
+            return ""
 
     return fetch

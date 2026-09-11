@@ -82,6 +82,19 @@ class ReasoningClient:
 
         return cls(transport, url=config.opencode_url)
 
+    def ask(self, prompt: str) -> str:
+        """One prose question, one prose answer.
+
+        Used for research briefs and follow-ups, where the reader is the
+        operator rather than the guardrail. Returns "" on any failure: a brief
+        the model could not produce is a question asked without one, which is
+        worse but survivable. Nothing here reaches an order.
+        """
+        try:
+            return (self._transport({"prompt": prompt}) or "").strip()
+        except Exception:  # noqa: BLE001 — never raise into the question path
+            return ""
+
     def propose(self, *, catalysts, positions) -> list[Proposal]:
         payload = {"catalysts": catalysts, "positions": positions}
         try:
@@ -147,6 +160,12 @@ An empty list is a valid and often correct answer."""
 
 
 def _build_prompt(payload: dict) -> str:
+    # A prose question goes through verbatim. The trading prompt exists to pin
+    # the model to a JSON contract; a research brief or a follow-up answer is
+    # meant to be read by a person, and wrapping it in that contract would ask
+    # for the wrong thing entirely.
+    if "prompt" in payload:
+        return str(payload["prompt"])
     cats = payload.get("catalysts") or []
     pos = payload.get("positions") or []
     return _PROMPT.format(

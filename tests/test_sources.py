@@ -172,3 +172,23 @@ def test_file_artifacts_are_not_mistaken_for_holdings():
     symbols = etf_holdings_fetcher(get=get)()
     assert "SEDOL" not in symbols and "USD" not in symbols
     assert symbols == set(CSV_NAMES)
+
+
+# --- ticker to sponsor name -------------------------------------------------
+
+def test_an_exchange_listing_becomes_a_sponsor_name():
+    """A trial registry files ACADIA as "ACADIA Pharmaceuticals Inc.", not as
+    an exchange lists it."""
+    from trading_agent.sources import _company_name
+
+    assert _company_name("ACADIA Pharmaceuticals Inc. Common Stock") == \
+        "ACADIA Pharmaceuticals Inc"
+    assert _company_name("Legend Biotech Corporation American Depositary "
+                         "Shares") == "Legend Biotech Corporation"
+
+
+def test_an_unknown_ticker_yields_no_name_rather_than_a_guess():
+    from trading_agent.sources import alpaca_assets_client
+
+    fetch = alpaca_assets_client(Config.for_testing(), get=_get(Resp(status=404)))
+    assert fetch("NOPE") == ""

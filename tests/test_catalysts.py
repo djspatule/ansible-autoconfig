@@ -70,6 +70,11 @@ class _Uni:
     def symbols(self):
         return {"MRNA", "BNTX", "VRTX"}
 
+    def company_name(self, symbol):
+        # The registry is searched by sponsor, so the sweep needs a name.
+        return {"MRNA": "ModernaTX", "BNTX": "BioNTech",
+                "VRTX": "Vertex Pharmaceuticals"}[symbol]
+
 
 def test_trials_are_not_re_swept_every_cycle():
     calls, clock = [], _Clock()
@@ -111,7 +116,7 @@ def test_a_rate_limit_is_retried_once_before_giving_up():
     calls = []
 
     def http(url, params):
-        calls.append(params["query.term"])
+        calls.append(params["query.spons"])
         if len(calls) == 1:
             raise RateLimited(url)
         return []

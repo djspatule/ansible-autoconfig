@@ -108,8 +108,14 @@ class CatalystFeed:
 
     def _fetch_studies(self, symbol: str) -> list:
         """One symbol, spaced, with a single backoff on a rate limit."""
+        # By sponsor, not by free text. "query.term=ACAD" returned trials
+        # containing "Academy" and "Acute" — the agent asked the operator to
+        # judge an obesity study run by a company it cannot trade.
+        sponsor = self._universe.company_name(symbol)
+        if not sponsor:
+            return []
         params = {
-            "query.term": symbol,
+            "query.spons": sponsor,
             "filter.overallStatus": "RECRUITING,ACTIVE_NOT_RECRUITING",
             "pageSize": 5,
         }

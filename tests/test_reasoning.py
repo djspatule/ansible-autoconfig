@@ -94,3 +94,36 @@ def test_empty_reply_is_unavailable_not_an_empty_proposal_list():
 
     with pytest.raises(ReasoningUnavailable):
         ReasoningClient(transport=lambda _p: "").propose(catalysts=[], positions=[])
+
+
+# --- prose questions, for the operator rather than the guardrail -------------
+
+def test_ask_sends_the_prompt_verbatim():
+    """The trading prompt pins the model to a JSON contract. A research brief
+    is meant to be read by a person, and that contract asks for the wrong
+    thing entirely."""
+    seen = []
+
+    def transport(payload):
+        seen.append(payload)
+        return "  a brief  "
+
+    client = ReasoningClient(transport=transport)
+    assert client.ask("what happened in the phase 2?") == "a brief"
+    assert seen[0]["prompt"] == "what happened in the phase 2?"
+
+
+def test_ask_degrades_to_nothing_rather_than_raising():
+    """research() and the follow-up path both run inside the operator's
+    conversation. A raised error there costs the question, not just the brief."""
+    def transport(_payload):
+        raise OSError("opencode down")
+
+    assert ReasoningClient(transport=transport).ask("anything") == ""
+
+
+def test_the_prose_path_does_not_go_through_the_json_prompt():
+    from trading_agent.reasoning import _build_prompt
+
+    assert _build_prompt({"prompt": "hello"}) == "hello"
+    assert "JSON" in _build_prompt({"catalysts": [], "positions": []}).upper()

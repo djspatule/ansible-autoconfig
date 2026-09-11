@@ -42,3 +42,56 @@ def test_stale_cache_is_used_rather_than_failing(tmp_path):
     result = u2.refresh()
     assert result["refreshed"] is False
     assert u2.is_biotech("ZZZZ"), "must fall back to the cached universe"
+
+
+# --- sponsor names are looked up once and cached ----------------------------
+
+def test_a_company_name_is_looked_up_once_and_kept(tmp_path):
+    """Needed for every symbol on every registry sweep, and it changes at most
+    once in a company's life."""
+    calls = []
+
+    def lookup(symbol):
+        calls.append(symbol)
+        return "BioMarin Pharmaceutical Inc"
+
+    path = tmp_path / "u.json"
+    u = Universe(path, name_lookup=lookup)
+    assert u.company_name("BMRN") == "BioMarin Pharmaceutical Inc"
+    assert u.company_name("bmrn") == "BioMarin Pharmaceutical Inc"
+    assert calls == ["BMRN"]
+
+    # And it survives a restart, so a redeploy does not re-query the lot.
+    assert Universe(path, name_lookup=lookup).company_name("BMRN")
+    assert calls == ["BMRN"]
+
+
+def test_an_unknown_name_is_cached_too(tmp_path):
+    """Otherwise a delisted ticker is looked up again on every sweep."""
+    calls = []
+
+    def lookup(symbol):
+        calls.append(symbol)
+        return ""
+
+    u = Universe(tmp_path / "u.json", name_lookup=lookup)
+    assert u.company_name("GONE") == ""
+    assert u.company_name("GONE") == ""
+    assert calls == ["GONE"]
+
+
+def test_a_symbol_with_no_name_is_not_swept(tmp_path):
+    """Better to skip a symbol than to search a trial registry for a ticker."""
+    from trading_agent.catalysts import CatalystFeed
+
+    class U:
+        def symbols(self):
+            return {"GONE"}
+
+        def company_name(self, symbol):
+            return ""
+
+    def http(url, params):
+        raise AssertionError("must not query without a sponsor name")
+
+    assert CatalystFeed(U(), http=http, sleep=lambda _s: None).upcoming_trials() == []
