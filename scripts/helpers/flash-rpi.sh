@@ -11,9 +11,15 @@
 # The wifi passphrase is read from the environment and converted to a PSK hash
 # before it touches the card, so the plaintext is never written to disk.
 #
-# Customisation uses custom.toml, the first-boot mechanism Raspberry Pi OS
-# (Bookworm and later) reads from the boot partition. That is the same thing the
-# Imager GUI writes, which is why this needs no GUI at all.
+# NOTE: the custom.toml written below DOES NOT WORK with --cli, and this script
+# should be used only for the image write itself. custom.toml is applied by a
+# firstboot hook that Raspberry Pi Imager adds to cmdline.txt when the GUI
+# writes the card; --cli adds no such hook, so the file is read by nothing and
+# silently ignored. A card written this way boots stock: hostname
+# "raspberrypi", no wifi, no SSH.
+#
+# Flash with this, then configure with scripts/helpers/configure-rpi-card.sh,
+# which uses the mechanisms that are actually enabled on the stock image.
 set -eu
 
 IMAGE_URL="${IMAGE_URL:-https://downloads.raspberrypi.com/raspios_lite_arm64_latest}"
