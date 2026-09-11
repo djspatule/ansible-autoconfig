@@ -46,12 +46,39 @@ class ReasoningClient:
 
     @classmethod
     def from_config(cls, config) -> "ReasoningClient":
+        """Talk to opencode over the LAN.
+
+        A session is created per cycle and deleted afterwards. The agent's
+        memory is SQLite, not the model's context — carrying a conversation
+        across cycles would let yesterday's reasoning colour today's, and would
+        grow context until it had to be compacted mid-decision.
+        """
         import httpx
 
+        auth = (config.opencode_user, config.opencode_password)
+        base = config.opencode_url.rstrip("/")
+
         def transport(payload: dict) -> str:
-            r = httpx.post(config.opencode_url, json=payload, timeout=60.0)
-            r.raise_for_status()
-            return r.text
+            with httpx.Client(auth=auth, timeout=180.0) as http:
+                created = http.post(f"{base}/session",
+                                    json={"title": "trading-agent cycle"})
+                created.raise_for_status()
+                session_id = created.json()["id"]
+                try:
+                    reply = http.post(
+                        f"{base}/session/{session_id}/message",
+                        json={"parts": [{"type": "text",
+                                         "text": _build_prompt(payload)}]},
+                    )
+                    reply.raise_for_status()
+                    return _extract_text(reply.json())
+                finally:
+                    # Always clean up, including on failure: an abandoned
+                    # session per failed cycle would accumulate silently.
+                    try:
+                        http.delete(f"{base}/session/{session_id}")
+                    except Exception:  # noqa: BLE001
+                        pass
 
         return cls(transport, url=config.opencode_url)
 
@@ -97,3 +124,44 @@ def proposals_or_none(client: ReasoningClient, **kwargs):
         return client.propose(**kwargs)
     except ReasoningUnavailable:
         return None
+
+
+# The model is asked for a decision, not for prose. Anything it returns that is
+# not the expected shape is rejected upstream rather than interpreted.
+_PROMPT = """You are the reasoning step of an automated biotech trading agent.
+
+Upcoming catalysts (clinical trial readouts and news):
+{catalysts}
+
+Current positions:
+{positions}
+
+Propose zero or more trades. Prefer proposing nothing over proposing something
+speculative: a missed opportunity costs nothing, a bad trade costs money.
+
+Reply with ONLY this JSON, no prose, no code fences:
+{{"proposals": [{{"symbol": "TICKER", "side": "buy", "notional_usd": 100,
+"rationale": "one sentence"}}]}}
+
+An empty list is a valid and often correct answer."""
+
+
+def _build_prompt(payload: dict) -> str:
+    cats = payload.get("catalysts") or []
+    pos = payload.get("positions") or []
+    return _PROMPT.format(
+        catalysts="\n".join(f"- {c}" for c in cats) or "(none)",
+        positions="\n".join(f"- {p}" for p in pos) or "(none)",
+    )
+
+
+def _extract_text(reply: dict) -> str:
+    """Pull the assistant's text out of an opencode reply.
+
+    The shape has moved between versions, so this checks the known places
+    rather than assuming one — and returns '' when it finds nothing, which the
+    caller treats as unusable rather than as an empty proposal list.
+    """
+    parts = reply.get("parts") or reply.get("info", {}).get("parts") or []
+    texts = [p.get("text", "") for p in parts if p.get("type") == "text"]
+    return texts[-1].strip() if texts else ""

@@ -52,3 +52,45 @@ def test_proposal_is_only_a_proposal():
     good = '{"proposals": [{"symbol": "MRNA", "side": "buy", "notional_usd": 100, "rationale": "x"}]}'
     out = ReasoningClient(transport=lambda _p: good).propose(catalysts=[], positions=[])
     assert not out[0].to_intent().is_approved
+
+
+# --- opencode transport shape ------------------------------------------------
+
+def test_prompt_asks_for_json_only_and_permits_doing_nothing():
+    from trading_agent.reasoning import _build_prompt
+
+    text = _build_prompt({"catalysts": ["MRNA | PHASE3 | readout"], "positions": []})
+    assert "MRNA" in text
+    assert "(none)" in text, "empty positions must render explicitly, not blankly"
+    assert "ONLY this JSON" in text
+    # The model must be told that proposing nothing is acceptable, or it will
+    # feel obliged to produce a trade every cycle.
+    assert "empty list is a valid" in text
+
+
+def test_extract_text_handles_both_reply_shapes():
+    from trading_agent.reasoning import _extract_text
+
+    assert _extract_text({"parts": [{"type": "text", "text": "a"}]}) == "a"
+    assert _extract_text({"info": {"parts": [{"type": "text", "text": "b"}]}}) == "b"
+    # Takes the last text part: opencode emits reasoning parts before the answer.
+    assert _extract_text({"parts": [
+        {"type": "text", "text": "thinking"},
+        {"type": "text", "text": "final"},
+    ]}) == "final"
+
+
+def test_extract_text_returns_empty_when_it_finds_nothing():
+    """Empty is treated as unusable upstream, never as 'no proposals'."""
+    from trading_agent.reasoning import _extract_text
+
+    assert _extract_text({}) == ""
+    assert _extract_text({"parts": [{"type": "tool", "name": "x"}]}) == ""
+
+
+def test_empty_reply_is_unavailable_not_an_empty_proposal_list():
+    from trading_agent.reasoning import ReasoningClient, ReasoningUnavailable
+    import pytest
+
+    with pytest.raises(ReasoningUnavailable):
+        ReasoningClient(transport=lambda _p: "").propose(catalysts=[], positions=[])
