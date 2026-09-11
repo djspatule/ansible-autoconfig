@@ -130,7 +130,16 @@ class ViewStore:
             for r in rows
         ]
 
-    def scoreboard(self) -> dict:
+    # Published base rates for trial success by phase. Being right 55% of the
+    # time is only an edge if chance would have been 50% — an accuracy number
+    # with nothing to compare it against says nothing at all, which is the
+    # whole point of measuring.
+    #
+    # Approximate and worth revisiting against a real source; they exist to
+    # give the scoreboard a denominator, not to be precise.
+    BASE_RATES = {"PHASE1": 0.52, "PHASE2": 0.29, "PHASE3": 0.58, "": 0.50}
+
+    def scoreboard(self, *, base_rate: float | None = None) -> dict:
         s = self.scored()
         correct = sum(1 for r in s if r["correct"])
         by_conf: dict[int, dict] = {}
@@ -138,11 +147,22 @@ class ViewStore:
             b = by_conf.setdefault(r["confidence"], {"n": 0, "correct": 0})
             b["n"] += 1
             b["correct"] += 1 if r["correct"] else 0
+        accuracy = (correct / len(s)) if s else None
+        base = self.BASE_RATES[""] if base_rate is None else base_rate
         return {
             "scored": len(s),
             "correct": correct,
-            "accuracy": (correct / len(s)) if s else None,
-            # Whether confidence tracks accuracy is the most useful thing here:
+            "accuracy": accuracy,
+            "base_rate": base,
+            # The number that actually matters. Positive means judgment is
+            # adding something over chance; zero or negative means the effort
+            # is not yet paying, however pleasant the raw accuracy looks.
+            "edge_over_base": (accuracy - base) if accuracy is not None else None,
+            # A caveat rather than a statistic. Under roughly thirty scored
+            # calls, an "edge" is mostly noise, and reporting it without saying
+            # so would be the most misleading thing this file could do.
+            "significant": len(s) >= 30,
+            # Whether confidence tracks accuracy is the most useful breakdown:
             # being right often matters less than knowing when you are right.
             "by_confidence": by_conf,
         }

@@ -80,3 +80,38 @@ def test_no_opinion_views_are_excluded_from_scoring(tmp_path):
     s.record(View("MRNA", "NCT1", "no_opinion", 0, "r", NOW))
     s.record_outcome("MRNA", "NCT1", "positive", LATER)
     assert s.scoreboard()["scored"] == 0
+
+
+# --- accuracy is meaningless without a base rate -----------------------------
+
+def test_edge_is_measured_against_a_base_rate(tmp_path):
+    """Being right 55% of the time is only an edge if chance is 50%."""
+    s = store(tmp_path)
+    for i in range(10):
+        s.record(View(f"S{i}", f"N{i}", "positive", 3, "r", NOW))
+        s.record_outcome(f"S{i}", f"N{i}", "positive" if i < 6 else "negative", LATER)
+    board = s.scoreboard(base_rate=0.5)
+    assert board["accuracy"] == 0.6
+    assert abs(board["edge_over_base"] - 0.1) < 1e-9
+
+
+def test_a_small_sample_is_flagged_as_not_significant(tmp_path):
+    """Ten lucky calls are not an edge, and must not be presented as one."""
+    s = store(tmp_path)
+    for i in range(10):
+        s.record(View(f"S{i}", f"N{i}", "positive", 3, "r", NOW))
+        s.record_outcome(f"S{i}", f"N{i}", "positive", LATER)
+    assert s.scoreboard()["significant"] is False
+
+
+def test_phase_base_rates_differ(tmp_path):
+    """Phase 2 is far harder than phase 3; scoring them alike would flatter
+    the wrong calls."""
+    s = store(tmp_path)
+    assert s.BASE_RATES["PHASE2"] < s.BASE_RATES["PHASE3"]
+
+
+def test_empty_scoreboard_reports_nothing_rather_than_zero(tmp_path):
+    """No data is not the same as no skill."""
+    board = store(tmp_path).scoreboard()
+    assert board["accuracy"] is None and board["edge_over_base"] is None
