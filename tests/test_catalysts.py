@@ -144,3 +144,49 @@ def test_a_persistent_rate_limit_stops_the_sweep_and_shortens_the_cache():
     before = len(calls)
     feed.upcoming_trials()
     assert len(calls) > before
+
+
+def test_a_cut_short_sweep_does_not_erase_what_was_already_known():
+    """A sweep that stopped at the letter B knows nothing about the rest of the
+    universe. It is not evidence those trials went away — letting it overwrite
+    the cache dropped the live agent from 76 catalysts to 6."""
+    state = {"limit": False}
+
+    def http(url, params):
+        if state["limit"]:
+            raise RateLimited(url)
+        return [{
+            "protocolSection": {
+                "identificationModule": {"briefTitle": "T", "nctId": "NCT1"},
+                "designModule": {"phases": ["PHASE3"]},
+                "statusModule": {
+                    "primaryCompletionDateStruct": {"date": "2026-09-20"}},
+            }
+        }]
+
+    clock = _Clock()
+    feed = CatalystFeed(_Uni(), http=http, clock=clock, sleep=lambda _s: None)
+    full = feed.upcoming_trials()
+    assert len(full) == 3
+
+    state["limit"] = True
+    clock.t += feed._ttl + 1
+    after = feed.upcoming_trials()
+    assert len(after) == 3, "the known catalysts survive a throttled sweep"
+
+
+def test_one_throttled_symbol_does_not_end_the_sweep():
+    """A single 429 is normal. Giving up on it would make a full sweep depend
+    on every one of 147 requests succeeding."""
+    calls = []
+
+    def http(url, params):
+        calls.append(params["query.spons"])
+        # Every attempt for the first symbol is throttled; the rest are fine.
+        if params["query.spons"] == "BioNTech":
+            raise RateLimited(url)
+        return []
+
+    feed = CatalystFeed(_Uni(), http=http, clock=_Clock(), sleep=lambda _s: None)
+    feed.upcoming_trials()
+    assert "ModernaTX" in calls and "Vertex Pharmaceuticals" in calls

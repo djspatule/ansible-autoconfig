@@ -39,12 +39,18 @@ class Catalyst:
 # still four sweeps a day, which is more than a trial registry ever needs.
 TRIALS_TTL_SECONDS = 6 * 3600
 # Spacing between registry requests. ClinicalTrials.gov answered 429 to an
-# unspaced sweep of 149 symbols, so most of the universe returned nothing and
-# the agent reasoned over a partial picture without knowing it.
-REQUEST_DELAY_SECONDS = 0.35
+# unspaced sweep of 149 symbols, and still throttled at a third of a second.
+# A full sweep now takes about two and a half minutes, four times a day.
+REQUEST_DELAY_SECONDS = 1.0
 # A sweep that was cut short is retried soon rather than held for the full
 # window: caching a partial picture for six hours is worse than not caching.
 DEGRADED_TTL_SECONDS = 600
+# How many symbols in a row may exhaust their retries before the sweep gives
+# up. One is too few — a single throttled symbol is normal — and continuing
+# indefinitely into a wall of 429s is how an address gets blocked.
+MAX_CONSECUTIVE_RATE_LIMITS = 3
+# Retries for one symbol, each after a longer pause.
+RATE_LIMIT_RETRIES = 2
 
 
 class CatalystFeed:
@@ -81,17 +87,21 @@ class CatalystFeed:
         cutoff = dt.date.today() + dt.timedelta(days=within_days)
         out: list[Catalyst] = []
         degraded = False
+        throttled_in_a_row = 0
         for symbol in sorted(self._universe.symbols()):
             try:
                 studies = self._fetch_studies(symbol)
             except RateLimited:
-                # Backing off once did not help. Stop: hammering past a rate
-                # limit gets the address blocked, and the rest of the sweep
-                # would return nothing anyway.
-                degraded = True
-                break
+                throttled_in_a_row += 1
+                if throttled_in_a_row >= MAX_CONSECUTIVE_RATE_LIMITS:
+                    # Hammering past a rate limit gets the address blocked, and
+                    # the rest of the sweep would return nothing anyway.
+                    degraded = True
+                    break
+                continue
             except Exception:  # noqa: BLE001 — one bad symbol must not end the sweep
                 continue
+            throttled_in_a_row = 0
             for study in studies or []:
                 try:
                     c = _parse_study(symbol, study)
@@ -99,8 +109,14 @@ class CatalystFeed:
                     continue
                 if c and c.date and c.date <= cutoff.isoformat():
                     out.append(c)
-        # A partial sweep is still worth using — some catalysts beat none — but
-        # it is held only briefly, so the next cycle tries for the full picture.
+        if degraded:
+            # Merge rather than replace. A sweep that stopped at the letter B
+            # knows nothing about the rest of the universe — it is not evidence
+            # that those trials went away, and letting it overwrite the cache
+            # dropped the agent from 76 catalysts to 6.
+            known = {(c.symbol, c.url): c for c in self._trials_cache}
+            known.update({(c.symbol, c.url): c for c in out})
+            out = list(known.values())
         self._trials_cache = out
         self._trials_at = now
         self._ttl_now = DEGRADED_TTL_SECONDS if degraded else self._ttl
@@ -119,13 +135,19 @@ class CatalystFeed:
             "filter.overallStatus": "RECRUITING,ACTIVE_NOT_RECRUITING",
             "pageSize": 5,
         }
-        try:
-            studies = self._http(CTGOV_API, params)
-        except RateLimited:
-            self._sleep(self._delay * 10)
-            studies = self._http(CTGOV_API, params)  # a second 429 ends the sweep
-        self._sleep(self._delay)
-        return studies
+        pause = self._delay
+        for attempt in range(RATE_LIMIT_RETRIES + 1):
+            try:
+                studies = self._http(CTGOV_API, params)
+            except RateLimited:
+                if attempt == RATE_LIMIT_RETRIES:
+                    raise
+                pause *= 4
+                self._sleep(pause)
+                continue
+            self._sleep(self._delay)
+            return studies
+        raise AssertionError("unreachable")
 
     def recent_news(self, *, limit: int = 20) -> list[Catalyst]:
         if self._news is None:
