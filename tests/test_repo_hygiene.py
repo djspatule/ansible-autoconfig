@@ -83,3 +83,25 @@ def test_g4_no_build_output_is_tracked():
         if p.suffix in (".pyc", ".pyo") or "__pycache__" in p.parts
     ]
     assert not offenders, f"build output is tracked: {offenders}"
+
+
+def test_every_declared_dependency_is_actually_imported():
+    """A dependency nobody imports is install weight and audit surface on a
+    host that places orders. Pinning one is a decision; keeping a dead one is
+    an oversight."""
+    import re
+    import tomllib
+
+    with open(ROOT / "pyproject.toml", "rb") as fh:
+        declared = tomllib.load(fh)["project"]["dependencies"]
+    names = [re.split(r"[=<>~\[]", d)[0].strip() for d in declared]
+    # Distribution name to the module it provides, where they differ.
+    module = {"alpaca-py": "alpaca", "python-telegram-bot": "telegram",
+              "python-dotenv": "dotenv"}
+    source = "\n".join(
+        p.read_text() for p in (ROOT / "trading_agent").glob("*.py")
+    )
+    for name in names:
+        mod = module.get(name, name.replace("-", "_"))
+        assert re.search(rf"(?:^|\s)(?:import|from)\s+{re.escape(mod)}\b",
+                         source, re.M), f"{name} is declared but never imported"

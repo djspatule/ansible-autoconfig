@@ -41,9 +41,10 @@ dotfiles_stow_packages:
   - gh
   - lazygit
 
-# Trading agent. Off until the Ansible role has been exercised here at least
-# once; flipping this deploys a process that can place orders.
-trading_agent_enabled: false
+# Trading agent. Paper endpoint only: trading_agent_mode and
+# trading_agent_live_confirmed both default to their paper values in the role,
+# and reaching live takes changing both here deliberately.
+trading_agent_enabled: true
 # opencode over the LAN. serverannah binds 4096 to 192.168.1.100 only, so this
 # never leaves the house and needs no second password through Caddy.
 trading_agent_opencode_url: http://192.168.1.100:4096
