@@ -34,6 +34,24 @@
   mid-session. Mitigations that follow from it: the venv pins its own
   interpreter, the unit restarts on failure, and `OnFailure=` alerts.
 
+- **A-11 NOT LangGraph** — flagged, because the brief named it explicitly.
+
+  LangGraph earns its weight through branching, tool orchestration and
+  human-in-the-loop nodes. Two of those three are now gone: reasoning happens
+  inside opencode (O-02), which runs its own agent loop, and mandatory approval
+  was removed (O-01). What remains is a straight line — reconcile, gather,
+  reason, guardrail, submit — and `agent.py` expresses it in about eighty lines
+  with no framework.
+
+  Adding langchain + langgraph to a Raspberry Pi to express a straight line
+  would be weight without benefit, and every dependency sitting near an order
+  path is a liability on a host that dist-upgrades itself nightly.
+
+  Easy to revisit: if the flow later grows real branching, the cycle is one
+  function and the stages are already separate modules.
+
+  **This contradicts the brief and is the operator's call to overturn.**
+
 ## ACCEPTED RISKS
 - **R-01** Nightly unattended upgrades on a machine running a financial process
   (see A-10). Operator-accepted; amount at risk is small.
