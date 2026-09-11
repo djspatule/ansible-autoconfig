@@ -44,6 +44,16 @@ _SCOREABLE = {
     EventKind.REGULATORY,
 }
 
+# Which events carry NEW information capable of invalidating a view already
+# held. This is a different axis from materiality, and conflating them was a
+# bug: a scheduled readout is important, but it is precisely what the existing
+# view was formed about, so re-asking is noise. An amendment or a regulatory
+# action is genuinely new, so it is worth a second look.
+_INVALIDATES_PRIOR_VIEW = {
+    EventKind.TRIAL_AMENDMENT,
+    EventKind.REGULATORY,
+}
+
 _MATERIALITY = {
     EventKind.TRIAL_READOUT: Materiality.HIGH,
     EventKind.REGULATORY: Materiality.HIGH,
@@ -72,6 +82,11 @@ class Event:
         return _MATERIALITY.get(self.kind, Materiality.LOW)
 
     @property
+    def invalidates_prior_view(self) -> bool:
+        """Does this carry information that could change an existing view?"""
+        return self.kind in _INVALIDATES_PRIOR_VIEW
+
+    @property
     def is_scoreable(self) -> bool:
         return self.kind in _SCOREABLE
 
@@ -93,6 +108,9 @@ def worth_researching(event: Event, *, has_view: bool,
     """
     if event.materiality < threshold:
         return False
-    if has_view and event.materiality < Materiality.HIGH:
+    if has_view and not event.invalidates_prior_view:
+        # Already judged, and nothing new has happened. Re-researching would
+        # spend tokens to re-derive an answer already on file, and re-asking
+        # would spend the operator's patience, which is the scarcer resource.
         return False
     return True

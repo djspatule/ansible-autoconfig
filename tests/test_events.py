@@ -35,11 +35,13 @@ def test_a_held_view_suppresses_further_research():
     assert not worth_researching(e, has_view=True)
 
 
-def test_a_high_materiality_event_overrides_an_existing_view():
-    """An amendment or termination can invalidate an earlier read, so it is
-    worth re-examining even when a view exists."""
+def test_only_genuinely_new_information_overrides_an_existing_view():
+    """Superseded by the materiality/invalidation split. This originally also
+    asserted that a TRIAL_READOUT re-opens a judged trial, which was wrong:
+    a scheduled readout is what the view was formed about, so re-asking is
+    noise. Only an amendment or a regulatory action is new."""
     assert worth_researching(ev(EventKind.TRIAL_AMENDMENT), has_view=True)
-    assert worth_researching(ev(EventKind.TRIAL_READOUT), has_view=True)
+    assert not worth_researching(ev(EventKind.TRIAL_READOUT), has_view=True)
 
 
 def test_views_are_keyed_on_the_trial_not_the_item():
@@ -52,3 +54,20 @@ def test_views_are_keyed_on_the_trial_not_the_item():
 
 def test_company_level_events_fall_back_to_the_symbol():
     assert ev(EventKind.EARNINGS).view_key == "MRNA"
+
+
+def test_an_anticipated_readout_is_not_re_asked_once_judged():
+    """A scheduled readout is exactly what the existing view was formed about.
+    Asking again is noise, not diligence."""
+    e = ev(EventKind.TRIAL_READOUT)
+    assert not e.invalidates_prior_view
+    assert not worth_researching(e, has_view=True)
+    assert worth_researching(e, has_view=False)
+
+
+def test_new_information_does_re_open_a_judged_trial():
+    """An amendment or a regulatory action is genuinely new, so the earlier
+    read deserves a second look."""
+    for kind in (EventKind.TRIAL_AMENDMENT, EventKind.REGULATORY):
+        assert ev(kind).invalidates_prior_view
+        assert worth_researching(ev(kind), has_view=True)
