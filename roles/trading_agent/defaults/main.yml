@@ -10,6 +10,11 @@ trading_agent_src_dir: "{{ playbook_dir }}/trading_agent"
 # Everything mutable lives outside that checkout: the pull runs `git clean -fd`.
 trading_agent_root: /opt/trading-agent
 trading_agent_venv: "{{ trading_agent_root }}/venv"
+# Build staging. pip builds a local directory in place, and the pull checkout
+# is root-owned while the build runs as the agent user, so the source is mirrored
+# here first. Still one source of truth: this is a copy of the checkout, refreshed
+# from it every run.
+trading_agent_stage_dir: "{{ trading_agent_root }}/src"
 trading_agent_state_db: "{{ trading_agent_root }}/state.db"
 trading_agent_log_dir: "{{ trading_agent_root }}/logs"
 trading_agent_env_file: /etc/trading-agent/env
