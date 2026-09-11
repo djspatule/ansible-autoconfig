@@ -120,3 +120,16 @@ def test_the_cycle_is_given_a_way_to_ask(tmp_path):
     from trading_agent import main as m
 
     assert "ask=" in inspect.getsource(m.work_loop)
+
+
+def test_both_loops_are_wired_into_the_conversation():
+    """The consultation subsystem existed in full — questions, briefs, reply
+    parsing, follow-ups — and nothing called any of it. The agent could find a
+    readout, propose a trade, and refuse itself forever for want of a view it
+    had no way to ask for."""
+    import inspect
+
+    from trading_agent import main as m
+
+    assert "ask_next" in inspect.getsource(m.work_loop), "nothing asks"
+    assert "handle_reply" in inspect.getsource(m.command_loop), "nothing listens"

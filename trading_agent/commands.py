@@ -15,6 +15,9 @@ from dataclasses import dataclass
 class CommandResult:
     text: str
     changed: bool = False
+    # False means "this was not a command": the caller should treat the message
+    # as conversation. Distinct from a command that ran and had nothing to say.
+    handled: bool = True
 
 
 def handle_command(text: str, *, state, on_halt=None) -> CommandResult:
@@ -63,6 +66,13 @@ def handle_command(text: str, *, state, on_halt=None) -> CommandResult:
     if cmd == "/help":
         return CommandResult("/stop  /resume  /status  /help")
 
+    if cmd.startswith("/"):
+        # A mistyped command must not be parsed as an answer to the open
+        # question. "/stopp" becoming a view on a clinical trial is exactly the
+        # kind of silent misreading this whole layer exists to prevent.
+        return CommandResult(f"Unknown command {cmd}. Try: /stop /resume "
+                             "/status /help")
+
     # Anything else is conversation for the agent, not a command. Notably it
     # must NOT clear a halt: a chatty message is not consent to resume.
-    return CommandResult("")
+    return CommandResult("", handled=False)

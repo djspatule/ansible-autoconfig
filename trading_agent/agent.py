@@ -99,7 +99,7 @@ def run_cycle(*, state, config, broker, feed, reasoner, audit, views=None,
         # Selling is exempt: getting out is risk reduction and must not wait on
         # anyone's availability.
         if views is not None and p.side == "buy":
-            view = views.for_event(p.symbol, p.symbol, now=now)
+            view = views.for_symbol(p.symbol, now=now)
             if view is None or not view.is_actionable:
                 why = "no view recorded" if view is None else "no_opinion recorded"
                 audit.record("view_gate", cid, {"symbol": p.symbol, "reason": why})

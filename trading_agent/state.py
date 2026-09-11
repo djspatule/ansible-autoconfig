@@ -25,6 +25,18 @@ CREATE TABLE IF NOT EXISTS daily (
     -- even if the position recovers. A breaker that un-trips is not a breaker.
     loss_breaker_tripped INTEGER NOT NULL DEFAULT 0
 );
+-- The consultation with the operator. One thread is open at a time, so a
+-- reply is never ambiguous about which trial it answers.
+CREATE TABLE IF NOT EXISTS threads (
+    event_key TEXT PRIMARY KEY,
+    symbol TEXT NOT NULL,
+    title TEXT NOT NULL DEFAULT '',
+    opened_at TEXT NOT NULL,
+    -- Kept after the thread closes: an answered question must not be asked
+    -- again the moment its view expires, and an unanswered one must not be
+    -- re-sent every cycle.
+    open INTEGER NOT NULL DEFAULT 1
+);
 CREATE TABLE IF NOT EXISTS approvals (
     id TEXT PRIMARY KEY,
     payload TEXT NOT NULL,
@@ -196,6 +208,37 @@ class State:
                 "UPDATE approvals SET status='denied' WHERE id=?", (request_id,)
             )
         return ids
+
+    # --- consultation threads -----------------------------------------------
+
+    def open_thread_for(self, event_key: str, symbol: str, title: str,
+                        now: dt.datetime) -> None:
+        self._db.execute(
+            "INSERT INTO threads(event_key,symbol,title,opened_at,open) "
+            "VALUES(?,?,?,?,1) ON CONFLICT(event_key) DO UPDATE SET open=1",
+            (event_key, symbol.upper(), title, now.isoformat()),
+        )
+
+    def open_thread(self) -> dict | None:
+        row = self._db.execute(
+            "SELECT event_key,symbol,title,opened_at FROM threads "
+            "WHERE open=1 ORDER BY opened_at DESC LIMIT 1"
+        ).fetchone()
+        if not row:
+            return None
+        return {"event_key": row[0], "symbol": row[1], "title": row[2],
+                "opened_at": row[3]}
+
+    def close_thread(self) -> None:
+        self._db.execute("UPDATE threads SET open=0 WHERE open=1")
+
+    def was_asked(self, event_key: str) -> bool:
+        """Asked at some point, answered or not. A question the operator chose
+        not to answer is a kind of answer, and re-sending it every cycle is how
+        a useful channel becomes one that gets muted."""
+        return self._db.execute(
+            "SELECT 1 FROM threads WHERE event_key=?", (event_key,)
+        ).fetchone() is not None
 
     def resolve_approval(self, request_id: str) -> None:
         self._db.execute("DELETE FROM approvals WHERE id=?", (request_id,))

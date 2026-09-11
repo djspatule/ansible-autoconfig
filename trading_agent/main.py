@@ -25,6 +25,7 @@ from trading_agent.agent import run_cycle
 from trading_agent.audit import AuditLog, new_correlation_id
 from trading_agent.broker import Broker
 from trading_agent.catalysts import CatalystFeed
+from trading_agent.dialogue import ask_next, handle_reply, to_events
 from trading_agent.sources import (alpaca_news_client, ctgov_client,
                                    etf_holdings_fetcher)
 from trading_agent.commands import handle_command
@@ -102,6 +103,21 @@ def work_loop(config: Config, paths: dict) -> None:
 
     while not _stop.is_set():
         try:
+            # Ask before trading. The view gate refuses an opening trade with
+            # no view on file, so a cycle that never asks is a cycle that can
+            # only ever refuse itself.
+            cid = new_correlation_id()
+            catalysts = feed.upcoming_trials() + feed.recent_news()
+            ask_next(to_events(catalysts), views=views, state=state,
+                     telegram=tg, reasoner=reasoner, audit=audit,
+                     now=dt.datetime.now(dt.timezone.utc), correlation_id=cid)
+        except Exception as exc:  # noqa: BLE001 — never let the question path
+            # stop the trading path. A missed question costs a trade that would
+            # have been refused anyway; a dead work loop costs the positions.
+            log.exception("consultation failed: %s", exc)
+            audit.record("consultation_failed", cid, {"error": str(exc)})
+
+        try:
             result = run_cycle(
                 state=state, config=config, broker=broker, feed=feed,
                 reasoner=reasoner, audit=audit, views=views,
@@ -126,6 +142,9 @@ def work_loop(config: Config, paths: dict) -> None:
 def command_loop(config: Config, paths: dict) -> None:
     """Telegram commands. Kept trivial so it is always responsive."""
     state = State(paths["state_db"])
+    views = ViewStore(paths["views_db"])
+    audit = AuditLog(paths["audit_log"])
+    reasoner = ReasoningClient.from_config(config)
     tg = Telegram(config.telegram_bot_token, config.telegram_chat_id)
     # /stop must also pull the agent's resting orders, or a halt leaves limit
     # orders that can still fill. Its own broker handle: this loop shares
@@ -137,10 +156,26 @@ def command_loop(config: Config, paths: dict) -> None:
         for text in texts:
             result = handle_command(text, state=state,
                                     on_halt=broker.cancel_all_orders)
-            if result.text:
-                tg.send(result.text)
-            if result.changed:
-                log.warning("operator command applied: %s", text.split()[0])
+            if result.handled:
+                if result.text:
+                    tg.send(result.text)
+                if result.changed:
+                    log.warning("operator command applied: %s", text.split()[0])
+                continue
+
+            # Not a command, so it is part of the conversation: a view on the
+            # open question, or a follow-up about it.
+            try:
+                kind = handle_reply(
+                    text, views=views, state=state, telegram=tg,
+                    reasoner=reasoner, audit=audit,
+                    now=dt.datetime.now(dt.timezone.utc),
+                    correlation_id=new_correlation_id(),
+                )
+                log.info("operator message handled as %s", kind)
+            except Exception as exc:  # noqa: BLE001 — this loop must stay
+                # responsive; /stop is the thing it exists to deliver.
+                log.exception("reply handling failed: %s", exc)
         _stop.wait(COMMAND_POLL_SECONDS)
 
 

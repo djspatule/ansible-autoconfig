@@ -72,8 +72,12 @@ class ViewStore:
     def __init__(self, path: Path | str) -> None:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self._db = sqlite3.connect(self.path, isolation_level=None)
-        self._db.execute("PRAGMA journal_mode=WAL")
+        # Same restart race as State: a second handle must not meet an
+        # exclusive lock on the journal-mode switch.
+        self._db = sqlite3.connect(self.path, isolation_level=None, timeout=30.0)
+        self._db.execute("PRAGMA busy_timeout=30000")
+        if str(self._db.execute("PRAGMA journal_mode").fetchone()[0]).lower() != "wal":
+            self._db.execute("PRAGMA journal_mode=WAL")
         self._db.executescript(_SCHEMA)
 
     def record(self, view: View) -> None:
@@ -108,6 +112,28 @@ class ViewStore:
             return None
         return View(row[0], row[1], row[2], int(row[3]), row[4],
                     dt.datetime.fromisoformat(row[5]), expires)
+
+    def for_symbol(self, symbol: str, *, now: dt.datetime) -> View | None:
+        """The most recent unexpired view on a company, whatever event it was
+        filed against.
+
+        Views are keyed on the trial, because that is the unit the operator
+        actually judges. The trade is in the stock. Without this the gate would
+        look up a view under the ticker, find nothing, and refuse a trade the
+        operator had already licensed on the trial that drives it.
+        """
+        rows = self._db.execute(
+            "SELECT symbol,event_id,stance,confidence,note,recorded_at,expires_at"
+            " FROM views WHERE symbol=? ORDER BY recorded_at DESC",
+            (symbol.upper(),),
+        ).fetchall()
+        for row in rows:
+            expires = dt.datetime.fromisoformat(row[6]) if row[6] else None
+            if expires and now >= expires:
+                continue
+            return View(row[0], row[1], row[2], int(row[3]), row[4],
+                        dt.datetime.fromisoformat(row[5]), expires)
+        return None
 
     def record_outcome(self, symbol: str, event_id: str, outcome: str,
                        observed_at: dt.datetime, *, scoreable: bool = True) -> None:
