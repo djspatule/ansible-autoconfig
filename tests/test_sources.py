@@ -158,3 +158,17 @@ def test_both_issuers_failing_returns_nothing_so_the_cache_survives():
     def get(url, params=None, headers=None, timeout=None):
         raise OSError("dns")
     assert etf_holdings_fetcher(get=get)() == set()
+
+
+def test_file_artifacts_are_not_mistaken_for_holdings():
+    """The live XBI file put SEDOL and USD into the tradable universe: a column
+    header and the currency, both ticker-shaped."""
+    csv_text = "\n".join(["Ticker,Name,Currency,SEDOL"]
+                         + [f"{s},Co,USD,BXXXXX" for s in CSV_NAMES])
+
+    def get(url, params=None, headers=None, timeout=None):
+        return Resp(text=csv_text) if "ishares" in url else Resp(status=500)
+
+    symbols = etf_holdings_fetcher(get=get)()
+    assert "SEDOL" not in symbols and "USD" not in symbols
+    assert symbols == set(CSV_NAMES)

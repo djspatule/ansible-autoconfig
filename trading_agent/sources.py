@@ -20,6 +20,14 @@ import zipfile
 # Tickers only, the way an exchange writes them. Screens out the footnote rows
 # and disclaimer text that ship inside these files.
 _TICKER = re.compile(r"^[A-Z]{1,5}(?:\.[A-Z])?$")
+# Ticker-shaped words that appear in holdings files without being holdings:
+# column headers, the cash line, the currency, the settlement rows. They pass
+# the shape test and would otherwise become symbols the agent tries to trade.
+_NOT_A_HOLDING = {
+    "SEDOL", "CUSIP", "ISIN", "USD", "EUR", "GBP", "CASH", "NAME", "TICKER",
+    "SHARES", "PRICE", "VALUE", "WEIGHT", "SECTOR", "MARKET", "NL", "LLC",
+    "INC", "LTD", "PLC", "CORP", "ETF", "FUND", "TOTAL", "OTHER", "N", "A",
+}
 
 # Published daily by the issuers. XBI is SPDR/State Street, IBB is iShares.
 XBI_HOLDINGS = (
@@ -50,12 +58,19 @@ def _get(url: str, *, params: dict | None = None, headers: dict | None = None,
                      follow_redirects=True)
 
 
+class RateLimited(RuntimeError):
+    """The source asked us to slow down. Distinct from a failure, because the
+    right response is to wait rather than to shrug and carry on."""
+
+
 def ctgov_client(*, get=_get):
     """ClinicalTrials.gov API v2. Returns the studies list, or [] on anything
     unexpected — including a reshaped payload, which is likelier than an
     outage and much easier to miss."""
     def fetch(url: str, params: dict) -> list[dict]:
         r = get(url, params=params)
+        if r.status_code == 429:
+            raise RateLimited(url)
         if r.status_code != 200:
             return []
         data = r.json()
@@ -113,7 +128,7 @@ def _tickers_from_csv(text: str) -> set[str]:
     for row in csv.reader(io.StringIO(text)):
         for cell in row:
             cell = cell.strip().strip('"')
-            if _TICKER.match(cell):
+            if _TICKER.match(cell) and cell not in _NOT_A_HOLDING:
                 out.add(cell)
                 break  # the ticker is the first ticker-shaped cell in a row
     return out
@@ -128,7 +143,8 @@ def _tickers_from_xlsx(blob: bytes) -> set[str]:
             return set()
         root = ET.fromstring(z.read("xl/sharedStrings.xml"))
     strings = ["".join(t.text or "" for t in si.iter(_XL + "t")) for si in root]
-    return {s.strip() for s in strings if _TICKER.match(s.strip())}
+    return {s.strip() for s in strings
+            if _TICKER.match(s.strip()) and s.strip() not in _NOT_A_HOLDING}
 
 
 def etf_holdings_fetcher(*, get=_get):

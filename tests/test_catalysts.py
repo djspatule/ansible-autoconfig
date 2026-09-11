@@ -2,7 +2,12 @@
 from __future__ import annotations
 
 from trading_agent.catalysts import CatalystFeed, _parse_study
+from trading_agent.sources import RateLimited
 from trading_agent.universe import Universe
+
+
+def _no_sleep(_seconds):
+    """The sweep spaces its requests; tests must not pay for that."""
 
 
 class U:
@@ -20,7 +25,7 @@ def test_a_failing_source_degrades_to_empty(tmp_path):
     def boom(*a, **k):
         raise OSError("ctgov down")
 
-    feed = CatalystFeed(U(), http=boom, news=boom)
+    feed = CatalystFeed(U(), http=boom, news=boom, sleep=_no_sleep)
     assert feed.upcoming_trials() == []
     assert feed.recent_news() == []
 
@@ -68,7 +73,8 @@ class _Uni:
 
 def test_trials_are_not_re_swept_every_cycle():
     calls, clock = [], _Clock()
-    feed = CatalystFeed(_Uni(), http=_counting_http(calls), clock=clock)
+    feed = CatalystFeed(_Uni(), http=_counting_http(calls), clock=clock,
+                        sleep=_no_sleep)
 
     feed.upcoming_trials()
     first = len(calls)
@@ -82,8 +88,54 @@ def test_trials_are_not_re_swept_every_cycle():
 def test_the_sweep_runs_again_once_the_window_passes():
     calls, clock = [], _Clock()
     feed = CatalystFeed(_Uni(), http=_counting_http(calls),
-                        trials_ttl_seconds=3600, clock=clock)
+                        trials_ttl_seconds=3600, clock=clock, sleep=_no_sleep)
     feed.upcoming_trials()
     clock.t += 3601
     feed.upcoming_trials()
     assert len(calls) == 6
+
+
+# --- the registry rate-limits an unspaced sweep ------------------------------
+
+def test_requests_are_spaced_so_the_registry_does_not_rate_limit_us():
+    """A 149-symbol sweep with no spacing came back 429 for most of it, and the
+    agent reasoned over a partial picture without knowing it was partial."""
+    slept = []
+    feed = CatalystFeed(_Uni(), http=lambda u, p: [], clock=_Clock(),
+                        sleep=slept.append)
+    feed.upcoming_trials()
+    assert len(slept) == 3 and all(s > 0 for s in slept)
+
+
+def test_a_rate_limit_is_retried_once_before_giving_up():
+    calls = []
+
+    def http(url, params):
+        calls.append(params["query.term"])
+        if len(calls) == 1:
+            raise RateLimited(url)
+        return []
+
+    feed = CatalystFeed(_Uni(), http=http, clock=_Clock(), sleep=lambda _s: None)
+    feed.upcoming_trials()
+    assert calls[:2] == [calls[0], calls[0]], "the same symbol is retried"
+    assert len(calls) == 4, "and the sweep continues through the universe"
+
+
+def test_a_persistent_rate_limit_stops_the_sweep_and_shortens_the_cache():
+    """Hammering past a rate limit gets the address blocked, and a partial
+    sweep must not be held for the full six hours."""
+    def http(url, params):
+        raise RateLimited(url)
+
+    clock = _Clock()
+    calls = []
+    feed = CatalystFeed(_Uni(), http=http, clock=clock, sleep=calls.append)
+    feed.upcoming_trials()
+    assert feed._ttl_now < feed._ttl
+
+    # And it tries again well before the normal window.
+    clock.t += feed._ttl_now + 1
+    before = len(calls)
+    feed.upcoming_trials()
+    assert len(calls) > before

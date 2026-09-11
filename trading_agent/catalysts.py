@@ -14,6 +14,8 @@ import datetime as dt
 import time
 from dataclasses import dataclass
 
+from trading_agent.sources import RateLimited
+
 CTGOV_API = "https://clinicaltrials.gov/api/v2/studies"
 
 
@@ -36,19 +38,30 @@ class Catalyst:
 # a public government API for data that changes daily at most. Six hours is
 # still four sweeps a day, which is more than a trial registry ever needs.
 TRIALS_TTL_SECONDS = 6 * 3600
+# Spacing between registry requests. ClinicalTrials.gov answered 429 to an
+# unspaced sweep of 149 symbols, so most of the universe returned nothing and
+# the agent reasoned over a partial picture without knowing it.
+REQUEST_DELAY_SECONDS = 0.35
+# A sweep that was cut short is retried soon rather than held for the full
+# window: caching a partial picture for six hours is worse than not caching.
+DEGRADED_TTL_SECONDS = 600
 
 
 class CatalystFeed:
     def __init__(self, universe, *, http=None, news=None,
                  trials_ttl_seconds: float = TRIALS_TTL_SECONDS,
-                 clock=None) -> None:
+                 request_delay: float = REQUEST_DELAY_SECONDS,
+                 clock=None, sleep=None) -> None:
         self._universe = universe
         self._http = http
         self._news = news
         self._ttl = trials_ttl_seconds
         self._clock = clock or time.monotonic
+        self._delay = request_delay
+        self._sleep = sleep or time.sleep
         self._trials_cache: list[Catalyst] = []
         self._trials_at: float | None = None
+        self._ttl_now = trials_ttl_seconds
 
     def upcoming_trials(self, *, within_days: int = 30) -> list[Catalyst]:
         """Late-phase trials with a completion date inside the window.
@@ -63,17 +76,20 @@ class CatalystFeed:
         if self._http is None:
             return []
         now = self._clock()
-        if self._trials_at is not None and now - self._trials_at < self._ttl:
+        if self._trials_at is not None and now - self._trials_at < self._ttl_now:
             return list(self._trials_cache)
         cutoff = dt.date.today() + dt.timedelta(days=within_days)
         out: list[Catalyst] = []
+        degraded = False
         for symbol in sorted(self._universe.symbols()):
             try:
-                studies = self._http(CTGOV_API, {
-                    "query.term": symbol,
-                    "filter.overallStatus": "RECRUITING,ACTIVE_NOT_RECRUITING",
-                    "pageSize": 5,
-                })
+                studies = self._fetch_studies(symbol)
+            except RateLimited:
+                # Backing off once did not help. Stop: hammering past a rate
+                # limit gets the address blocked, and the rest of the sweep
+                # would return nothing anyway.
+                degraded = True
+                break
             except Exception:  # noqa: BLE001 — one bad symbol must not end the sweep
                 continue
             for study in studies or []:
@@ -83,11 +99,27 @@ class CatalystFeed:
                     continue
                 if c and c.date and c.date <= cutoff.isoformat():
                     out.append(c)
-        # Cached only after a complete sweep. A partial one, from a source that
-        # started failing halfway through, must not be held for six hours.
+        # A partial sweep is still worth using — some catalysts beat none — but
+        # it is held only briefly, so the next cycle tries for the full picture.
         self._trials_cache = out
         self._trials_at = now
+        self._ttl_now = DEGRADED_TTL_SECONDS if degraded else self._ttl
         return list(out)
+
+    def _fetch_studies(self, symbol: str) -> list:
+        """One symbol, spaced, with a single backoff on a rate limit."""
+        params = {
+            "query.term": symbol,
+            "filter.overallStatus": "RECRUITING,ACTIVE_NOT_RECRUITING",
+            "pageSize": 5,
+        }
+        try:
+            studies = self._http(CTGOV_API, params)
+        except RateLimited:
+            self._sleep(self._delay * 10)
+            studies = self._http(CTGOV_API, params)  # a second 429 ends the sweep
+        self._sleep(self._delay)
+        return studies
 
     def recent_news(self, *, limit: int = 20) -> list[Catalyst]:
         if self._news is None:
