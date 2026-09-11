@@ -41,6 +41,39 @@
   so the exposure is limited to a simulated account, but they should still be
   rotated before real use. See QUESTIONS.
 
+## OPERATOR OVERRIDES (round 2) — decisions that changed the design
+
+- **O-01 No mandatory human approval.** The original brief listed
+  human-in-the-loop as non-negotiable; the operator has deliberately reversed
+  that, wanting to see what the agent does autonomously with a small, isolated,
+  written-off amount. Recorded as a reversal rather than quietly dropped,
+  because it removes one of the two brakes the brief was built around.
+
+  Consequence, stated plainly: **the deterministic guardrails become the ONLY
+  thing standing between the agent and the account.** Every acceptance item in
+  section A gets stricter as a result, not looser.
+
+  Implementation: the approval code path is still built, with the threshold
+  defaulting to "never ask". Re-enabling it is then a config change rather than
+  a rewrite — which matters the first time something surprising happens.
+  The agent may still *ask for an opinion*; it just does not *block* on one.
+
+- **O-02 Reasoning runs through opencode on serverannah** (option (a)), so the
+  provider can be swapped without touching this code.
+
+  Consequence: the Pi now depends on another host being up. For a process that
+  can hold positions, that is a real failure mode, so it is handled explicitly —
+  losing opencode must mean **stop opening new positions**, never retry blindly
+  or guess. The guardrails and kill switch are deliberately LLM-free and keep
+  working when serverannah does not.
+
+- **O-03 Account: $1000 to start**, cap configurable.
+- **O-04 Instrument selection by exchange + sector filter**, not a hand-kept
+  list. See QUESTIONS: Alpaca's asset API does not carry a usable sector field,
+  so the filter needs a concrete data source before it can be enforced
+  deterministically.
+- **O-05 News from Alpaca**, included with the existing keys.
+
 ## OPEN — see QUESTIONS in the Phase 0 output
 Language choice (Python vs Rust), the meaning of "pauto", risk parameters, the
 instrument universe, and the missing credentials.
