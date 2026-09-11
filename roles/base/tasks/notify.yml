@@ -26,6 +26,18 @@
 # Generated on the host, like every other secret in this repo, so nothing
 # sensitive is ever committed. The topic name IS the credential on ntfy.sh, so
 # it needs real entropy, not a guessable hostname.
+# An operator-supplied topic wins, so a phone already subscribed to one keeps
+# working. Otherwise generate: on ntfy the topic name IS the credential, so a
+# generated one gets real entropy rather than a guessable hostname.
+- name: Install the operator-supplied notification topic
+  ansible.builtin.copy:
+    content: "{{ notify_topic }}\n"
+    dest: "{{ notify_topic_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: notify_topic | default('') | length > 0
+
 - name: Generate the notification topic
   ansible.builtin.shell: |
     set -eu
@@ -34,7 +46,9 @@
       '{{ inventory_hostname }}' \
       "$(tr -dc 'a-zA-Z0-9' </dev/urandom | head -c 32)" \
       > '{{ notify_topic_file }}'
-  when: not notify_topic_stat.stat.exists
+  when:
+    - notify_topic | default('') | length == 0
+    - not notify_topic_stat.stat.exists
   changed_when: true
 
 # Only for a topic that already existed: a freshly generated one is created

@@ -199,6 +199,9 @@ autoconfig_vault_password_file: "/home/{{ desktop_user | default('lion') }}/.ans
 # Failure notifications (roles/base/tasks/notify.yml). Off by default so a new
 # host does not start emitting alerts before anyone has subscribed to them.
 notify_enabled: false
+# Set in host_vars to use a topic you already subscribed to; empty means one is
+# generated on the host instead.
+notify_topic: ""
 notify_base_url: https://ntfy.sh
 notify_topic_file: /etc/ansible/secrets/notify-topic
 notify_timeout_seconds: 20

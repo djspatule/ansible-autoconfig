@@ -4,6 +4,11 @@
 # workstation CLI tooling — but no GUI/Omarchy desktop config.
 ansible_python_interpreter: /usr/bin/python3
 
+# Failure notifications. Its own topic, separate from serverannah's, so one
+# leaked topic does not expose both machines.
+notify_enabled: true
+notify_topic: qOa8RdyjqfhBpT1B
+
 # Common foundation + dotfiles.
 base_dotfiles_enabled: true
 base_lazydocker_enabled: false
