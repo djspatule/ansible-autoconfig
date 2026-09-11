@@ -1,6 +1,8 @@
 """Telegram transport — thin, and unable to take the process down."""
 from __future__ import annotations
 
+import urllib.parse
+
 from trading_agent.telegram_bot import Telegram
 
 
@@ -51,3 +53,32 @@ def test_long_messages_are_truncated_not_dropped():
     Telegram("t", "1", opener=capture).send("x" * 9000)
     assert sent["data"] is not None
     assert len(sent["data"]) < 9000, "must respect Telegram's 4096 limit"
+
+
+# --- formatting must never cost the message ---------------------------------
+
+def test_a_message_telegram_cannot_format_is_resent_as_plain_text():
+    """Almost everything this bot sends is model prose about clinical trials:
+    asterisks, underscores and brackets that Telegram reads as broken markup
+    and rejects. An unformatted question beats a formatted one that never
+    arrives."""
+    calls = []
+
+    def opener(url, data):
+        params = urllib.parse.parse_qs(data.decode())
+        calls.append(params)
+        if "parse_mode" in params:
+            return {"ok": False, "description": "Bad Request: can't parse entities"}
+        return {"ok": True}
+
+    assert Telegram("t", "1", opener=opener).send("a *broken_ [message") is True
+    assert len(calls) == 2
+    assert "parse_mode" not in calls[1]
+
+
+def test_a_send_that_fails_both_ways_reports_failure():
+    """The caller uses this to decide whether the question was asked."""
+    def opener(url, data):
+        return {"ok": False, "description": "chat not found"}
+
+    assert Telegram("t", "1", opener=opener).send("hello") is False

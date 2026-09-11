@@ -13,9 +13,13 @@ loop. Keeping this file dumb keeps that true.
 from __future__ import annotations
 
 import json
+import logging
+import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
+
+log = logging.getLogger(__name__)
 
 API = "https://api.telegram.org"
 
@@ -42,6 +46,16 @@ class Telegram:
                 return self.opener(url, data)
             with urllib.request.urlopen(url, data=data, timeout=30) as r:
                 return json.loads(r.read().decode())
+        except urllib.error.HTTPError as exc:
+            # Telegram puts the actual reason in the body of a 4xx. Discarding
+            # it is how "the question was not sent" stayed unexplained.
+            try:
+                body = json.loads(exc.read().decode())
+            except Exception:  # noqa: BLE001
+                raise TelegramError(f"{method} failed: {exc}") from exc
+            raise TelegramError(
+                f"{method} failed: {body.get('description', exc)}"
+            ) from exc
         except Exception as exc:  # noqa: BLE001
             raise TelegramError(f"{method} failed: {exc}") from exc
 
@@ -52,14 +66,26 @@ class Telegram:
         message is an inconvenience, an aborted cycle is a position left
         unmanaged.
         """
+        body = {"chat_id": self.chat_id,
+                "text": text[:4096]}  # Telegram's hard limit; truncate, not fail
         try:
-            r = self._call("sendMessage", {
-                "chat_id": self.chat_id,
-                "text": text[:4096],  # Telegram's hard limit; truncate, not fail
-                "parse_mode": "Markdown",
-            })
-            return bool(r.get("ok"))
-        except TelegramError:
+            r = self._call("sendMessage", {**body, "parse_mode": "Markdown"})
+            if r.get("ok"):
+                return True
+            reason = r.get("description", "")
+        except TelegramError as exc:
+            reason = str(exc)
+
+        # Most of what this bot sends is model prose about clinical trials,
+        # which is full of asterisks, underscores and brackets that Telegram
+        # reads as broken markup and rejects outright. An unformatted question
+        # is worth far more than a formatted one that never arrives.
+        log.warning("telegram rejected a formatted message (%s); "
+                    "resending as plain text", reason)
+        try:
+            return bool(self._call("sendMessage", body).get("ok"))
+        except TelegramError as exc:
+            log.error("telegram send failed: %s", exc)
             return False
 
     def updates(self, offset: int = 0) -> list[dict]:
