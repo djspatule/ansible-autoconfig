@@ -8,6 +8,12 @@ Wants=network-online.target
 OnFailure=autoconfig-notify@%n.service
 {% endif %}
 
+# StartLimit* belong to [Unit], not [Service]. systemd ignores them silently in
+# the wrong section — "Unknown key, ignoring" in the journal and no rate limit
+# at all, which is precisely the case where you need one.
+StartLimitBurst=5
+StartLimitIntervalSec=300
+
 [Service]
 Type=simple
 User={{ trading_agent_user }}
@@ -17,11 +23,9 @@ ExecStart={{ trading_agent_venv }}/bin/python -m trading_agent.main
 
 # Restart, but rate-limited. An agent that crash-loops against a broker is worse
 # than one that stays down and says so: five failures in five minutes stops it
-# and lets OnFailure= raise the alarm.
+# and lets OnFailure= raise the alarm (see StartLimit* in [Unit] above).
 Restart=on-failure
 RestartSec=30
-StartLimitBurst=5
-StartLimitIntervalSec=300
 
 # The blast radius of a bug in this process should stop at its own directory.
 NoNewPrivileges=yes

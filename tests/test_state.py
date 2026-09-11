@@ -80,3 +80,16 @@ def test_set_approval_rejects_a_status_that_is_not_an_outcome(tmp_path):
     state.add_pending_approval("req1", {})
     with pytest.raises(ValueError):
         state.set_approval("req1", "pending")
+
+
+def test_a_second_handle_opens_while_the_first_holds_the_database(tmp_path):
+    """The command loop and the work loop each hold their own handle, and a
+    restart opens a third while the dying process still has the file. This
+    raised "database is locked" on the Pi and crash-looped the unit."""
+    path = tmp_path / "s.db"
+    first = State(path)
+    first.set_kill_switch(True)
+
+    second = State(path)  # must not raise
+    assert second.kill_switch_engaged()
+    assert second._db.execute("PRAGMA journal_mode").fetchone()[0].lower() == "wal"

@@ -45,8 +45,18 @@ class State:
     def __init__(self, path: Path | str) -> None:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self._db = sqlite3.connect(self.path, isolation_level=None)
-        self._db.execute("PRAGMA journal_mode=WAL")
+        # Two handles exist by design (the command loop and the work loop), and
+        # on a restart the new process opens the file while the old one is still
+        # letting go of it. Without these the first statement raises "database
+        # is locked" and systemd restarts into the same race.
+        self._db = sqlite3.connect(self.path, isolation_level=None, timeout=30.0)
+        self._db.execute("PRAGMA busy_timeout=30000")
+        # Switching journal mode takes an exclusive lock, so ask for it only
+        # when the database is not already in WAL — which, after the first run,
+        # it always is.
+        mode = self._db.execute("PRAGMA journal_mode").fetchone()[0]
+        if str(mode).lower() != "wal":
+            self._db.execute("PRAGMA journal_mode=WAL")
         self._db.executescript(_SCHEMA)
         self._migrate()
 
