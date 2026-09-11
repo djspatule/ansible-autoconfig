@@ -9,6 +9,18 @@
     name: ufw
     state: present
 
+# SSH FIRST, BEFORE the deny policy — order here is a lockout risk, not a
+# stylistic preference. This role used to enable deny-incoming and only allow
+# SSH three tasks later; when the app-profile task failed in between, the play
+# aborted with ufw denying everything and no SSH rule, and the only way back
+# into the (headless, remote) host was physically moving its SD card. Allowing
+# SSH first means no failure in this file can cost remote access.
+- name: Allow SSH before any deny policy takes effect
+  community.general.ufw:
+    rule: allow
+    port: "{{ workstation_ufw_ssh_port }}"
+    proto: tcp
+
 - name: Enable ufw with a default deny-incoming policy
   community.general.ufw:
     state: enabled
@@ -22,11 +34,29 @@
 
 # Application profiles (/etc/ufw/applications.d/*) are preferred over raw port
 # numbers: the package owns the port range, so an upstream change follows along.
+#
+# A profile exists only once the package shipping it is installed, and ufw
+# errors rather than skipping when asked for one it does not know. Failing the
+# whole run over a missing desktop profile is disproportionate, so this warns
+# and carries on; the SSH rule above is already in place regardless.
 - name: Allow ufw application profiles
   community.general.ufw:
     rule: allow
     name: "{{ item }}"
   loop: "{{ workstation_ufw_app_profiles }}"
+  register: workstation_ufw_profile_result
+  failed_when: false
+
+- name: Report ufw application profiles that do not exist on this host
+  ansible.builtin.debug:
+    msg: >-
+      ufw profile '{{ item.item }}' was not found and has been skipped. Install
+      the package that provides it, or drop it from
+      workstation_ufw_app_profiles for this host.
+  loop: "{{ workstation_ufw_profile_result.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: item.failed | default(false)
 
 # No `comment:` here on purpose. These rules already exist un-commented from the
 # manual `ufw allow` era, and ufw treats the comment as part of the rule

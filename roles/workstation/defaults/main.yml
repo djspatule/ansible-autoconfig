@@ -20,6 +20,10 @@ workstation_firewall_enabled: true
 # ships it is installed, and ufw errors rather than skipping when asked for one
 # it does not know — so a headless host with no desktop must override this to []
 # rather than inherit a desktop's list.
+# Allowed before the deny policy is enabled, so a failure later in the firewall
+# tasks can never lock you out of a remote host.
+workstation_ufw_ssh_port: "22"
+
 workstation_ufw_app_profiles:
   - KDEConnect
 
