@@ -83,3 +83,36 @@ def test_a_high_materiality_event_is_asked_again_despite_a_view(tmp_path):
     vs.record(View("MRNA", "NCT123", "positive", 4, "r", NOW))
     out = pending_questions([ev(kind=EventKind.TRIAL_AMENDMENT)], views=vs, now=NOW)
     assert len(out) == 1
+
+
+# --- regression: found by the first real reply -------------------------------
+
+def test_decimal_confidence_is_parsed():
+    """The first real reply to this system was "Yes 4.5 ..." and the original
+    integer-only match silently recorded it as the default 3, burying the 4.5
+    in the note."""
+    r = parse_reply("Yes 4.5 I have strong positive opinions of mRNA vaccines")
+    assert r.stance == "positive"
+    assert r.confidence == 5, "4.5 rounds up: it reads as more than 4"
+    assert "4.5" not in r.note, "the confidence must not leak into the note"
+    assert "strong positive opinions" in r.note
+
+
+def test_comma_decimals_are_accepted():
+    """The operator's locale is French; dictation produces commas."""
+    assert parse_reply("yes 4,5 solid data").confidence == 5
+
+
+def test_a_long_dictated_reply_keeps_all_of_it():
+    """Dictation produces sentences, not tokens. Nothing may be discarded."""
+    spoken = ("yes 4 the phase two data was strong and the partnership with "
+              "Merck means the commercial risk is shared which matters for a "
+              "company with a single pivotal asset")
+    r = parse_reply(spoken)
+    assert r.stance == "positive" and r.confidence == 4
+    assert "single pivotal asset" in r.note
+
+
+def test_rounding_is_half_up_not_bankers():
+    assert parse_reply("yes 2.5 x").confidence == 3
+    assert parse_reply("yes 3.5 x").confidence == 4

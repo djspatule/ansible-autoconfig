@@ -72,6 +72,27 @@
   and are worth reading, but a call on one says nothing about biotech judgment.
   Scoring them would dilute the single number meant to measure domain skill.
 
+- **O-12 Operator context that shapes output.** Recorded because it changes
+  what the model should produce, not as trivia:
+
+  * Paid subscriptions to **Le Monde** and **The New York Times**. A paywalled
+    link they cannot open is worse than no link — it looks like evidence and is
+    not. Primary sources still outrank all journalism.
+  * They **dictate** most replies, so long answers are cheap and terse ones are
+    not the target. The reply format asks for a stance word first, then
+    whatever they want to say, and keeps all of it.
+  * They read biotech as a professional. Briefs are written for someone who
+    understands clinical development, not for a retail investor.
+
+- **O-13 Follow-up questions cannot move money.** A follow-up thread answers
+  questions and nothing else — structurally unable to reach the broker or the
+  guardrail, enforced by a test. Positions change only through a recorded view,
+  so the chattiest possible conversation still cannot place a trade.
+
+  Ambiguous messages route to "question" rather than "answer", deliberately
+  asymmetric: an answer misread as a question gets asked back, whereas a
+  question misread as an answer would record a view the operator never gave.
+
 ## ACCEPTED RISKS
 - **R-01** Nightly unattended upgrades on a machine running a financial process
   (see A-10). Operator-accepted; amount at risk is small.

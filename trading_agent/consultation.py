@@ -42,8 +42,11 @@ def build_question(event: Event, *, digest: str = "") -> str:
         lines += [digest.strip(), ""]
     lines += [
         "Will this read out positively?",
-        "Reply: `yes` / `no` / `skip`  (optionally 1-5 confidence, then notes)",
-        "e.g. `yes 4 mechanism derisked by the phase 2`",
+        "Start with *yes*, *no* or *skip*, then a 1-5 confidence, then say "
+        "whatever you like — dictate as long an answer as you want, it is all "
+        "kept with the view.",
+        "e.g. `yes 4.5 mechanism is derisked by the phase 2 and Merck sharing "
+        "the risk matters here`",
     ]
     return "\n".join(line for line in lines if line != "" or True).strip()
 
@@ -68,10 +71,15 @@ def parse_reply(text: str) -> Reply | None:
 
     confidence = DEFAULT_CONFIDENCE
     rest = words[1:]
-    if rest and re.fullmatch(r"[0-9]+", rest[0]):
-        # Clamp rather than reject: a fat-fingered 9 should not discard a real
-        # opinion, and the intent is obvious.
-        confidence = max(1, min(5, int(rest[0])))
+    if rest and re.fullmatch(r"[0-9]+(?:[.,][0-9]+)?", rest[0]):
+        # Decimals are accepted because people actually type them: the first
+        # real reply to this system was "Yes 4.5 ...", which an integer-only
+        # match silently dropped to the default and buried in the note.
+        # Comma decimals too — the operator's locale is French.
+        raw = float(rest[0].replace(",", "."))
+        # Round half UP rather than to even: 4.5 reads as "more than 4", and
+        # banker's rounding would quietly record it as less.
+        confidence = max(1, min(5, int(raw + 0.5)))
         rest = rest[1:]
 
     return Reply(stance, confidence, " ".join(rest))
