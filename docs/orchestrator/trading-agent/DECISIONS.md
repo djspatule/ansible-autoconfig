@@ -61,7 +61,42 @@
 
 ## OPERATOR OVERRIDES (round 2) — decisions that changed the design
 
-- **O-01 No mandatory human approval.** The original brief listed
+- **O-01 CORRECTED.** Originally recorded as "no human in the loop", which
+  conflated two different things. The operator removed *blocking approval on
+  every trade*; they did not remove *consultation*, which was the actual reason
+  Telegram is in this design at all. See O-06 — the corrected shape.
+
+- **O-06 Consultation, batched and ahead of time.** The agent asks the operator
+  for a view on upcoming catalysts in a periodic session (weekly, or when a
+  catalyst window opens), stores those views, and the trading loop reads them
+  later. It never blocks on a reply.
+
+  Why this beats a mid-decision interrupt: questions arrive when there is time
+  to think rather than when the market forces it, the loop stays the straight
+  line it is, and a stored view is a *prediction made before the outcome* —
+  which makes it scoreable afterwards.
+
+  That scoring is the point. The operator's stated main objective is learning
+  the field, and "you have called 9 of 12 phase-3 oncology readouts correctly"
+  is worth more than any amount of model cleverness. It costs almost nothing
+  once views carry timestamps.
+
+- **O-07 A stored view gates 100% of opening trades.** This makes the operator's
+  judgment the alpha source and the agent the execution-and-discipline layer,
+  rather than an LLM guessing at biotech outcomes — a worse product that also
+  teaches nothing. Consequence, accepted deliberately: in a week with no
+  answers, the agent opens nothing. That is correct behaviour, not a fault.
+
+  One exception: **closing** a position needs no view. Getting out is risk
+  reduction and must not wait on anyone's availability.
+
+- **O-08 Not n8n.** Good glue for scheduled API plumbing, but scheduling here is
+  already systemd timers, and the parts that matter — guardrails, idempotency,
+  reconciliation — need tested code rather than a visual flow. Money-critical
+  logic that cannot be unit-tested is the wrong trade, and it would add a
+  container plus a database to a Pi for glue that is not needed.
+
+- **O-01 (original text) No mandatory human approval.** The original brief listed
   human-in-the-loop as non-negotiable; the operator has deliberately reversed
   that, wanting to see what the agent does autonomously with a small, isolated,
   written-off amount. Recorded as a reversal rather than quietly dropped,

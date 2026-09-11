@@ -79,3 +79,53 @@ def test_daily_trade_budget_is_spent_only_on_accepted_orders(tmp_path):
     kw = mk(tmp_path, BUY)
     run_cycle(**kw, now=OPEN)
     assert kw["state"].trades_today(OPEN) == 1
+
+
+# --- O-07: a stored view gates every opening trade ---------------------------
+
+def test_no_view_means_no_opening_trade(tmp_path):
+    """The operator's judgment is the alpha source. Without it the agent does
+    nothing — correct behaviour, not a fault."""
+    from trading_agent.views import ViewStore
+
+    kw = mk(tmp_path, BUY)
+    kw["views"] = ViewStore(tmp_path / "v.db")
+    r = run_cycle(**kw, now=OPEN)
+    assert r.submitted == 0
+    assert any("no view" in x for x in r.rejected)
+
+
+def test_a_positive_view_permits_the_trade(tmp_path):
+    import datetime as dt
+    from trading_agent.views import View, ViewStore
+
+    kw = mk(tmp_path, BUY)
+    vs = ViewStore(tmp_path / "v.db")
+    vs.record(View("MRNA", "MRNA", "positive", 4, "phase 3 looks strong", OPEN))
+    kw["views"] = vs
+    r = run_cycle(**kw, now=OPEN)
+    assert r.submitted == 1
+
+
+def test_no_opinion_blocks_the_trade(tmp_path):
+    """Explicitly declining to judge must not read as consent."""
+    from trading_agent.views import View, ViewStore
+
+    kw = mk(tmp_path, BUY)
+    vs = ViewStore(tmp_path / "v.db")
+    vs.record(View("MRNA", "MRNA", "no_opinion", 0, "outside my area", OPEN))
+    kw["views"] = vs
+    r = run_cycle(**kw, now=OPEN)
+    assert r.submitted == 0
+    assert any("no view" in x or "no_opinion" in x for x in r.rejected)
+
+
+def test_closing_a_position_needs_no_view(tmp_path):
+    """Getting out is risk reduction and must not wait on anyone."""
+    from trading_agent.views import ViewStore
+
+    sell = '{"proposals":[{"symbol":"MRNA","side":"sell","notional_usd":100,"rationale":"exit"}]}'
+    kw = mk(tmp_path, sell)
+    kw["views"] = ViewStore(tmp_path / "v.db")
+    r = run_cycle(**kw, now=OPEN)
+    assert r.submitted == 1, "a sell must not be gated on a view"

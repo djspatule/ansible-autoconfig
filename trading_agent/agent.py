@@ -37,7 +37,7 @@ class CycleResult:
     orders: list[str] = field(default_factory=list)
 
 
-def run_cycle(*, state, config, broker, feed, reasoner, audit,
+def run_cycle(*, state, config, broker, feed, reasoner, audit, views=None,
               now: dt.datetime | None = None) -> CycleResult:
     now = now or dt.datetime.now(dt.timezone.utc)
     cid = new_correlation_id()
@@ -81,6 +81,25 @@ def run_cycle(*, state, config, broker, feed, reasoner, audit,
             "symbol": p.symbol, "side": p.side,
             "notional": p.notional_usd, "rationale": p.rationale,
         })
+
+        # O-07: opening a position requires a view the operator recorded
+        # BEFORE the outcome was known. That makes their judgment the alpha
+        # source rather than the model's, and makes every trade traceable to a
+        # prediction that can be scored afterwards.
+        #
+        # Selling is exempt: getting out is risk reduction and must not wait on
+        # anyone's availability.
+        if views is not None and p.side == "buy":
+            view = views.for_event(p.symbol, p.symbol, now=now)
+            if view is None or not view.is_actionable:
+                why = "no view recorded" if view is None else "no_opinion recorded"
+                audit.record("view_gate", cid, {"symbol": p.symbol, "reason": why})
+                result.rejected.append(f"{p.symbol}: {why}")
+                continue
+            audit.record("view_gate", cid, {
+                "symbol": p.symbol, "stance": view.stance,
+                "confidence": view.confidence, "note": view.note,
+            })
 
         decision = evaluate(intent, state=state, config=config, now=now)
         audit.record("guardrail", cid, {
