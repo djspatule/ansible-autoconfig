@@ -16,6 +16,10 @@ workstation_firewall_enabled: true
 # package over a hard-coded port range; KDEConnect resolves to 1714:1764 on both
 # tcp and udp (see /etc/ufw/applications.d/kdeconnect), which KDE Connect needs
 # for UDP discovery broadcasts and the TCP connect-back from the phone.
+# ufw application profiles to allow. A profile only exists once the package that
+# ships it is installed, and ufw errors rather than skipping when asked for one
+# it does not know — so a headless host with no desktop must override this to []
+# rather than inherit a desktop's list.
 workstation_ufw_app_profiles:
   - KDEConnect
 

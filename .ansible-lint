@@ -22,6 +22,8 @@ warn_list:
 
 exclude_paths:
   - .git/
+  # Ciphertext, not YAML — see the same note in .yamllint.
+  - host_vars/raspi/vault.yml
   - .lint-venv/
   # Vendored third-party app configs (nvim, gh, git, ...) are not our Ansible
   # YAML and should not be judged by these rules.

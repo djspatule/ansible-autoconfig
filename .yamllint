@@ -6,6 +6,10 @@ extends: default
 # yamllint does not read .gitignore, so exclude generated/vendored trees here.
 ignore: |
   .lint-venv/
+  # Vault files are ciphertext, not YAML: they start with $ANSIBLE_VAULT rather
+  # than a document marker, so every YAML rule misfires on them.
+  host_vars/*/vault.yml
+  **/vault.yml
   .ansible/
   files/dotfiles/
   files/dotfiles-secret/

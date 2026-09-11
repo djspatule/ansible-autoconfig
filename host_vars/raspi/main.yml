@@ -18,6 +18,14 @@ workstation_enabled: true
 workstation_cli_enabled: true
 workstation_dotfiles_enabled: true
 workstation_espanso_enabled: false
+# Headless: no desktop, so none of the desktop ufw application profiles exist
+# here. ufw errors on an unknown profile rather than skipping it, which failed
+# the first bootstrap on KDEConnect.
+workstation_ufw_app_profiles: []
+# LocalSend is a desktop file-transfer tool; nothing on this host serves it.
+workstation_ufw_port_rules:
+  - port: "22"
+    proto: tcp
 
 # The subset of dotfiles to apply here. Add more later as needed.
 dotfiles_stow_packages:
