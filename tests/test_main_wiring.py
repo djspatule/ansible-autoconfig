@@ -131,16 +131,29 @@ def test_both_loops_are_wired_into_the_conversation():
 
     from trading_agent import main as m
 
-    assert "ask_next" in inspect.getsource(m.work_loop), "nothing asks"
+    assert "ask_next" in inspect.getsource(m.consultation_loop), "nothing asks"
     assert "handle_reply" in inspect.getsource(m.command_loop), "nothing listens"
 
 
-def test_trading_runs_before_the_conversation():
-    """A research brief sends the model off to read and can take minutes.
-    Order management must never queue behind it."""
+def test_the_slow_work_is_on_its_own_thread():
+    """A research brief has been measured past ten minutes against the real
+    backend. Trading must not queue behind it."""
     import inspect
 
-    src = inspect.getsource(__import__("trading_agent.main", fromlist=["x"]).work_loop)
-    body = src[src.index("while not _stop.is_set():"):]
-    assert body.index("run_cycle(") < body.index("ask_next("), \
-        "the cycle must not wait on the question"
+    from trading_agent import main as m
+
+    assert "ask_next" not in inspect.getsource(m.work_loop)
+    assert "ask_next" in inspect.getsource(m.consultation_loop)
+    assert "run_cycle" not in inspect.getsource(m.consultation_loop)
+    # And it opens its own handles, because sqlite3 refuses a connection used
+    # from another thread.
+    assert "build_worker" in inspect.getsource(m.consultation_loop)
+
+
+def test_every_loop_is_started():
+    import inspect
+
+    from trading_agent import main as m
+
+    src = inspect.getsource(m.main)
+    assert "work_loop" in src and "consultation_loop" in src and "command_loop" in src

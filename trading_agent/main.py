@@ -40,6 +40,9 @@ log = logging.getLogger("trading_agent")
 
 COMMAND_POLL_SECONDS = 3
 CYCLE_INTERVAL_SECONDS = 900  # 15 minutes; catalysts do not move by the second
+# One question at a time and one at a time is the point: the operator answers
+# these between other things, and a queue of them is a channel that gets muted.
+CONSULTATION_INTERVAL_SECONDS = 1800
 
 _stop = threading.Event()
 
@@ -123,22 +126,35 @@ def work_loop(config: Config, paths: dict) -> None:
             log.exception("cycle failed: %s", exc)
             audit.record("cycle_failed", new_correlation_id(), {"error": str(exc)})
 
+        _stop.wait(CYCLE_INTERVAL_SECONDS)
+
+
+def consultation_loop(config: Config, paths: dict) -> None:
+    """Asking the operator. Its own thread, because it is the slow one.
+
+    A research brief sends the model off to read, and measured against the real
+    backend it has run past ten minutes with no upper bound worth trusting.
+    Sharing a thread with trading meant order management queued behind a
+    question — so it does not share one. Its own State and ViewStore handles,
+    like every other loop, because sqlite3 refuses a connection across threads.
+    """
+    parts = build_worker(config, paths)
+    state, views, audit = parts["state"], parts["views"], parts["audit"]
+    reasoner, feed, tg = parts["reasoner"], parts["feed"], parts["telegram"]
+
+    while not _stop.is_set():
+        cid = new_correlation_id()
         try:
-            # After trading, never before. A research brief can take minutes
-            # — it sends the model off to read — and order management must not
-            # queue behind it. The view it produces is for the next cycle.
-            cid = new_correlation_id()
             catalysts = feed.upcoming_trials() + feed.recent_news()
             ask_next(to_events(catalysts), views=views, state=state,
                      telegram=tg, reasoner=reasoner, audit=audit,
                      now=dt.datetime.now(dt.timezone.utc), correlation_id=cid)
-        except Exception as exc:  # noqa: BLE001 — never let the question path
-            # stop the trading path. A missed question costs a trade that would
-            # have been refused anyway; a dead work loop costs the positions.
+        except Exception as exc:  # noqa: BLE001 — a failed question must not
+            # end the conversation. Nothing here can reach an order.
             log.exception("consultation failed: %s", exc)
             audit.record("consultation_failed", cid, {"error": str(exc)})
 
-        _stop.wait(CYCLE_INTERVAL_SECONDS)
+        _stop.wait(CONSULTATION_INTERVAL_SECONDS)
 
 
 def command_loop(config: Config, paths: dict) -> None:
@@ -206,13 +222,19 @@ def main() -> int:
         # before real money is involved.
         log.warning("LIVE TRADING ENABLED — real money is at risk")
 
-    worker = threading.Thread(target=work_loop, args=(config, paths), daemon=True)
-    worker.start()
+    threads = [
+        threading.Thread(target=work_loop, args=(config, paths), daemon=True),
+        threading.Thread(target=consultation_loop, args=(config, paths),
+                         daemon=True),
+    ]
+    for thread in threads:
+        thread.start()
     try:
         command_loop(config, paths)
     finally:
         _stop.set()
-        worker.join(timeout=10)
+        for thread in threads:
+            thread.join(timeout=10)
     log.info("stopped")
     return 0
 

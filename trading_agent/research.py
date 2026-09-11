@@ -89,9 +89,12 @@ def build_brief_prompt(event, amendments=()) -> str:
     )
 
 
-# A brief that outlasts a trading cycle is not a brief, it is a stall. The
-# prompt carries an explicit search budget; this is the backstop.
-BRIEF_TIMEOUT_SECONDS = 240.0
+# The backend is agentic and its latency has no upper bound worth trusting:
+# measured against the real one, this prompt has run past ten minutes. The
+# brief now runs on its own thread where a stall costs nothing, so the timeout
+# is generous rather than tight — but it exists, because a request that never
+# returns would leave the question unasked forever.
+BRIEF_TIMEOUT_SECONDS = 600.0
 
 
 def research(event, *, reasoner, amendments=()) -> Brief:
