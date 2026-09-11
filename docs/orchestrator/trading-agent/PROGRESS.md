@@ -1,36 +1,43 @@
 # PROGRESS — autonomous trading agent
 
-## Status: WAVE 1 COMPLETE — safety layer built and green
+## Status: waves 1-4 largely built. 62/62 tests green.
 
-Branch `feat/trading-agent`. 27/27 tests passing, wired into `scripts/lint.sh`
-so the pre-commit hook gates them alongside the Ansible linting.
+Branch `feat/trading-agent`, pushed. Tests run inside `scripts/lint.sh`, so the
+pre-commit hook gates them with the Ansible linting.
 
-### Done
-- **Phase 0** intake: BRIEF, ACCEPTANCE (33 items), DECISIONS (10 assumptions,
-  5 operator overrides, 2 accepted risks).
-- **Phase 1** PLAN.md: module contracts written before code; deployment layout
-  decided (source rides the existing ansible-pull checkout, mutable state lives
-  outside it because the pull runs `git clean -fd`).
-- **Phase 2** 27 failing acceptance tests, then made to pass.
-- **T0.3** `.claude/agents/` — three specialists written, since the directory
-  the protocol referenced did not exist.
-- **T1.1 config.py** — two-signal live gate (E1-E3 green).
-- **T1.2 state.py** — SQLite, kill switch and approvals survive restart (B1, C2).
-- **T1.3 guardrails.py** — A1-A7 green, including NaN and latched breaker.
-- **T2.1 broker.py** — A6 structural isolation green, idempotency key stable.
+### Complete
+| Task | Module | Acceptance |
+|---|---|---|
+| T1.1 | `config.py` — two-signal live gate | E1-E3 |
+| T1.2 | `state.py` — SQLite, survives restart | B1, C2 |
+| T1.3 | `guardrails.py` — the deterministic layer | A1-A7 |
+| T1.4 | `audit.py` — correlation ids, rotation, redaction | F1-F3 |
+| T2.1 | `broker.py` — sole Alpaca path, idempotency | A6, D1-D2 |
+| T2.2 | `universe.py` — ETF-derived, offline seed | — |
+| T2.3 | `commands.py` — /stop /resume /status | B1-B4 |
+| T3.1 | `catalysts.py` — ClinicalTrials.gov + news | — |
+| T3.2 | `reasoning.py` — opencode, fail-closed | O-02 |
+| —    | `market.py` — regular hours only | H1 |
+| T4.1 | `roles/trading_agent/` — venv, env, unit | G1 |
 
-### Verified by the orchestrator, not claimed
-Every test above was re-run here after implementation. `pytest tests/ -q` → 27
-passed. Structural tests (A6, E3) grep the source tree, so they keep holding as
-the code grows rather than only at the moment they were written.
+### Verified here, not taken on trust
+Every figure above was re-run by the orchestrator after implementation:
+`pytest tests/ -q` -> 62 passed. Two tests are structural rather than
+behavioural (only `broker.py` imports Alpaca; only `config.py` names the live
+endpoint) and grep the tree, so they keep holding as the code grows.
 
-### Not started
-Wave 2 (universe, telegram, kill-switch-under-load), Wave 3 (catalysts,
-reasoning, LangGraph, reconciliation), Wave 4 (Ansible role, deploy), Wave 5.
+### Remaining
+- `telegram_bot.py` — transport. `commands.py` already holds the logic and is
+  tested independently of it, which is what makes B4 hold.
+- `agent.py` — the LangGraph loop tying catalysts -> reasoning -> guardrail ->
+  broker.
+- `main.py` — entrypoint: reconcile, then loop.
+- Wave 4 deploy to raspi and the live paper-account check (H2).
+- Wave 5 ACCEPTANCE walk.
 
 ### Blockers
-None. Waves 2-3 need credentials only for their `network`-marked tests, which
-are excluded from the default run.
+`OPENCODE_URL` is unset — needed before the loop can reason. Everything else is
+credential-free and done.
 
 ### Budget
-Comfortable. No compaction risk; state is on disk and committed after each step.
+Comfortable. State flushed to disk and committed after each step.
