@@ -7,6 +7,11 @@ ansible_python_interpreter: /usr/bin/python3
 # Failure notifications. Its own topic, separate from serverannah's, so one
 # leaked topic does not expose both machines.
 notify_enabled: true
+
+# The vault password lives at ~/secret.txt here, not the role's default
+# ~/.ansible-vault-pass. Without this the nightly pull cannot decrypt
+# host_vars/raspi/vault.yml and the whole run aborts before it starts.
+autoconfig_vault_password_file: /home/lion/secret.txt
 notify_topic: qOa8RdyjqfhBpT1B
 
 # Common foundation + dotfiles.
