@@ -156,7 +156,8 @@ def command_loop(config: Config, paths: dict) -> None:
         texts, offset = tg.messages_from_owner(offset)
         for text in texts:
             result = handle_command(text, state=state,
-                                    on_halt=broker.cancel_all_orders)
+                                    on_halt=broker.cancel_all_orders,
+                                    journal=audit.day_report)
             if result.handled:
                 if result.text:
                     tg.send(result.text)

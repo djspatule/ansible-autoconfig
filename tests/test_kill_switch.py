@@ -128,3 +128,15 @@ def test_b2_flag_is_set_before_cancellation_is_attempted(tmp_path):
 
     handle_command("/stop", state=s, on_halt=check)
     assert observed["engaged_during_cancel"] is True
+
+
+def test_today_is_answerable_and_needs_no_broker(tmp_path):
+    """ACCEPTANCE H3. It reads the audit log, so it still answers when the
+    broker is unreachable and when trading is halted."""
+    from trading_agent.state import State
+
+    state = State(tmp_path / "s.db")
+    state.set_kill_switch(True)
+    result = handle_command("/today", state=state,
+                            journal=lambda day: f"report for {day}")
+    assert result.handled and result.text.startswith("report for 20")

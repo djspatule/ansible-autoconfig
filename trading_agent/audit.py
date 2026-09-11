@@ -75,6 +75,60 @@ class AuditLog:
             except OSError:
                 continue
 
+    def day_report(self, day: str) -> str:
+        """What the agent did on one day, and why, in a form that reads on a
+        phone.
+
+        Built from the audit log rather than from a second running tally: the
+        log is what actually happened, and a summary that can disagree with it
+        is worse than no summary.
+        """
+        events = [e for e in self._entries() if str(e.get("ts", "")).startswith(day)]
+        if not events:
+            return f"{day}: nothing recorded."
+
+        def of(kind):
+            return [e for e in events if e.get("event") == kind]
+
+        lines = [f"*{day}*", ""]
+
+        cycles = of("catalysts")
+        lines.append(
+            f"{len(cycles)} cycles, "
+            f"{max((e['data'].get('count', 0) for e in cycles), default=0)} "
+            f"catalysts tracked."
+        )
+
+        for e in of("question_sent"):
+            lines.append(f"• asked you about *{e['data']['symbol']}* — "
+                         f"{e['data'].get('title', '')[:120]}")
+        for e in of("view_recorded"):
+            lines.append(f"• you said *{e['data']['stance']}* "
+                         f"{e['data'].get('confidence')}/5 on "
+                         f"{e['data']['symbol']}")
+
+        orders = of("order")
+        for e in orders:
+            why = next((p["data"].get("rationale", "") for p in of("proposal")
+                        if p.get("correlation_id") == e.get("correlation_id")
+                        and p["data"].get("symbol") == e["data"].get("symbol")), "")
+            lines.append(f"• BOUGHT *{e['data']['symbol']}* — {why[:200]}")
+
+        # Refusals are the interesting half: this is a system designed to say no.
+        refusals: dict[str, int] = {}
+        for e in of("guardrail") + of("view_gate"):
+            if e["event"] == "view_gate" or not e["data"].get("allowed", True):
+                reason = str(e["data"].get("reason", "")).split(":")[0]
+                refusals[reason] = refusals.get(reason, 0) + 1
+        for reason, n in sorted(refusals.items(), key=lambda kv: -kv[1]):
+            lines.append(f"• declined {n}x — {reason}")
+
+        if not orders:
+            lines += ["", "No trades. That is a normal day for this agent: it "
+                      "needs a catalyst, your view on it, and room inside every "
+                      "limit before it buys anything."]
+        return "\n".join(lines)
+
     def chain_for_order(self, broker_order_id: str) -> list[dict]:
         """Every step that led to one order, oldest first."""
         entries = list(self._entries())

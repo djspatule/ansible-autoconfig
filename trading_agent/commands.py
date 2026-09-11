@@ -20,7 +20,7 @@ class CommandResult:
     handled: bool = True
 
 
-def handle_command(text: str, *, state, on_halt=None) -> CommandResult:
+def handle_command(text: str, *, state, on_halt=None, journal=None) -> CommandResult:
     """Handle one operator command.
 
     `on_halt` runs AFTER the kill switch is set, never before. Cancelling open
@@ -63,8 +63,16 @@ def handle_command(text: str, *, state, on_halt=None) -> CommandResult:
             f"{len(state.pending_approvals())} pending"
         )
 
+    if cmd in ("/today", "/report"):
+        if journal is None:
+            return CommandResult("No journal available.")
+        import datetime as _dt
+
+        day = _dt.datetime.now(_dt.timezone.utc).date().isoformat()
+        return CommandResult(journal(day))
+
     if cmd == "/help":
-        return CommandResult("/stop  /resume  /status  /help")
+        return CommandResult("/stop  /resume  /status  /today  /help")
 
     if cmd.startswith("/"):
         # A mistyped command must not be parsed as an answer to the open
